@@ -9,9 +9,33 @@ This DAG demonstrates:
 """
 
 from datetime import datetime, timedelta
+from typing import TypedDict
 
 from airflow.providers.standard.operators.bash import BashOperator
 from airflow.sdk import dag, task
+
+
+# TypedDict definitions for structured data
+class ExtractedData(TypedDict):
+    """Data structure returned by the extract task"""
+    name: str
+    version: str
+    features: list[str]
+
+
+class TransformedData(TypedDict):
+    """Data structure returned by the transform task"""
+    project: str
+    version: str
+    feature_count: int
+    features_uppercase: list[str]
+
+
+class Statistics(TypedDict):
+    """Statistics data structure"""
+    total_tasks: int
+    execution_date: str
+    status: str
 
 
 # Default arguments for the DAG
@@ -34,19 +58,19 @@ default_args = {
     catchup=False,
     tags=["demo", "taskflow"],
 )
-def demo_taskflow():
+def demo_taskflow() -> None:
     """
     Demo DAG definition using TaskFlow API
     """
 
     # TaskFlow task: Extract data
     @task()
-    def extract():
+    def extract() -> ExtractedData:
         """
         Extract task - simulates data extraction
         Returns a dictionary that will be passed to the next task
         """
-        data = {
+        data: ExtractedData = {
             "name": "Airflow",
             "version": "3.1.0",
             "features": ["TaskFlow API", "Dynamic DAGs", "Data-aware scheduling"],
@@ -56,11 +80,11 @@ def demo_taskflow():
 
     # TaskFlow task: Transform data
     @task()
-    def transform(data: dict):
+    def transform(data: ExtractedData) -> TransformedData:
         """
         Transform task - processes the data from extract task
         """
-        transformed = {
+        transformed: TransformedData = {
             "project": data["name"],
             "version": data["version"],
             "feature_count": len(data["features"]),
@@ -71,7 +95,7 @@ def demo_taskflow():
 
     # TaskFlow task: Load data
     @task()
-    def load(data: dict):
+    def load(data: TransformedData) -> str:
         """
         Load task - simulates loading data to a destination
         """
@@ -84,7 +108,7 @@ def demo_taskflow():
 
     # TaskFlow task: Multiple outputs example
     @task(multiple_outputs=True)
-    def get_statistics():
+    def get_statistics() -> Statistics:
         """
         Demonstrates a task with multiple outputs
         """
@@ -98,7 +122,7 @@ def demo_taskflow():
 
     # TaskFlow task: Summary
     @task()
-    def print_summary(load_result: str, stats: dict):
+    def print_summary(load_result: str, stats: Statistics) -> None:
         """
         Final task that summarizes the DAG execution
         """

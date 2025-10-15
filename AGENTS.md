@@ -102,7 +102,11 @@ my_dag()
 ## Code Quality Configuration
 
 - **ruff.toml**: Linting rules (based on pyflakes, pycodestyle, isort, etc.)
-- **mypy.ini**: Type checking configuration with Airflow-specific ignores
+- **mypy.ini**: Type checking with **strict mode** enabled. When writing code:
+  - Add type annotations to all function parameters and return values
+  - Use explicit `Optional[T]` instead of implicit optionals
+  - Avoid `Any` types without justification
+  - Airflow decorators (`@task`, `@dag`) are exempt from untyped decorator checks
 - Both tools are pre-configured for Airflow development patterns
 
 When linter/type checker fails, address issues or add `# type: ignore` / `# noqa` comments with justification.
