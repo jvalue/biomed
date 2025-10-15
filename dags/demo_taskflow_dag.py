@@ -18,6 +18,7 @@ from airflow.sdk import dag, task
 # TypedDict definitions for structured data
 class ExtractedData(TypedDict):
     """Data structure returned by the extract task"""
+
     name: str
     version: str
     features: list[str]
@@ -25,6 +26,7 @@ class ExtractedData(TypedDict):
 
 class TransformedData(TypedDict):
     """Data structure returned by the transform task"""
+
     project: str
     version: str
     feature_count: int
@@ -33,6 +35,7 @@ class TransformedData(TypedDict):
 
 class Statistics(TypedDict):
     """Statistics data structure"""
+
     total_tasks: int
     execution_date: str
     status: str
