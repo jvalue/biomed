@@ -9,8 +9,9 @@ This DAG demonstrates:
 """
 
 from datetime import datetime, timedelta
-from airflow.sdk import dag, task
+
 from airflow.providers.standard.operators.bash import BashOperator
+from airflow.sdk import dag, task
 
 
 # Default arguments for the DAG
@@ -48,7 +49,7 @@ def demo_taskflow():
         data = {
             "name": "Airflow",
             "version": "3.1.0",
-            "features": ["TaskFlow API", "Dynamic DAGs", "Data-aware scheduling"]
+            "features": ["TaskFlow API", "Dynamic DAGs", "Data-aware scheduling"],
         }
         print(f"Extracted data: {data}")
         return data
@@ -63,7 +64,7 @@ def demo_taskflow():
             "project": data["name"],
             "version": data["version"],
             "feature_count": len(data["features"]),
-            "features_uppercase": [f.upper() for f in data["features"]]
+            "features_uppercase": [f.upper() for f in data["features"]],
         }
         print(f"Transformed data: {transformed}")
         return transformed
@@ -74,7 +75,7 @@ def demo_taskflow():
         """
         Load task - simulates loading data to a destination
         """
-        print(f"Loading data to destination...")
+        print("Loading data to destination...")
         print(f"Project: {data['project']}")
         print(f"Version: {data['version']}")
         print(f"Total features: {data['feature_count']}")
@@ -87,11 +88,7 @@ def demo_taskflow():
         """
         Demonstrates a task with multiple outputs
         """
-        return {
-            "total_tasks": 5,
-            "execution_date": datetime.now().isoformat(),
-            "status": "running"
-        }
+        return {"total_tasks": 5, "execution_date": datetime.now().isoformat(), "status": "running"}
 
     # Traditional BashOperator (can be mixed with TaskFlow)
     print_date = BashOperator(
@@ -124,7 +121,7 @@ def demo_taskflow():
     # Set dependencies
     # print_date runs first, then the ETL pipeline, then the summary
     print_date >> extracted_data
-    summary = print_summary(load_result, stats)
+    print_summary(load_result, stats)
 
 
 # Instantiate the DAG

@@ -41,3 +41,12 @@ Thumbs.db
 
 # Environment
 .env.local
+
+# Linting and type checking
+.ruff_cache/
+.mypy_cache/
+.pytest_cache/
+
+# Airflow specific
+plugins/
+config/airflow.cfg
