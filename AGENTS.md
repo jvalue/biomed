@@ -24,9 +24,13 @@ This file provides guidance for AI agents when working with code in this reposit
 - `redis` - Celery message broker (Redis 7.2)
 
 **Directory Structure**:
+- `src/jvalue_biomed/` - Reusable Python package for biomedical data utilities (installed in containers)
+  - `crawlers/` - Crawling utilities (FTP, HTTP, API clients)
+  - `parsers/` - Data format parsers (GenBank, FASTA, PubMed XML, etc.)
 - `dags/` - DAG definitions for biomedical data pipelines (mounted as volume to containers)
+- `tests/` - Unit tests for the jvalue_biomed package (pytest)
 - `logs/` - Airflow execution logs
-- `plugins/` - Custom Airflow plugins (biomedical data parsers, connectors)
+- `plugins/` - Custom Airflow plugins (operators, sensors, hooks specific to Airflow)
 - `config/` - Airflow configuration files
 
 **Data Flow**: DAG files in `dags/` define biomedical data pipelines that are automatically detected by the dag-processor, scheduled by the scheduler, and executed by workers. Typical workflow:
@@ -56,10 +60,15 @@ make airflow tasks list <dag_id> # List tasks in a DAG
 
 # Code quality (run before commits)
 make check                   # Run linter + type checker
-make lint                    # Ruff linter
-make type-check              # Mypy static type checking
+make lint                    # Ruff linter (checks src/ and dags/)
+make type-check              # Mypy static type checking (checks src/ and dags/)
 make format                  # Auto-format code
 make fix                     # Auto-fix linting issues
+
+# Testing
+make test                    # Run all tests (unit + DAG integrity)
+make test-unit               # Run pytest unit tests only
+make test-dags               # Validate DAG integrity only
 
 # Generic Airflow CLI access
 make airflow <any-command>   # Execute any Airflow CLI command
@@ -75,6 +84,8 @@ make airflow <any-command>   # Execute any Airflow CLI command
 ```python
 from airflow.sdk import dag, task
 from datetime import datetime
+from jvalue_biomed.crawlers.ncbi import fetch_pubmed_ids  # Import from package
+from jvalue_biomed.parsers.pubmed import parse_pubmed_xml
 
 @dag(
     dag_id="ncbi_pubmed_crawler",
@@ -86,8 +97,8 @@ from datetime import datetime
 def pubmed_crawler():
     @task()
     def fetch_article_ids(search_term: str = "COVID-19") -> list[str]:
-        # Fetch from NCBI E-utilities API
-        return ["123456", "789012"]
+        # Use utility from jvalue_biomed package
+        return fetch_pubmed_ids(search_term)
 
     @task()
     def download_articles(article_ids: list[str]) -> list[dict]:
@@ -115,21 +126,62 @@ pubmed_crawler()
 - Use `>>` for explicit dependencies between tasks
 - Tag DAGs with biomedical source names (e.g., `tags=["ncbi", "genbank", "crawler"]`)
 - Use descriptive DAG IDs that indicate the data source and operation
+- **Import reusable utilities from `jvalue_biomed` package** (e.g., `from jvalue_biomed.crawlers.ftp import parse_ftp_list_item`)
 
 **After creating/modifying DAGs**:
 1. Run `make check` to validate syntax and types
-2. Run `make refresh` to reload DAGs in Airflow
-3. Check web UI at http://localhost:8080 (credentials: airflow/airflow)
+2. Run `make test` to run unit tests and validate DAG integrity
+3. Run `make refresh` to reload DAGs in Airflow
+4. Check web UI at http://localhost:8080 (credentials: airflow/airflow)
+
+## Package Development Guidelines
+
+**When to add code to `src/jvalue_biomed/` vs DAG files:**
+- ✅ **Add to package**: Reusable utilities, parsers, API clients, data transformations
+- ❌ **Keep in DAG**: Airflow-specific logic, task orchestration, scheduling logic
+
+**Structure for new utilities:**
+```
+src/jvalue_biomed/
+├── crawlers/          # For fetching data from external sources
+│   ├── ftp.py         # FTP utilities
+│   ├── ncbi.py        # NCBI API clients
+│   └── ebi.py         # EBI API clients
+└── parsers/           # For parsing biomedical data formats
+    ├── genbank.py     # GenBank format parser
+    ├── fasta.py       # FASTA format parser
+    └── pubmed.py      # PubMed XML parser
+```
+
+**After adding new utilities to the package:**
+1. Write unit tests in `tests/` (e.g., `tests/test_ncbi.py`)
+2. Run `make test-unit` to verify tests pass
+3. Run `make check` to validate code quality
+4. **Rebuild Docker containers** with `docker compose build` (package is baked into image)
+5. Restart containers with `make down && make up`
+
+**For local development without Docker:**
+- The package is installed in editable mode via `make install-dev`
+- Changes to package code are immediately available (no rebuild needed)
+- Changes to DAGs are auto-detected by Airflow (just run `make refresh`)
 
 ## Code Quality Configuration
 
-- **ruff.toml**: Linting rules (based on pyflakes, pycodestyle, isort, etc.)
-- **mypy.ini**: Type checking with **strict mode** enabled. When writing code:
-  - Add type annotations to all function parameters and return values
-  - Use explicit `Optional[T]` instead of implicit optionals
-  - Avoid `Any` types without justification
+All configuration is centralized in **pyproject.toml**:
+
+- **[tool.ruff]**: Linting rules (based on pyflakes, pycodestyle, isort, etc.)
+  - Checks both `src/jvalue_biomed/` and `dags/` directories
+  - Configured for biomedical data processing patterns
+- **[tool.mypy]**: Type checking with **strict mode** enabled
+  - Checks both `src/jvalue_biomed/` and `dags/` directories
   - Airflow decorators (`@task`, `@dag`) are exempt from untyped decorator checks
-- Both tools are pre-configured for Airflow development patterns
+  - When writing code:
+    - Add type annotations to all function parameters and return values
+    - Use explicit `Optional[T]` instead of implicit optionals
+    - Avoid `Any` types without justification
+- **[tool.pytest]**: Test configuration
+  - Test directory: `tests/`
+  - Coverage reporting enabled for `src/jvalue_biomed/`
 
 When linter/type checker fails, address issues or add `# type: ignore` / `# noqa` comments with justification.
 
@@ -161,5 +213,15 @@ docker compose exec airflow-worker bash
 **Import errors in DAGs**: Ensure imports use correct paths:
 - `from airflow.sdk import dag, task` (not `from airflow.decorators`)
 - `from airflow.providers.standard.operators.bash import BashOperator` (not `from airflow.operators.bash`)
+- `from jvalue_biomed.crawlers.ftp import parse_ftp_list_item` (package imports)
+
+**"Module not found" for jvalue_biomed**: The package is installed in Docker containers via the Dockerfile.
+- For local development: Run `make install-dev` to install the package in editable mode
+- For Docker: Rebuild containers with `docker compose build` after modifying the package
 
 **Containers unhealthy**: Check logs with `make logs`. Services depend on postgres/redis being healthy first. May need `make down && make up` to restart.
+
+**Package changes not reflected in Airflow**: After modifying code in `src/jvalue_biomed/`:
+1. Rebuild Docker image: `docker compose build`
+2. Restart services: `make down && make up`
+3. Note: DAG changes don't require rebuild, just `make refresh`

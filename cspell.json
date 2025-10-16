@@ -17,7 +17,18 @@
     "pyproject",
     "mypy",
     "pytest",
-    "pycache"
+    "pycache",
+    "apiserver",
+    "triggerer",
+    "reserialize",
+    "reserializes",
+    "taskflow",
+    "pmid",
+    "pyflakes",
+    "pycodestyle",
+    "isort",
+    "noqa",
+    "Pythonic"
   ],
   "ignorePaths": [
     "node_modules",

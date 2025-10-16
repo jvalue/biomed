@@ -16,15 +16,20 @@ Open biomedical data crawler and cleaner powered by Apache Airflow. This project
 # Download docker-compose.yaml and initialize database
 make init
 
+# Build custom Docker image with jvalue_biomed package
+docker compose build
+
 # Start Airflow services
 make up
 
-# Install development tools (linting, type checking)
+# Install development tools (linting, type checking, testing)
 make install-dev
 ```
 
 Access the web UI at **http://localhost:8080**
 Default credentials: `airflow` / `airflow`
+
+**Note:** The project uses a custom Docker image that includes the `jvalue_biomed` package. The first build may take a few minutes.
 
 ## Development Workflow
 
@@ -32,9 +37,19 @@ Default credentials: `airflow` / `airflow`
 
 1. Create your DAG file in `dags/` directory
 2. Use the TaskFlow API for Pythonic DAG definitions
-3. Run linting and type checking:
+3. Import utilities from `jvalue_biomed` package as needed:
+   ```python
+   from jvalue_biomed.crawlers.ftp import parse_ftp_list_item
+   from jvalue_biomed.parsers.genbank import parse_genbank_record
+   ```
+4. Run linting, type checking, and tests:
    ```bash
-   make check
+   make check  # Lint + type check
+   make test   # Run all tests
+   ```
+5. Reload DAGs in Airflow:
+   ```bash
+   make refresh
    ```
 
 ### Managing DAGs
@@ -57,23 +72,55 @@ make airflow dags trigger demo_taskflow_dag
 make refresh
 ```
 
+### Developing Reusable Package Code
+
+1. Add utilities to `src/jvalue_biomed/`:
+   - `crawlers/` - For data fetching (FTP, HTTP, APIs)
+   - `parsers/` - For parsing biomedical formats
+2. Write unit tests in `tests/`:
+   ```bash
+   make test-unit
+   ```
+3. After modifying package code, rebuild Docker containers:
+   ```bash
+   docker compose build
+   make down && make up
+   ```
+
+**Note:** DAG changes don't require rebuilding, but package changes do since the package is installed in the Docker image.
+
 ### Code Quality
 
+All commands check both `src/` (package) and `dags/` directories:
+
 ```bash
-# Run linter
+# Run linter (checks src/ and dags/)
 make lint
 
 # Auto-format code
 make format
 
-# Type check
+# Type check (checks src/ and dags/)
 make type-check
 
-# Run all checks
+# Run all checks (lint + type-check)
 make check
 
 # Auto-fix issues
 make fix
+```
+
+### Testing
+
+```bash
+# Run all tests (unit + DAG integrity)
+make test
+
+# Run only unit tests (pytest)
+make test-unit
+
+# Run only DAG integrity tests
+make test-dags
 ```
 
 ## Common Commands
@@ -87,7 +134,10 @@ make fix
 | `make logs` | Follow all logs |
 | `make logs-scheduler` | Follow scheduler logs |
 | `make refresh` | Reload DAGs |
+| `make check` | Run linter + type checker |
+| `make test` | Run all tests |
 | `make airflow <cmd>` | Execute any Airflow CLI command |
+| `docker compose build` | Rebuild Docker image (after package changes) |
 
 ## Project Structure
 
@@ -160,6 +210,7 @@ Current and planned biomedical data sources:
 make down
 make clean  # Warning: removes all data
 make init
+docker compose build
 make up
 ```
 
@@ -172,9 +223,30 @@ make airflow dags list-import-errors
 make refresh
 ```
 
+### "Module not found: jvalue_biomed"
+The package needs to be installed:
+```bash
+# For Docker containers (most common):
+docker compose build
+make down && make up
+
+# For local development:
+make install-dev
+```
+
+### Package changes not reflected in Airflow
+After modifying code in `src/jvalue_biomed/`, rebuild the Docker image:
+```bash
+docker compose build
+make down && make up
+```
+
+**Note:** DAG changes don't require rebuilding - just run `make refresh`.
+
 ### Reset everything
 ```bash
 make clean  # Removes all containers and volumes
 make init   # Reinitialize
+docker compose build  # Rebuild with package
 make up     # Start fresh
 ```
