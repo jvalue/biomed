@@ -63,7 +63,7 @@ init:
 
 install-dev:
 	@echo "Installing development dependencies..."
-	@pip3 install ruff mypy types-requests apache-airflow-stubs
+	@pip3 install -r requirements-dev.txt
 	@echo "Development dependencies installed!"
 
 # === Container Management ===
