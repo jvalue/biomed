@@ -93,17 +93,33 @@ make fix
 
 ```
 .
+├── src/jvalue_biomed/          # Reusable Python package
+│   ├── crawlers/               # Crawling utilities (FTP, HTTP, APIs)
+│   └── parsers/                # Data format parsers (GenBank, FASTA, etc.)
 ├── dags/                       # DAG definitions
-│   └── demo_taskflow_dag.py   # Example TaskFlow DAG
+│   ├── demo_taskflow_dag.py   # Example TaskFlow DAG
+│   └── genbank_ftp_crawler.py # GenBank FTP crawler
+├── tests/                      # Package tests (pytest)
 ├── logs/                       # Airflow logs
-├── plugins/                    # Custom Airflow plugins
+├── plugins/                    # Custom Airflow plugins (operators, sensors)
 ├── config/                     # Airflow configuration
+├── Dockerfile                  # Custom Airflow image with local package
 ├── docker-compose.yaml         # Docker services definition
-├── Makefile                    # Utility commands
-├── ruff.toml                   # Linting configuration
-├── mypy.ini                    # Type checking configuration
-└── requirements-dev.txt        # Development dependencies
+├── pyproject.toml              # Package definition + tool configs (ruff, mypy, pytest)
+├── cspell.json                 # Spell checker configuration
+└── Makefile                    # Utility commands
 ```
+
+### Package Usage
+
+DAGs can import reusable utilities from the `jvalue_biomed` package:
+
+```python
+from jvalue_biomed.crawlers.ftp import parse_ftp_list_item
+from jvalue_biomed.parsers.genbank import parse_genbank_record
+```
+
+The package is automatically installed in Docker containers via the custom Dockerfile.
 
 ## Data Sources
 

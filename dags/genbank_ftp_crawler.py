@@ -13,32 +13,10 @@ from typing import Any
 
 from airflow.sdk import dag, task
 
+from jvalue_biomed.crawlers.ftp import parse_ftp_list_item
+
 
 logger = logging.getLogger(__name__)
-
-
-def _parse_ftp_list_item(item: str) -> tuple[str, str] | None:
-    """
-    Parse a single item from FTP LIST command output.
-
-    Args:
-        item: A line from FTP LIST output
-
-    Returns:
-        Tuple of (permissions, name) or None if parsing fails
-    """
-    parts = item.split(None, 8)
-    if len(parts) < 9:
-        return None
-
-    permissions = parts[0]
-    name = parts[8]
-
-    # Skip current and parent directory references
-    if name in (".", ".."):
-        return None
-
-    return permissions, name
 
 
 @dag(
@@ -97,7 +75,7 @@ def genbank_ftp_crawler() -> None:
                     return
 
                 for item in items:
-                    parsed = _parse_ftp_list_item(item)
+                    parsed = parse_ftp_list_item(item)
                     if parsed is None:
                         continue
 

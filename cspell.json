@@ -1,0 +1,33 @@
+{
+  "version": "0.2",
+  "language": "en",
+  "words": [
+    "jvalue",
+    "biomed",
+    "biomedical",
+    "genbank",
+    "pubmed",
+    "ncbi",
+    "fasta",
+    "fastq",
+    "drwxr",
+    "lrwxrwxrwx",
+    "airflow",
+    "celery",
+    "pyproject",
+    "mypy",
+    "pytest",
+    "pycache"
+  ],
+  "ignorePaths": [
+    "node_modules",
+    ".git",
+    ".mypy_cache",
+    ".ruff_cache",
+    ".pytest_cache",
+    "__pycache__",
+    "*.pyc",
+    "logs",
+    "*.log"
+  ]
+}

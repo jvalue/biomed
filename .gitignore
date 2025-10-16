@@ -12,6 +12,14 @@ venv/
 ENV/
 env/
 
+# Python packaging artifacts
+*.egg-info/
+*.egg
+dist/
+build/
+.eggs/
+*.whl
+
 # uv
 .uv/
 uv.lock
@@ -49,7 +57,12 @@ Thumbs.db
 .ruff_cache/
 .mypy_cache/
 .pytest_cache/
+htmlcov/
+.coverage
+.coverage.*
+coverage.xml
+*.cover
 
 # Airflow specific
-plugins/
 config/airflow.cfg
+# Note: plugins/ directory IS tracked - add custom plugins here

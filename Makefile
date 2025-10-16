@@ -1,4 +1,4 @@
-.PHONY: help up down restart logs clean init test lint format type-check install-dev airflow refresh check fix test-dags
+.PHONY: help up down restart logs clean init test lint format type-check install-dev airflow refresh check fix test-dags test-unit
 
 # Default target
 help:
@@ -40,7 +40,8 @@ help:
 	@echo "  make fix           - Auto-fix issues (format + lint --fix)"
 	@echo ""
 	@echo "Testing:"
-	@echo "  make test          - Run all DAG tests"
+	@echo "  make test          - Run all tests (unit + DAG integrity)"
+	@echo "  make test-unit     - Run unit tests (pytest)"
 	@echo "  make test-dags     - Validate DAG integrity (import tests)"
 	@echo ""
 	@echo "Web UI:"
@@ -63,8 +64,8 @@ init:
 
 install-dev:
 	@echo "Installing development dependencies..."
-	@pip3 install -r requirements-dev.txt
-	@echo "Development dependencies installed!"
+	@pip3 install -e ".[dev]"
+	@echo "Development dependencies and local package installed!"
 
 # === Container Management ===
 
@@ -139,29 +140,33 @@ refresh:
 # === Code Quality ===
 
 lint:
-	@echo "Running ruff linter on DAG files..."
-	@ruff check dags/
+	@echo "Running ruff linter on source and DAG files..."
+	@ruff check src/ dags/
 
 format:
-	@echo "Formatting DAG files with ruff..."
-	@ruff format dags/
+	@echo "Formatting source and DAG files with ruff..."
+	@ruff format src/ dags/
 
 type-check:
-	@echo "Running mypy type checker on DAG files..."
-	@mypy dags/ --ignore-missing-imports --no-strict-optional
+	@echo "Running mypy type checker on source and DAG files..."
+	@mypy src/ dags/
 
 check: lint type-check
 	@echo "All checks completed!"
 
 fix: format
 	@echo "Auto-fixing linting issues..."
-	@ruff check dags/ --fix
+	@ruff check src/ dags/ --fix
 	@echo "Auto-fix completed!"
 
 # === Testing ===
 
-test: test-dags
+test: test-unit test-dags
 	@echo "All tests completed!"
+
+test-unit:
+	@echo "Running unit tests with pytest..."
+	@pytest tests/ -v
 
 test-dags:
 	@echo "Validating DAG integrity..."
