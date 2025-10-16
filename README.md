@@ -1,6 +1,6 @@
-# Airflow Experiments
+# JValue BioMed
 
-Apache Airflow project for experimenting with workflow orchestration using the TaskFlow API.
+Open biomedical data crawler and cleaner powered by Apache Airflow. This project orchestrates data pipelines for crawling, processing, and cleaning biomedical datasets from sources like NCBI, EBI, and other open data repositories.
 
 ## Quick Start
 
@@ -105,19 +105,37 @@ make fix
 └── requirements-dev.txt        # Development dependencies
 ```
 
-## Example DAG
+## Data Sources
 
-See `dags/demo_taskflow_dag.py` for a complete example using:
-- TaskFlow API with `@task` decorators
-- Data passing between tasks via XCom
-- Mixed traditional and TaskFlow operators
-- Task dependencies
+Current and planned biomedical data sources:
+
+- **NCBI** - National Center for Biotechnology Information
+  - GenBank (DNA sequences) - `genbank_ftp_crawler.py`
+  - PubMed (literature)
+  - RefSeq (reference sequences)
+- **EBI** - European Bioinformatics Institute
+  - ENA (European Nucleotide Archive)
+  - UniProt (protein sequences)
+- **Additional sources**
+  - PDB (Protein Data Bank)
+  - ChEMBL (bioactive molecules)
+
+## Example DAGs
+
+- `dags/genbank_ftp_crawler.py` - Crawls NCBI GenBank FTP server for sequence files
 
 ## Useful Resources
 
+**Airflow Documentation:**
 - [Apache Airflow Documentation](https://airflow.apache.org/docs/apache-airflow/stable/index.html)
 - [TaskFlow API Tutorial](https://airflow.apache.org/docs/apache-airflow/stable/tutorial/taskflow.html)
 - [Airflow Best Practices](https://airflow.apache.org/docs/apache-airflow/stable/best-practices.html)
+
+**Biomedical Data Sources:**
+- [NCBI FTP Site](https://ftp.ncbi.nlm.nih.gov/)
+- [EBI Data Services](https://www.ebi.ac.uk/services)
+- [NCBI E-utilities API](https://www.ncbi.nlm.nih.gov/books/NBK25501/)
+- [UniProt REST API](https://www.uniprot.org/help/api)
 
 ## Troubleshooting
 

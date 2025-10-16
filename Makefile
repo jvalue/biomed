@@ -2,8 +2,8 @@
 
 # Default target
 help:
-	@echo "Apache Airflow Project - Available Commands"
-	@echo "==========================================="
+	@echo "JValue BioMed - Biomedical Data Pipeline"
+	@echo "========================================="
 	@echo ""
 	@echo "Setup & Installation:"
 	@echo "  make init          - Initialize Airflow (download compose file, create dirs, init DB)"
