@@ -5,15 +5,17 @@ This DAG connects to the NCBI GenBank FTP server, recursively traverses
 all subdirectories, and collects paths to all files ending with .seq.gz.
 """
 
-import contextlib
 import logging
 from datetime import datetime
-from ftplib import FTP
 from typing import Any
 
 from airflow.sdk import dag, task
 
-from jvalue_biomed.crawlers.ftp import parse_ftp_list_item
+from jvalue_biomed.crawlers.ftp import (
+    filter_by_extension,
+    ftp_connect,
+    ftp_crawl_recursive,
+)
 
 
 logger = logging.getLogger(__name__)
@@ -36,72 +38,18 @@ def genbank_ftp_crawler() -> None:
         Recursively crawl the GenBank FTP server and collect all .seq.gz file paths.
 
         Returns:
-            List of file paths (relative to /genbank/) ending with .seq.gz
+            List of absolute file paths ending with .seq.gz
         """
         ftp_host = "ftp.ncbi.nlm.nih.gov"
-        base_path = "/genbank"
+        start_path = "/genbank"
         target_extension = ".seq.gz"
 
-        found_files: list[str] = []
+        # Create filter for .seq.gz files
+        file_filter = filter_by_extension(target_extension)
 
-        logger.info(f"Connecting to FTP server: {ftp_host}")
-
-        with FTP(ftp_host) as ftp:
-            # Anonymous login
-            ftp.login()
-            logger.info(f"Connected to {ftp_host}")
-
-            def crawl_directory(path: str) -> None:
-                """
-                Recursively crawl a directory on the FTP server.
-
-                Args:
-                    path: Current directory path to crawl
-                """
-                logger.info(f"Crawling directory: {path}")
-
-                try:
-                    ftp.cwd(path)
-                except Exception as e:
-                    logger.warning(f"Cannot access directory {path}: {e}")
-                    return
-
-                items: list[str] = []
-                try:
-                    # List directory contents
-                    ftp.retrlines("LIST", items.append)
-                except Exception as e:
-                    logger.error(f"Error listing directory {path}: {e}")
-                    return
-
-                for item in items:
-                    parsed = parse_ftp_list_item(item)
-                    if parsed is None:
-                        continue
-
-                    permissions, name = parsed
-                    full_path = f"{path}/{name}" if path != "/" else f"/{name}"
-
-                    # Check if it's a directory
-                    if permissions.startswith("d"):
-                        # Recursively crawl subdirectory
-                        crawl_directory(full_path)
-                        # Return to current directory after recursion
-                        with contextlib.suppress(Exception):
-                            ftp.cwd(path)
-                    elif permissions.startswith("-"):
-                        # It's a file - check if it matches our criteria
-                        if name.endswith(target_extension):
-                            # Store relative path from base_path
-                            relative_path = full_path[len(base_path) :].lstrip("/")
-                            found_files.append(relative_path)
-                            logger.info(f"Found: {relative_path}")
-
-            # Start crawling from base_path
-            crawl_directory(base_path)
-
-        logger.info(f"Crawl complete. Found {len(found_files)} .seq.gz files")
-        return found_files
+        # Connect to FTP server and crawl recursively
+        with ftp_connect(ftp_host) as ftp:
+            return ftp_crawl_recursive(ftp, start_path, file_filter)
 
     @task()
     def log_results(files: list[str]) -> dict[str, Any]:
