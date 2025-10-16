@@ -157,8 +157,13 @@ src/jvalue_biomed/
 1. Write unit tests in `tests/` (e.g., `tests/test_ncbi.py`)
 2. Run `make test-unit` to verify tests pass
 3. Run `make check` to validate code quality
-4. **Rebuild Docker containers** with `docker compose build` (package is baked into image)
-5. Restart containers with `make down && make up`
+4. Run `make refresh` to reload DAGs (no rebuild needed!)
+
+**Why no rebuild is needed:**
+- The `src/` directory is mounted as a Docker volume (like `dags/`)
+- The package is installed in editable mode, so Python reads directly from the mounted source
+- Changes to package code are immediately available in all containers
+- This provides the same fast iteration loop as local development
 
 **For local development without Docker:**
 - The package is installed in editable mode via `make install-dev`
@@ -217,11 +222,8 @@ docker compose exec airflow-worker bash
 
 **"Module not found" for jvalue_biomed**: The package is installed in Docker containers via the Dockerfile.
 - For local development: Run `make install-dev` to install the package in editable mode
-- For Docker: Rebuild containers with `docker compose build` after modifying the package
+- For Docker: The package is installed in editable mode with `src/` mounted as a volume - no rebuild needed!
 
 **Containers unhealthy**: Check logs with `make logs`. Services depend on postgres/redis being healthy first. May need `make down && make up` to restart.
 
-**Package changes not reflected in Airflow**: After modifying code in `src/jvalue_biomed/`:
-1. Rebuild Docker image: `docker compose build`
-2. Restart services: `make down && make up`
-3. Note: DAG changes don't require rebuild, just `make refresh`
+**Package changes not reflected in Airflow**: Simply run `make refresh` to reload DAGs. No rebuild needed since `src/` is mounted as a volume and the package is installed in editable mode. Changes are immediately available in all containers.
