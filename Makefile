@@ -165,21 +165,7 @@ test: test-dags
 
 test-dags:
 	@echo "Validating DAG integrity..."
-	@python3 -c "import sys; sys.path.insert(0, 'dags'); \
-		import os; \
-		from pathlib import Path; \
-		success = True; \
-		for dag_file in Path('dags').glob('**/*.py'): \
-			if dag_file.name.startswith('_'): continue; \
-			try: \
-				print(f'Testing {dag_file}...'); \
-				with open(dag_file) as f: \
-					compile(f.read(), dag_file, 'exec'); \
-				print(f'✓ {dag_file} is valid'); \
-			except Exception as e: \
-				print(f'✗ {dag_file} failed: {e}'); \
-				success = False; \
-		sys.exit(0 if success else 1)"
+	@python3 scripts/test_dags.py
 
 # === Web UI ===
 
