@@ -4,7 +4,7 @@ images:
   # -- imagePullPolicy to apply to all containers
   pullPolicy: Always
   # -- Secrets with credentials to pull images from a private registry
-  pullSecrets: []
+  pullSecrets: [ ]
   # - name: argo-pull-secret
 
 ## Custom resource configuration
@@ -14,7 +14,7 @@ crds:
   # -- Keep CRDs on chart uninstall
   keep: true
   # -- Annotations to be added to all CRDs
-  annotations: {}
+  annotations: { }
 
 # -- Create ClusterRoles that extend existing ClusterRoles to interact with Argo Workflows CRDs.
 ## Ref: https://kubernetes.io/docs/reference/access-authn-authz/rbac/#aggregated-clusterroles
@@ -31,7 +31,7 @@ fullnameOverride:
 namespaceOverride: ""
 
 # -- Labels to set on all resources
-commonLabels: {}
+commonLabels: { }
 
 # -- Override the Kubernetes version, which is used to evaluate certain manifests
 kubeVersionOverride: ""
@@ -58,13 +58,13 @@ workflow:
     # -- Specifies whether a service account should be created
     create: false
     # -- Labels applied to created service account
-    labels: {}
+    labels: { }
     # -- Annotations applied to created service account
-    annotations: {}
+    annotations: { }
     # -- Service account which is used to run workflows
     name: "argo-workflow"
     # -- Secrets with credentials to pull images from a private registry. Same format as `.Values.images.pullSecrets`
-    pullSecrets: []
+    pullSecrets: [ ]
   rbac:
     # -- Adds Role and RoleBinding for the above specified service account to be able to run workflows.
     # A Role and Rolebinding pair is also created for each namespace in controller.workflowNamespaces (see below)
@@ -74,11 +74,11 @@ workflow:
     # -- Allows permissions for the Argo Artifact GC pod. Only required if using artifact gc
     artifactGC: false
     # -- Extra service accounts to be added to the RoleBinding
-    serviceAccounts: []
-      # - name: my-service-account
-      #   namespace: my-namespace
+    serviceAccounts: [ ]
+    # - name: my-service-account
+    #   namespace: my-namespace
     # -- Additional rules for the service account that runs the workflows.
-    rules: []
+    rules: [ ]
 
 controller:
   image:
@@ -93,15 +93,15 @@ controller:
   # -- Globally limits the rate at which pods are created.
   # This is intended to mitigate flooding of the Kubernetes API server by workflows with a large amount of
   # parallel nodes.
-  resourceRateLimit: {}
-    # limit: 10
-    # burst: 1
+  resourceRateLimit: { }
+  # limit: 10
+  # burst: 1
 
   rbac:
     # -- Adds Role and RoleBinding for the controller.
     create: true
     # -- Allows controller to get, list, and watch certain k8s secrets
-    secretWhitelist: []
+    secretWhitelist: [ ]
     # -- Allows controller to get, list and watch all k8s secrets. Can only be used if secretWhitelist is empty.
     accessAllSecrets: false
     # -- Allows controller to create and update ConfigMaps. Enables memoization feature
@@ -113,20 +113,20 @@ controller:
     # -- ConfigMap name
     name: ""
     # -- ConfigMap annotations
-    annotations: {}
+    annotations: { }
 
   # -- Limits the maximum number of incomplete workflows in a namespace
   namespaceParallelism:
   # -- Resolves ongoing, uncommon AWS EKS bug: https://github.com/argoproj/argo-workflows/pull/4224
   initialDelay:
   # -- deploymentAnnotations is an optional map of annotations to be applied to the controller Deployment
-  deploymentAnnotations: {}
+  deploymentAnnotations: { }
   # -- podAnnotations is an optional map of annotations to be applied to the controller Pods
-  podAnnotations: {}
+  podAnnotations: { }
   # -- Optional labels to add to the controller pods
-  podLabels: {}
+  podLabels: { }
   # -- SecurityContext to set on the controller pods
-  podSecurityContext: {}
+  podSecurityContext: { }
   # podPortName: http
   metricsConfig:
     # -- Enables prometheus metrics server
@@ -158,13 +158,13 @@ controller:
     honorLabels: false
     # -- ServiceMonitor relabel configs to apply to samples before scraping
     ## Ref: https://github.com/prometheus-operator/prometheus-operator/blob/main/Documentation/api.md#relabelconfig
-    relabelings: []
+    relabelings: [ ]
     # -- ServiceMonitor metric relabel configs to apply to samples before ingestion
     ## Ref: https://github.com/prometheus-operator/prometheus-operator/blob/main/Documentation/api.md#endpoint
-    metricRelabelings: []
+    metricRelabelings: [ ]
     # -- ServiceMonitor will add labels from the service to the Prometheus metric
     ## Ref: https://github.com/prometheus-operator/prometheus-operator/blob/main/Documentation/api.md#servicemonitorspec
-    targetLabels: []
+    targetLabels: [ ]
 
   # -- the controller container's securityContext
   securityContext:
@@ -176,7 +176,7 @@ controller:
         - ALL
   # -- enable Workflow Archive to store the status of workflows. Postgres and MySQL (>= 5.7.8) are available.
   ## Ref: https://argo-workflows.readthedocs.io/en/stable/workflow-archive/
-  persistence: {}
+  persistence: { }
   # connectionPool:
   #   maxIdleConns: 100
   #   maxOpenConns: 0
@@ -215,7 +215,7 @@ controller:
   # -- Default values that will apply to all Workflows from this controller, unless overridden on the Workflow-level.
   # Only valid for 2.7+
   ## See more: https://argo-workflows.readthedocs.io/en/stable/default-workflow-specs/
-  workflowDefaults: {}
+  workflowDefaults: { }
   #   spec:
   #     ttlStrategy:
   #       secondsAfterCompletion: 86400
@@ -235,8 +235,8 @@ controller:
   cronWorkflowWorkers: # 8
   # -- Restricts the Workflows that the controller will process.
   # Only valid for 2.9+
-  workflowRestrictions: {}
-    # templateReferencing: Strict|Secure
+  workflowRestrictions: { }
+  # templateReferencing: Strict|Secure
 
   # telemetryConfig controls the path and port for prometheus telemetry. Telemetry is enabled and emitted in the same endpoint
   # as metrics by default, but can be overridden using this config.
@@ -265,7 +265,7 @@ controller:
     # -- Enable a prometheus ServiceMonitor
     enabled: false
     # -- Prometheus ServiceMonitor labels
-    additionalLabels: {}
+    additionalLabels: { }
     # -- Prometheus ServiceMonitor namespace
     namespace: "" # "monitoring"
 
@@ -275,9 +275,9 @@ controller:
     # -- Service account name
     name: ""
     # -- Labels applied to created service account
-    labels: {}
+    labels: { }
     # -- Annotations applied to created service account
-    annotations: {}
+    annotations: { }
 
   # -- Workflow controller name string
   name: workflow-controller
@@ -316,14 +316,14 @@ controller:
   serviceAnnotations: {
   }
   # -- Optional labels to add to the controller Service
-  serviceLabels: {}
+  serviceLabels: { }
   # -- The class of the load balancer implementation
   loadBalancerClass: ""
   # -- Source ranges to allow access to service from. Only applies to service type `LoadBalancer`
-  loadBalancerSourceRanges: []
+  loadBalancerSourceRanges: [ ]
 
   # -- Resource limits and requests for the controller
-  resources: {}
+  resources: { }
 
   # -- Configure liveness [probe] for the controller
   # @default -- See [values.yaml]
@@ -337,16 +337,16 @@ controller:
     timeoutSeconds: 30
 
   # -- Extra environment variables to provide to the controller container
-  extraEnv: []
-    # - name: FOO
-    #   value: "bar"
+  extraEnv: [ ]
+  # - name: FOO
+  #   value: "bar"
 
   # -- Extra arguments to be added to the controller
-  extraArgs: []
+  extraArgs: [ ]
   # -- Additional volume mounts to the controller main container
-  volumeMounts: []
+  volumeMounts: [ ]
   # -- Additional volumes to the controller pod
-  volumes: []
+  volumes: [ ]
   # -- The number of controller pods to run
   replicas: 1
   # -- The number of revisions to keep.
@@ -362,14 +362,14 @@ controller:
   nodeSelector:
     kubernetes.io/os: linux
   # -- [Tolerations] for use with node taints
-  tolerations: []
+  tolerations: [ ]
   # -- Assign custom [affinity] rules
-  affinity: {}
+  affinity: { }
 
   # -- Assign custom [TopologySpreadConstraints] rules to the workflow controller
   ## Ref: https://kubernetes.io/docs/concepts/workloads/pods/pod-topology-spread-constraints/
   ## If labelSelector is left out, it will default to the labelSelector configuration of the deployment
-  topologySpreadConstraints: []
+  topologySpreadConstraints: [ ]
   # - maxSkew: 1
   #   topologyKey: topology.kubernetes.io/zone
   #   whenUnsatisfiable: DoNotSchedule
@@ -380,27 +380,27 @@ controller:
 
   # -- Configure Argo Server to show custom [links]
   ## Ref: https://argo-workflows.readthedocs.io/en/stable/links/
-  links: []
+  links: [ ]
   # -- Configure Argo Server to show custom [columns]
   ## Ref: https://github.com/argoproj/argo-workflows/pull/10693
-  columns: []
+  columns: [ ]
   # -- Set ui navigation bar background color
   navColor: ""
   clusterWorkflowTemplates:
     # -- Create a ClusterRole and CRB for the controller to access ClusterWorkflowTemplates.
     enabled: true
     # -- Extra service accounts to be added to the ClusterRoleBinding
-    serviceAccounts: []
-      # - name: my-service-account
-      #   namespace: my-namespace
+    serviceAccounts: [ ]
+    # - name: my-service-account
+    #   namespace: my-namespace
   # -- Extra containers to be added to the controller deployment
-  extraContainers: []
+  extraContainers: [ ]
 
   # -- Enables init containers to be added to the controller deployment
-  extraInitContainers: []
+  extraInitContainers: [ ]
 
   # -- Workflow retention by number of workflows
-  retentionPolicy: {}
+  retentionPolicy: { }
   #  completed: 10
   #  failed: 3
   #  errored: 3
@@ -420,15 +420,15 @@ controller:
   # -- Configure when workflow controller runs in a different k8s cluster with the workflow workloads,
   # or needs to communicate with the k8s apiserver using an out-of-cluster kubeconfig secret.
   # @default -- `{}` (See [values.yaml])
-  kubeConfig: {}
+  kubeConfig: { }
     # # name of the kubeconfig secret, may not be empty when kubeConfig specified
     # secretName: kubeconfig-secret
     # # key of the kubeconfig secret, may not be empty when kubeConfig specified
     # secretKey: kubeconfig
-    # # mounting path of the kubeconfig secret, default to /kube/config
-    # mountPath: /kubeconfig/mount/path
-    # # volume name when mounting the secret, default to kubeconfig
-    # volumeName: kube-config-volume
+  # # mounting path of the kubeconfig secret, default to /kube/config
+  # mountPath: /kubeconfig/mount/path
+  # # volume name when mounting the secret, default to kubeconfig
+  # volumeName: kube-config-volume
 
   # -- Specifies the duration in seconds before a terminating pod is forcefully killed. A zero value indicates that the pod will be forcefully terminated immediately.
   # @default -- `30` seconds (Kubernetes default)
@@ -440,7 +440,7 @@ controller:
 
   # -- enable Synchronization to use a database.  Postgres and MySQL (>= 5.7.8) are available.
   ## Ref: https://argo-workflows.readthedocs.io/en/latest/workflow-controller-configmap/#syncconfig
-  synchronization: {}
+  synchronization: { }
   # controllerName: argo-workflows
   # connectionPool:
   #   maxIdleConns: 100
@@ -478,13 +478,13 @@ mainContainer:
   # -- imagePullPolicy to apply to Workflow main container. Defaults to `.Values.images.pullPolicy`.
   imagePullPolicy: ""
   # -- Resource limits and requests for the Workflow main container
-  resources: {}
+  resources: { }
   # -- Adds environment variables for the Workflow main container
-  env: []
+  env: [ ]
   # -- Adds reference environment variables for the Workflow main container
-  envFrom: []
+  envFrom: [ ]
   # -- sets security context for the Workflow main container
-  securityContext: {}
+  securityContext: { }
 
 # executor controls how the init and wait container should be customized
 executor:
@@ -498,13 +498,13 @@ executor:
     # -- Image PullPolicy to use for the Workflow Executors. Defaults to `.Values.images.pullPolicy`.
     pullPolicy: ""
   # -- Resource limits and requests for the Workflow Executors
-  resources: {}
+  resources: { }
   # -- Passes arguments to the executor processes
-  args: []
+  args: [ ]
   # -- Adds environment variables for the executor.
-  env: []
+  env: [ ]
   # -- sets security context for the executor container
-  securityContext: {}
+  securityContext: { }
 
 server:
   # -- Deploy the Argo Server
@@ -513,7 +513,7 @@ server:
   ## only updates base url of resources on client side,
   ## it's expected that a proxy server rewrites the request URL and gets rid of this prefix
   ## https://github.com/argoproj/argo-workflows/issues/716#issuecomment-433213190
-  baseHref: /argo
+  baseHref: /argo/
   image:
     # -- Registry to use for the server
     registry: quay.io
@@ -522,13 +522,13 @@ server:
     # -- Image tag for the Argo Workflows server. Defaults to `.Values.images.tag`.
     tag: ""
   # -- optional map of annotations to be applied to the ui Deployment
-  deploymentAnnotations: {}
+  deploymentAnnotations: { }
   # -- optional map of annotations to be applied to the ui Pods
-  podAnnotations: {}
+  podAnnotations: { }
   # -- Optional labels to add to the UI pods
-  podLabels: {}
+  podLabels: { }
   # -- SecurityContext to set on the server pods
-  podSecurityContext: {}
+  podSecurityContext: { }
   rbac:
     # -- Adds Role and RoleBinding for the server.
     create: true
@@ -552,7 +552,7 @@ server:
   servicePortName: "" # http
 
   # -- Mapping between IP and hostnames that will be injected as entries in the pod's hosts files
-  hostAliases: []
+  hostAliases: [ ]
   # - ip: 10.20.30.40
   #   hostnames:
   #   - git.myhostname
@@ -563,22 +563,22 @@ server:
     # -- Service account name
     name: ""
     # -- Labels applied to created service account
-    labels: {}
+    labels: { }
     # -- Annotations applied to created service account
-    annotations: {}
+    annotations: { }
 
   # -- Annotations to be applied to the UI Service
-  serviceAnnotations: {}
+  serviceAnnotations: { }
   # -- Optional labels to add to the UI Service
-  serviceLabels: {}
+  serviceLabels: { }
   # -- The class of the load balancer implementation
   loadBalancerClass: ""
   # -- Static IP address to assign to loadBalancer service type `LoadBalancer`
   loadBalancerIP: ""
   # -- Source ranges to allow access to service from. Only applies to service type `LoadBalancer`
-  loadBalancerSourceRanges: []
+  loadBalancerSourceRanges: [ ]
   # -- Resource limits and requests for the server
-  resources: {}
+  resources: { }
   # -- The number of server pods to run
   replicas: 1
   # -- The number of revisions to keep.
@@ -597,7 +597,7 @@ server:
     targetMemoryUtilizationPercentage: 50
     # -- Configures the scaling behavior of the target in both Up and Down directions.
     # This is only available on HPA apiVersion `autoscaling/v2beta2` and newer
-    behavior: {}
+    behavior: { }
       # scaleDown:
       #  stabilizationWindowSeconds: 300
       #  policies:
@@ -605,10 +605,10 @@ server:
       #     value: 1
       #     periodSeconds: 180
       # scaleUp:
-      #   stabilizationWindowSeconds: 300
-      #   policies:
-      #   - type: Pods
-      #     value: 2
+    #   stabilizationWindowSeconds: 300
+    #   policies:
+    #   - type: Pods
+    #     value: 2
   pdb:
     # -- Configure [Pod Disruption Budget] for the server pods
     enabled: false
@@ -620,15 +620,15 @@ server:
     kubernetes.io/os: linux
 
   # -- [Tolerations] for use with node taints
-  tolerations: []
+  tolerations: [ ]
 
   # -- Assign custom [affinity] rules
-  affinity: {}
+  affinity: { }
 
   # -- Assign custom [TopologySpreadConstraints] rules to the argo server
   ## Ref: https://kubernetes.io/docs/concepts/workloads/pods/pod-topology-spread-constraints/
   ## If labelSelector is left out, it will default to the labelSelector configuration of the deployment
-  topologySpreadConstraints: []
+  topologySpreadConstraints: [ ]
   # - maxSkew: 1
   #   topologyKey: topology.kubernetes.io/zone
   #   whenUnsatisfiable: DoNotSchedule
@@ -643,20 +643,22 @@ server:
   secure: false
 
   # -- Extra environment variables to provide to the argo-server container
-  extraEnv: []
-    # - name: FOO
-    #   value: "bar"
+  extraEnv: [ ]
+  # - name: FOO
+  #   value: "bar"
 
   # -- Deprecated; use server.authModes instead.
   authMode: ""
 
   # -- A list of supported authentication modes. Available values are `server`, `client`, or `sso`. If you provide sso, please configure `.Values.server.sso` as well.
   ## Ref: https://argo-workflows.readthedocs.io/en/stable/argo-server-auth-mode/
-  authModes: []
+  authModes: [ ]
 
   # -- Extra arguments to provide to the Argo server binary.
   ## Ref: https://argo-workflows.readthedocs.io/en/stable/argo-server/#options
-  extraArgs: []
+  extraArgs:
+    # set ui base href
+    - --base-href=/argo/
 
   logging:
     # -- Set the logging level (one of: `debug`, `info`, `warn`, `error`)
@@ -668,11 +670,11 @@ server:
 
   # -- Volume to be mounted in Pods for temporary files.
   tmpVolume:
-    emptyDir: {}
+    emptyDir: { }
   # -- Additional volume mounts to the server main container.
-  volumeMounts: []
+  volumeMounts: [ ]
   # -- Additional volumes to the server pod.
-  volumes: []
+  volumes: [ ]
 
   ## Ingress configuration.
   # ref: https://kubernetes.io/docs/concepts/services-networking/ingress/
@@ -680,28 +682,28 @@ server:
     # -- Enable an ingress resource
     enabled: true
     # -- Additional ingress annotations
-    annotations: {}
+    annotations:
+      nginx.ingress.kubernetes.io/use-regex: "true"
+      nginx.ingress.kubernetes.io/rewrite-target: "/$2"
     # -- Additional ingress labels
-    labels: {
-              app: server
-    }
+    labels: { }
     # -- Defines which ingress controller will implement the resource
     ingressClassName: "private-ingress"
 
     # -- List of ingress hosts
     ## Hostnames must be provided if Ingress is enabled.
     ## Secrets must be manually created in the namespace
-    hosts: []
-      # - argoworkflows.example.com
+    hosts:
+    # - argoworkflows.example.com
 
     # -- List of ingress paths
     paths:
-      - /argo
+      - /argo(/|$)(.*)
 
     # -- Ingress path type. One of `Exact`, `Prefix` or `ImplementationSpecific`
-    pathType: Prefix
+    pathType: ImplementationSpecific
     # -- Additional ingress paths
-    extraPaths: []
+    extraPaths: [ ]
       # - path: /*
       #   backend:
       #     serviceName: ssl-redirect
@@ -710,16 +712,16 @@ server:
       # - path: /*
       #   pathType: Prefix
       #   backend:
-      #     service
-      #       name: ssl-redirect
-      #       port:
-      #         name: use-annotation
+    #     service
+    #       name: ssl-redirect
+    #       port:
+    #         name: use-annotation
 
     # -- Ingress TLS configuration
-    tls: []
-      # - secretName: argoworkflows-example-tls
-      #   hosts:
-      #     - argoworkflows.example.com
+    tls: [ ]
+    # - secretName: argoworkflows-example-tls
+    #   hosts:
+    #     - argoworkflows.example.com
 
   ## Create a Google Backendconfig  for use with the GKE Ingress Controller
   ## https://cloud.google.com/kubernetes-engine/docs/how-to/ingress-configuration#configuring_ingress_features_through_backendconfig_parameters
@@ -727,7 +729,7 @@ server:
     # -- Enable BackendConfig custom resource for Google Kubernetes Engine
     enabled: false
     # -- [BackendConfigSpec]
-    spec: {}
+    spec: { }
   #  spec:
   #    iap:
   #      enabled: true
@@ -741,7 +743,7 @@ server:
     enabled: false
     # -- Domains for the Google Managed Certificate
     domains:
-    - argoworkflows.example.com
+      - argoworkflows.example.com
 
   ## Create a Google FrontendConfig Custom Resource, for use with the GKE Ingress Controller
   ## https://cloud.google.com/kubernetes-engine/docs/how-to/ingress-features#configuring_ingress_features_through_frontendconfig_parameters
@@ -749,7 +751,7 @@ server:
     # -- Enable FrontConfig custom resource for Google Kubernetes Engine
     enabled: false
     # -- [FrontendConfigSpec]
-    spec: {}
+    spec: { }
   # spec:
   #   redirectToHttps:
   #     enabled: true
@@ -782,16 +784,16 @@ server:
     rbac:
       # -- Adds ServiceAccount Policy to server (Cluster)Role.
       enabled: true
-    # -- Whitelist to allow server to fetch Secrets
-    ## When present, restricts secrets the server can read to a given list.
-    ## You can use it to restrict the server to only be able to access the
-    ## service account token secrets that are associated with service accounts
-    ## used for authorization.
-      secretWhitelist: []
+      # -- Whitelist to allow server to fetch Secrets
+      ## When present, restricts secrets the server can read to a given list.
+      ## You can use it to restrict the server to only be able to access the
+      ## service account token secrets that are associated with service accounts
+      ## used for authorization.
+      secretWhitelist: [ ]
     # -- Scopes requested from the SSO ID provider
     ## The 'groups' scope requests group membership information, which is usually used for authorization decisions.
-    scopes: []
-      # - groups
+    scopes: [ ]
+    # - groups
     # -- Define how long your login is valid for (in hours)
     ## If omitted, defaults to 10h.
     sessionExpiry: ""
@@ -806,18 +808,18 @@ server:
     insecureSkipVerify: false
     # -- Filter the groups returned by the OIDC provider
     ## A logical "OR" is used between each regex in the list
-    filterGroupsRegex: []
-      # - ".*argo-wf.*"
-      # - ".*argo-workflow.*"
+    filterGroupsRegex: [ ]
+    # - ".*argo-wf.*"
+    # - ".*argo-workflow.*"
 
   # -- Extra containers to be added to the server deployment
-  extraContainers: []
+  extraContainers: [ ]
 
   # -- Enables init containers to be added to the server deployment
-  extraInitContainers: []
+  extraInitContainers: [ ]
 
   # -- Specify postStart and preStop lifecycle hooks for server container
-  lifecycle: {}
+  lifecycle: { }
 
   # -- terminationGracePeriodSeconds for container lifecycle hook
   terminationGracePeriodSeconds: 30
@@ -844,7 +846,26 @@ server:
     successThreshold: 1
 
 # -- Array of extra K8s manifests to deploy
-extraObjects: []
+extraObjects:
+  - apiVersion: networking.k8s.io/v1
+    kind: Ingress
+    metadata:
+      name: argo-server-assets
+      annotations:
+        nginx.ingress.kubernetes.io/use-regex: "true"
+    spec:
+      ingressClassName: private-ingress
+      rules:
+        - http:
+            paths:
+              - path: '/(?:main|runtime|polyfills|styles|vendor).*\.(?:js|css)'
+                pathType: ImplementationSpecific
+                backend:
+                  service:
+                    name: argo-workflows-server
+                    port:
+                      number: 2746
+
   # - apiVersion: secrets-store.csi.x-k8s.io/v1
   #   kind: SecretProviderClass
   #   metadata:
@@ -865,9 +886,9 @@ extraObjects: []
   #       - key: client_id
   #         objectName: client_id
   #       - key: client_secret
-  #         objectName: client_secret
-  #       secretName: argo-server-sso-secrets-store
-  #       type: Opaque
+#         objectName: client_secret
+#       secretName: argo-server-sso-secrets-store
+#       type: Opaque
 
 # -- Use static credentials for S3 (eg. when not using AWS IRSA)
 useStaticCredentials: true
@@ -876,7 +897,7 @@ artifactRepository:
   archiveLogs: false
   # -- Store artifact in a S3-compliant object store
   # @default -- See [values.yaml]
-  s3: {}
+  s3: { }
     # # Note the `key` attribute is not the actual secret, it's the PATH to
     # # the contents in the associated secret, as defined by the `name` attribute.
     # accessKeySecret:
@@ -896,13 +917,13 @@ artifactRepository:
     # bucket:
     # endpoint:
     # region:
-    # roleARN:
-    # useSDKCreds: true
-    # encryptionOptions:
-    #   enableEncryption: true
+  # roleARN:
+  # useSDKCreds: true
+  # encryptionOptions:
+  #   enableEncryption: true
   # -- Store artifact in a GCS object store
   # @default -- `{}` (See [values.yaml])
-  gcs: {}
+  gcs: { }
     # bucket: <project>-argo
     # keyFormat: "{{ \"{{workflow.namespace}}/{{workflow.name}}/{{pod.name}}\" }}"
     # # serviceAccountKeySecret is a secret selector.
@@ -912,13 +933,13 @@ artifactRepository:
     # # to the bucket.
     # #
     # # If it's running on GKE and Workload Identity is used,
-    # # serviceAccountKeySecret is not needed.
-    # serviceAccountKeySecret:
-    #   name: my-gcs-credentials
-    #   key: serviceAccountKey
+  # # serviceAccountKeySecret is not needed.
+  # serviceAccountKeySecret:
+  #   name: my-gcs-credentials
+  #   key: serviceAccountKey
   # -- Store artifact in Azure Blob Storage
   # @default -- `{}` (See [values.yaml])
-  azure: {}
+  azure: { }
     # endpoint: https://mystorageaccountname.blob.core.windows.net
     # container: my-container-name
     # blobNameFormat: path/in/container
@@ -930,14 +951,14 @@ artifactRepository:
     # # workflow (e.g., https://docs.microsoft.com/en-us/azure/aks/use-managed-identity)
     # # then accountKeySecret is not needed, and useSDKCreds should be
     # # set to true instead:
-    # useSDKCreds: true
-    # accountKeySecret:
-    #   name: my-azure-storage-credentials
-    #   key: account-access-key
+  # useSDKCreds: true
+  # accountKeySecret:
+  #   name: my-azure-storage-credentials
+  #   key: account-access-key
 
 # -- The section of custom artifact repository.
 # Utilize a custom artifact repository that is not one of the current base ones (s3, gcs, azure)
-customArtifactRepository: {}
+customArtifactRepository: { }
 # artifactory:
 #   repoUrl: https://artifactory.example.com/raw
 #   usernameSecret:
@@ -950,7 +971,7 @@ customArtifactRepository: {}
 # -- The section of [artifact repository ref](https://argo-workflows.readthedocs.io/en/stable/artifact-repository-ref/).
 # Each map key is the name of configmap
 # @default -- `{}` (See [values.yaml])
-artifactRepositoryRef: {}
+artifactRepositoryRef: { }
   # # -- 1st ConfigMap
   # # If you want to use this config map by default, name it "artifact-repositories".
   # # Otherwise, you can provide a reference to a
@@ -995,15 +1016,15 @@ artifactRepositoryRef: {}
   #     workflows.argoproj.io/default-artifact-repository: gcs
   #   gcs:
   #     bucket: my-bucket
-  #     keyFormat: prefix/in/bucket/{{workflow.name}}/{{pod.name}}
-  #     serviceAccountKeySecret:
-  #       name: my-gcs-credentials
-  #       key: serviceAccountKey
+#     keyFormat: prefix/in/bucket/{{workflow.name}}/{{pod.name}}
+#     serviceAccountKeySecret:
+#       name: my-gcs-credentials
+#       key: serviceAccountKey
 
 emissary:
   # -- The command/args for each image on workflow, needed when the command is not specified and the emissary executor is used.
   ## See more: https://argo-workflows.readthedocs.io/en/stable/workflow-executors/#emissary-emissary
-  images: []
+  images: [ ]
   #  argoproj/argosay:v2:
   #    cmd: [/argosay]
   #  docker/whalesay:latest:
