@@ -652,7 +652,8 @@ server:
 
   # -- A list of supported authentication modes. Available values are `server`, `client`, or `sso`. If you provide sso, please configure `.Values.server.sso` as well.
   ## Ref: https://argo-workflows.readthedocs.io/en/stable/argo-server-auth-mode/
-  authModes: [ ]
+  authModes:
+    - server
 
   # -- Extra arguments to provide to the Argo server binary.
   ## Ref: https://argo-workflows.readthedocs.io/en/stable/argo-server/#options
@@ -847,24 +848,6 @@ server:
 
 # -- Array of extra K8s manifests to deploy
 extraObjects:
-  - apiVersion: networking.k8s.io/v1
-    kind: Ingress
-    metadata:
-      name: argo-server-assets
-      annotations:
-        nginx.ingress.kubernetes.io/use-regex: "true"
-    spec:
-      ingressClassName: private-ingress
-      rules:
-        - http:
-            paths:
-              - path: '/(?:main|runtime|polyfills|styles|vendor).*\.(?:js|css)'
-                pathType: ImplementationSpecific
-                backend:
-                  service:
-                    name: argo-workflows-server
-                    port:
-                      number: 2746
 
   # - apiVersion: secrets-store.csi.x-k8s.io/v1
   #   kind: SecretProviderClass
