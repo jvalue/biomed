@@ -56,16 +56,12 @@ spec:
         args: [ "hello world" ]
 ```
 
-## Installing the Chart
+## Updating the Chart
 
-To install the chart with the release name `my-release`:
+To update the chart :
 
 ```console
-$ helm repo add argo https://argoproj.github.io/argo-helm
-"argo" has been added to your repositories
-
-$ helm install my-release argo/argo-workflows
-NAME: my-release
+$ helm upgrade argo-workflows . --namespace argo
 ...
 ```
 
