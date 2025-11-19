@@ -56,7 +56,7 @@ workflow:
   namespace:
   serviceAccount:
     # -- Specifies whether a service account should be created
-    create: false
+    create: true
     # -- Labels applied to created service account
     labels: { }
     # -- Annotations applied to created service account
@@ -286,7 +286,7 @@ controller:
   # workflows. This controls where the service account and RBAC resources will
   # be created. Only valid when singleNamespace is false.
   workflowNamespaces:
-    - default
+    - argo-managed-crawler
 
   instanceID:
     # -- Configures the controller to filter workflow submissions
