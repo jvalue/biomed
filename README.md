@@ -14,13 +14,27 @@ You can retrieve it the following way:
 There is a ServiceAccount with full access to workflows called `argo-user` in the `argo` namespace.
 
 To interact with the cluster you have to export your KubeConfig first:
+
+For Mac/Linux:
 ```bash
 export KUBECONFIG=<path-to-your-kubeconfig>
 ```
 
+For Windows (PowerShell):
+```powershell
+$env:KUBECONFIG="<path-to-your-kubeconfig>"
+```
+
 Then you can get the token with:
+For Mac/Linux:
 ```bash 
 ARGO_TOKEN="Bearer $(kubectl get secret argo-user.service-account-token -n argo -o=jsonpath='{.data.token}' | base64 --decode)"
+echo $ARGO_TOKEN
+```
+
+For Windows (PowerShell): (need to install base64 utility first)
+```powershell
+$ARGO_TOKEN="Bearer $(kubectl get secret argo-user.service-account-token -n argo -o=jsonpath='{.data.token}' | base64 --decode)"
 echo $ARGO_TOKEN
 ```
 
