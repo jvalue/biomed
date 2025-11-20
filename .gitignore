@@ -1,9 +1,11 @@
 
-.nx/installation/node_modules
+.nx/installation
 .nx/cache
 .nx/workspace-data
 
-# See http://help.github.com/ignore-files/ for more about ignoring files.
+
+.cursor/rules/nx-rules.mdc
+.github/instructions/nx.instructions.md
 
 # compiled output
 /dist
@@ -14,7 +16,6 @@
 node_modules
 
 # IDEs and editors
-.idea
 .project
 .classpath
 .c9/
@@ -51,3 +52,6 @@ Thumbs.db
 # OpenAPI Setup
 generated/
 *.generated.*
+
+#Run Result Files
+*.sqlite

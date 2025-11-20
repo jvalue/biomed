@@ -1,35 +1,22 @@
 {
-  "installation": {
-    "version": "22.1.0",
-    "plugins": {
-      "@nx/nest": "22.1.0"
-    }
-  },
-  "$schema": "./node_modules/nx/schemas/nx-schema.json",
-  "plugins": [
-    {
-      "plugin": "@nx/webpack/plugin",
-      "options": {
-        "buildTargetName": "build",
-        "serveTargetName": "serve",
-        "previewTargetName": "preview",
-        "buildDepsTargetName": "build-deps",
-        "watchDepsTargetName": "watch-deps",
-        "serveStaticTargetName": "serve-static"
-      }
-    },
-    {
-      "plugin": "@nx/eslint/plugin",
-      "options": {
-        "targetName": "lint"
-      }
-    },
-    {
-      "plugin": "@nx/jest/plugin",
-      "options": {
-        "targetName": "test"
-      },
-      "exclude": ["apps/management-backend-e2e/**/*"]
-    }
-  ]
+	"installation": {
+		"version": "22.1.0",
+		"plugins": {
+			"@nx/nest": "22.1.0"
+		}
+	},
+	"$schema": "./node_modules/nx/schemas/nx-schema.json",
+	"plugins": [
+		{
+			"plugin": "@nx/webpack/plugin",
+			"options": {
+				"buildTargetName": "build",
+				"serveTargetName": "serve",
+				"previewTargetName": "preview",
+				"buildDepsTargetName": "build-deps",
+				"watchDepsTargetName": "watch-deps",
+				"serveStaticTargetName": "serve-static"
+			}
+		}
+	]
 }
