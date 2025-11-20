@@ -1,6 +1,0 @@
-crds:
-  keep: false
-
-server:
-  livenessProbe:
-    enabled: true
