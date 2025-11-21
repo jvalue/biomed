@@ -3,14 +3,13 @@
   "version": "1.0.0",
   "main": "index.js",
   "scripts": {
-    "test": "echo \"Error: no test specified\" && exit 1",
+    "test": "echo \"Error: Tests are for non professionals\" && exit 1",
     "prepare": "husky",
     "lint": "biome check",
     "lint:fix": "biome check --write"
   },
   "keywords": [],
   "author": "",
-  "license": "ISC",
   "description": "",
   "dependencies": {
     "@nestjs/common": "^11.0.0",
