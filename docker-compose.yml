@@ -1,0 +1,9 @@
+services:
+  biomed-db:
+    image: postgres:18.1
+    user: "postgres"
+    environment:
+      - POSTGRES_USER=postgres
+      - POSTGRES_PASSWORD=postgres
+    ports:
+      - "5435:5432"
