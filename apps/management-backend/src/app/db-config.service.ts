@@ -10,7 +10,7 @@ export class DbConfigService implements TypeOrmOptionsFactory {
 
 	/**
 	 * Used by NestJS to reach database.
-	 * Keep in sync with @see TypeOrm.config.ts
+	 * Keep in sync with migrations.main.ts
 	 */
 	createTypeOrmOptions(): TypeOrmModuleOptions & DataSourceOptions {
 		return {

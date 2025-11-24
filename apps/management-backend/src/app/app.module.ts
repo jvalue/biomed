@@ -1,10 +1,10 @@
 import { Module } from '@nestjs/common';
 import { ConfigModule } from '@nestjs/config';
 import { TypeOrmModule } from '@nestjs/typeorm';
-import { validate } from 'class-validator';
 import { AppController } from './app.controller';
 import { AppService } from './app.service';
 import { DbConfigService } from './db-config.service';
+import { validate } from './env.validation';
 
 @Module({
 	imports: [
