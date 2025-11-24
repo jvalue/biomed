@@ -4,6 +4,7 @@ import { TypeOrmModule } from '@nestjs/typeorm';
 import { AppController } from './app.controller';
 import { AppService } from './app.service';
 import { DbConfigService } from './db-config.service';
+import { DemoModule } from './demo/demo.module';
 import { validate } from './env.validation';
 
 @Module({
@@ -16,6 +17,7 @@ import { validate } from './env.validation';
 			imports: [ConfigModule],
 			useClass: DbConfigService,
 		}),
+		DemoModule,
 	],
 	controllers: [AppController],
 	providers: [AppService],
