@@ -89,13 +89,13 @@
 			"dependsOn": ["build"],
 			"configurations": {
 				"run": {
-					"command": "npx typeorm-ts-node-esm -d dist/apps/management-backend/migrations.main.js migration:run"
+					"command": "npx typeorm -d dist/apps/management-backend/migrations.main.js migration:run"
 				},
 				"generate": {
-					"command": "npx typeorm-ts-node-esm -d dist/apps/management-backend/migrations.main.js migration:generate apps/management-backend/src/app/migrations/{args.name}"
+					"command": "npx typeorm -d dist/apps/management-backend/migrations.main.js migration:generate apps/management-backend/src/app/migrations/{args.name}"
 				},
 				"revert": {
-					"command": "npx typeorm-ts-node-esm -d dist/apps/management-backend/migrations.main.js migration:revert"
+					"command": "npx typeorm -d dist/apps/management-backend/migrations.main.js migration:revert"
 				}
 			}
 		}
