@@ -2,6 +2,7 @@ import { Injectable } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import { TypeOrmModuleOptions, TypeOrmOptionsFactory } from '@nestjs/typeorm';
 import { DataSourceOptions } from 'typeorm';
+import { DemoEntity } from './demo/entity/demo.entity';
 import { EnvironmentVariables } from './env.validation';
 
 @Injectable()
@@ -20,12 +21,14 @@ export class DbConfigService implements TypeOrmOptionsFactory {
 			username: this.configService.get('DATABASE_USER'),
 			password: this.configService.get('DATABASE_PASSWORD'),
 			database: this.configService.get('DATABASE_DATABASE'),
-			entities: [],
+			entities: [DemoEntity],
 			metadataTableName: 'typeorm_metadata_biomed',
 
 			migrationsTableName: 'migrations_biomed',
 			migrationsRun: true,
 			migrations: [],
+			logging: true,
+			logger: 'debug',
 		};
 	}
 }
