@@ -4,6 +4,7 @@ import { TypeOrmModuleOptions, TypeOrmOptionsFactory } from '@nestjs/typeorm';
 import { DataSourceOptions } from 'typeorm';
 import { DemoEntity } from './demo/entity/demo.entity';
 import { EnvironmentVariables } from './env.validation';
+import { Demo1763983398209 } from './migrations/1763983398209-Demo';
 
 @Injectable()
 export class DbConfigService implements TypeOrmOptionsFactory {
@@ -26,7 +27,7 @@ export class DbConfigService implements TypeOrmOptionsFactory {
 
 			migrationsTableName: 'migrations_biomed',
 			migrationsRun: true,
-			migrations: [],
+			migrations: [Demo1763983398209],
 			logging: true,
 			logger: 'debug',
 		};
