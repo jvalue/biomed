@@ -12,6 +12,7 @@ module.exports = {
 		...(process.env.NODE_ENV !== 'production' && {
 			devtoolModuleFilenameTemplate: '[absolute-resource-path]',
 		}),
+		libraryTarget: 'commonjs2',
 	},
 	plugins: [
 		new NxAppWebpackPlugin({
