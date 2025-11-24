@@ -12,7 +12,8 @@
 			"!!**/dist",
 			"!!**/.git",
 			"!!package-lock.json",
-			"!!package.json"
+			"!!package.json",
+			"!!apps/management-frontend"
 		]
 	},
 	"formatter": {
