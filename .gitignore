@@ -1,4 +1,3 @@
-
 .nx/installation
 .nx/cache
 .nx/workspace-data
@@ -55,3 +54,5 @@ generated/
 
 #Run Result Files
 *.sqlite
+vite.config.*.timestamp*
+vitest.config.*.timestamp*

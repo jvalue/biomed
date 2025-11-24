@@ -1,0 +1,23 @@
+{
+	"name": "management-frontend",
+	"$schema": "../../node_modules/nx/schemas/project-schema.json",
+	"sourceRoot": "apps/management-frontend/src",
+	"projectType": "application",
+	"tags": [],
+	"// targets": "to see all targets run: nx show project management-frontend --web",
+	"targets": {
+		"build": {
+			"executor": "@nx/vite:build",
+			"options": {
+				"outputPath": "dist/apps/management-frontend",
+				"configFile": "apps/management-frontend/vite.config.mts"
+			}
+		},
+		"serve": {
+			"executor": "@nx/vite:dev-server",
+			"options": {
+				"buildTarget": "management-frontend:build"
+			}
+		}
+	}
+}
