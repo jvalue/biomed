@@ -13,7 +13,10 @@
 			"!!**/.git",
 			"!!package-lock.json",
 			"!!package.json",
-			"!!apps/management-frontend"
+			"!!.nx/*",
+			"!!**/*.js",
+			"!!**/*.mts",
+			"!!**/nx-welcome.tsx"
 		]
 	},
 	"formatter": {
