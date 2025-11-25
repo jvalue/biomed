@@ -1,9 +1,9 @@
-import NxWelcome from './nx-welcome';
+import WorkflowList from './components/workflows/workflow-list';
 
 export function App() {
 	return (
 		<div>
-			<NxWelcome title="management-frontend" />
+			<WorkflowList></WorkflowList>
 		</div>
 	);
 }
