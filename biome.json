@@ -12,7 +12,11 @@
 			"!!**/dist",
 			"!!**/.git",
 			"!!package-lock.json",
-			"!!package.json"
+			"!!package.json",
+			"!!.nx/*",
+			"!!**/*.js",
+			"!!**/*.mts",
+			"!!**/nx-welcome.tsx"
 		]
 	},
 	"formatter": {
