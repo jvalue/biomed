@@ -6,6 +6,9 @@ export class EnvironmentVariables {
 	PORT!: number;
 
 	@IsString()
+	STAGE!: string;
+
+	@IsString()
 	DATABASE_HOST!: string;
 
 	@IsNumber({ maxDecimalPlaces: 0, allowInfinity: false, allowNaN: false })
@@ -19,6 +22,12 @@ export class EnvironmentVariables {
 
 	@IsString()
 	DATABASE_DATABASE!: string;
+
+	@IsString()
+	KUBE_BEARER_TOKEN!: string;
+
+	@IsString()
+	ARGO_BASE_URL!: string;
 }
 
 export function validate(config: Record<string, unknown>): EnvironmentVariables {

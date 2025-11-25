@@ -1,0 +1,2 @@
+# Code Repo for Orchestration/Management Tool for the Biomed Crawlers and the Crawlers itself
+For detailed information regarding the single projects, please refer to the respective README files in the subdirectories.
