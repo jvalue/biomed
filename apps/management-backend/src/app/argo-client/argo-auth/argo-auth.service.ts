@@ -20,7 +20,11 @@ export class ArgoAuthService {
 	 * Get token from ServiceAccount (in-cluster)
 	 */
 	private getInClusterToken(): string {
-		return fs.readFileSync(this.saTokenPath, 'utf8');
+		try {
+			return fs.readFileSync(this.saTokenPath, 'utf8');
+		} catch (err) {
+			throw new Error(`Failed to read service account token from ${this.saTokenPath}: ${err.message}`);
+		}
 	}
 
 	/**
