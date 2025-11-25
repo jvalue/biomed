@@ -26,6 +26,9 @@ export class ArgoClientService {
 	}
 
 	async listWorkflows(namespace: string): Promise<WorkflowRunDto[]> {
+		if (!/^[\w-]+$/.test(namespace)) {
+			throw new Error('Invalid namespace: only alphanumeric characters, hyphens, and underscores are allowed.');
+		}
 		const res = await this.http.get(`/workflows/${namespace}`);
 		return res.data;
 	}
