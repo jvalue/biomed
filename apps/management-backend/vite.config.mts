@@ -10,6 +10,7 @@ export default defineConfig({
 	build: {
 		sourcemap: true,
 		outDir: resolve(__dirname, '../../dist/apps/management-backend'),
+		emptyOutDir: true
 	},
 	plugins: [
 		...VitePluginNode({
