@@ -5,6 +5,9 @@ import { EnvironmentVariables } from '../env.validation';
 import { ArgoAuthService } from './argo-auth/argo-auth.service';
 import { WorkflowRunDto } from './dto/workflow-run.dto';
 
+/**
+ * Service to interact with Argo Workflows API
+ */
 @Injectable()
 export class ArgoClientService {
 	private readonly http: AxiosInstance;
@@ -25,9 +28,15 @@ export class ArgoClientService {
 		});
 	}
 
+	/**
+	 * List all current workflows in a namespace
+	 * @param namespace
+	 */
 	async listWorkflows(namespace: string): Promise<WorkflowRunDto[]> {
 		if (!/^[\w-]+$/.test(namespace)) {
-			throw new Error('Invalid namespace: only alphanumeric characters, hyphens, and underscores are allowed.');
+			throw new Error(
+				'Invalid namespace: only alphanumeric characters, hyphens, and underscores are allowed.',
+			);
 		}
 		const res = await this.http.get(`/workflows/${namespace}`);
 		return res.data;

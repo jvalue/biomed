@@ -3,6 +3,9 @@ import { ConfigService } from '@nestjs/config';
 import * as fs from 'fs';
 import { EnvironmentVariables } from '../../env.validation';
 
+/**
+ * Service to provide authentication token for Argo Client
+ */
 @Injectable()
 export class ArgoAuthService {
 	private readonly saTokenPath = '/var/run/secrets/kubernetes.io/serviceaccount/token';
@@ -23,7 +26,9 @@ export class ArgoAuthService {
 		try {
 			return fs.readFileSync(this.saTokenPath, 'utf8');
 		} catch (err) {
-			throw new Error(`Failed to read service account token from ${this.saTokenPath}: ${err.message}`);
+			throw new Error(
+				`Failed to read service account token from ${this.saTokenPath}: ${err.message}`,
+			);
 		}
 	}
 
