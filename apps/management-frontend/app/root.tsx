@@ -1,33 +1,23 @@
-import {
-	Links,
-	type LinksFunction,
-	Meta,
-	type MetaFunction,
-	Outlet,
-	Scripts,
-	ScrollRestoration,
-} from 'react-router';
+import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
+import { ReactQueryDevtools } from '@tanstack/react-query-devtools';
+import { Links, Meta, type MetaFunction, Outlet, Scripts, ScrollRestoration } from 'react-router';
 
 import { AppNav } from './app-nav';
 
 export const meta: MetaFunction = () => [
 	{
-		title: 'New Nx React Router App',
+		title: 'Crawler Management Frontend',
 	},
 ];
 
-export const links: LinksFunction = () => [
-	{ rel: 'preconnect', href: 'https://fonts.googleapis.com' },
-	{
-		rel: 'preconnect',
-		href: 'https://fonts.gstatic.com',
-		crossOrigin: 'anonymous',
+const queryClient = new QueryClient({
+	defaultOptions: {
+		queries: {
+			staleTime: 1000 * 60 * 5, // 5 minutes
+			refetchOnWindowFocus: false,
+		},
 	},
-	{
-		rel: 'stylesheet',
-		href: 'https://fonts.googleapis.com/css2?family=Inter:ital,opsz,wght@0,14..32,100..900;1,14..32,100..900&display=swap',
-	},
-];
+});
 
 export function Layout({ children }: { children: React.ReactNode }) {
 	return (
@@ -39,8 +29,11 @@ export function Layout({ children }: { children: React.ReactNode }) {
 				<Links />
 			</head>
 			<body>
-				<AppNav />
-				{children}
+				<QueryClientProvider client={queryClient}>
+					<AppNav />
+					{children}
+					<ReactQueryDevtools initialIsOpen={false} />
+				</QueryClientProvider>
 				<ScrollRestoration />
 				<Scripts />
 			</body>

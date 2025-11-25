@@ -16,7 +16,9 @@
 			"!!.nx/*",
 			"!!**/*.js",
 			"!!**/*.mts",
-			"!!**/nx-welcome.tsx"
+			"!!**/nx-welcome.tsx",
+			"!!**/entry.server.tsx",
+			"!!**/entry.client.tsx"
 		]
 	},
 	"formatter": {
@@ -29,7 +31,8 @@
 		"rules": {
 			"recommended": true,
 			"style": {
-				"useImportType": "off"
+				"useImportType": "off",
+				"useNodejsImportProtocol": "off"
 			}
 		}
 	},

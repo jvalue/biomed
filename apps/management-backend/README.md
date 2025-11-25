@@ -1,4 +1,5 @@
 # Management Backend
+First of all connect via VPN to the University Network to be able to access the DEV Kubernetes Cluster.
 It serves as backend for the management frontend and manages users, workflow data and communication with external systems.
 To make the backend work you first have to set up a database.
 This can easily done using Docker.

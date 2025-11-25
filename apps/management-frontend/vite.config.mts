@@ -1,9 +1,9 @@
 /// <reference types='vitest' />
 
-import { nxCopyAssetsPlugin } from '@nx/vite/plugins/nx-copy-assets.plugin';
-import { nxViteTsPaths } from '@nx/vite/plugins/nx-tsconfig-paths.plugin';
-import { reactRouter } from '@react-router/dev/vite';
-import { defineConfig } from 'vite';
+import {nxCopyAssetsPlugin} from '@nx/vite/plugins/nx-copy-assets.plugin';
+import {nxViteTsPaths} from '@nx/vite/plugins/nx-tsconfig-paths.plugin';
+import {reactRouter} from '@react-router/dev/vite';
+import {defineConfig} from 'vite';
 
 export default defineConfig(() => ({
 	root: import.meta.dirname,
@@ -11,6 +11,9 @@ export default defineConfig(() => ({
 	server: {
 		port: 4201,
 		host: 'localhost',
+		fs: {
+			allow: ['../..'],
+		},
 	},
 	preview: {
 		port: 4201,
