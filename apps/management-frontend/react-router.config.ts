@@ -1,5 +1,6 @@
-import type { Config } from '@react-router/dev/config';
+import type { Config } from '@react-router/dev/dist/config';
 
 export default {
-	ssr: true,
+	buildDirectory: '../../dist/apps/management-frontend',
+	ssr: false,
 } satisfies Config;

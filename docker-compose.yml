@@ -23,3 +23,13 @@ services:
       - "host.docker.internal:host-gateway"
     depends_on:
       - biomed-db
+
+  management-frontend:
+    image: management-frontend
+    build:
+      context: ./
+      dockerfile: management-frontend.Dockerfile
+    ports:
+      - "8080:80"
+    depends_on:
+      - management-backend

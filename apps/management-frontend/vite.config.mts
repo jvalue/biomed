@@ -6,7 +6,7 @@ import {reactRouter} from '@react-router/dev/vite';
 import {defineConfig} from 'vite';
 
 export default defineConfig(() => ({
-	root: import.meta.dirname,
+	root: __dirname,
 	cacheDir: '../../node_modules/.vite/apps/management-frontend',
 	server: {
 		port: 4201,

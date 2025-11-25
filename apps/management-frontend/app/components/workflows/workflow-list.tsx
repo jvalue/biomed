@@ -11,7 +11,7 @@ export default function WorkflowList() {
 			<button type={'button'} onClick={() => refetch()}>
 				Aktualisieren
 			</button>
-			{data?.items?.map((workflow) => (
+			{data?.items?.map((workflow: any) => (
 				<div key={workflow.metadata.name}>{workflow.metadata.name}</div>
 			))}
 		</div>
