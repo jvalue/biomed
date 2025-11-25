@@ -11,6 +11,6 @@ export const viteNodeApp = bootstrap();
 
 if (process.env.NODE_ENV !== 'development') {
 	viteNodeApp.then(async (app) => {
-		await app.listen(process.env.PORT || 3000);
+		await app.listen(process.env.PORT || 3002);
 	});
 }
