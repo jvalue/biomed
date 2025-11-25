@@ -6,8 +6,10 @@ export default defineConfig({
 	server: {
 		port: 3002,
 	},
+	root: __dirname,
 	build: {
 		sourcemap: true,
+		outDir: resolve(__dirname, '../../dist/apps/management-backend'),
 	},
 	plugins: [
 		...VitePluginNode({
