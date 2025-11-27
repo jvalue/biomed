@@ -9,7 +9,8 @@
     "lint": "nx run-many --target=lint --all",
     "lint:fix": "nx run-many --target=lint:fix --all",
     "be": "nx serve management-backend",
-    "fe": "nx serve management-frontend"
+    "fe": "nx serve management-frontend",
+    "crawler": "uv run apps/crawler/crawler_general/hello.py"
   },
   "keywords": [],
   "author": "",

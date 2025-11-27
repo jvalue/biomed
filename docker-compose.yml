@@ -7,3 +7,11 @@ services:
       - POSTGRES_PASSWORD=postgres
     ports:
       - "5435:5432"
+
+  crawler-general:
+    build:
+      context: ./apps/crawler
+    working_dir: /app
+    command: uv run crawler_general/hello.py
+    volumes:
+      - ./apps/crawler:/app
