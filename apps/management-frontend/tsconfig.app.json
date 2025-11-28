@@ -1,10 +1,10 @@
 {
 	"extends": "./tsconfig.json",
 	"include": [
-		"app/**/*.ts",
-		"app/**/*.tsx",
-		"app/**/*.js",
-		"app/**/*.jsx",
+		"src/app/**/*.ts",
+		"src/app/**/*.tsx",
+		"src/app/**/*.js",
+		"src/app/**/*.jsx",
 		"**/.server/**/*.ts",
 		"**/.server/**/*.tsx",
 		"**/.client/**/*.ts",

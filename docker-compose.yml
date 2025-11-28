@@ -5,5 +5,31 @@ services:
     environment:
       - POSTGRES_USER=postgres
       - POSTGRES_PASSWORD=postgres
+      - PGPORT=5435
     ports:
-      - "5435:5432"
+      - "5435:5435"
+
+  management-backend:
+    image: management-backend
+    build:
+      context: ./
+      dockerfile: management-backend.Dockerfile
+    env_file:
+      - ./apps/management-backend/.env.docker
+    ports:
+      - "3002:3002"
+    extra_hosts:
+      # enables locally running services to be called via "host.docker.internal" as hostname
+      - "host.docker.internal:host-gateway"
+    depends_on:
+      - biomed-db
+
+  management-frontend:
+    image: management-frontend
+    build:
+      context: ./
+      dockerfile: management-frontend.Dockerfile
+    ports:
+      - "4201:80"
+    depends_on:
+      - management-backend
