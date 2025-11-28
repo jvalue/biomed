@@ -47,6 +47,7 @@ testem.log
 Thumbs.db
 .history
 .env
+.env.docker
 
 # OpenAPI Setup
 generated/
