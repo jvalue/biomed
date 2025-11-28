@@ -2,10 +2,10 @@
 
 import {nxCopyAssetsPlugin} from '@nx/vite/plugins/nx-copy-assets.plugin';
 import {nxViteTsPaths} from '@nx/vite/plugins/nx-tsconfig-paths.plugin';
-import {reactRouter} from '@react-router/dev/vite';
+import react from '@vitejs/plugin-react';
 import {defineConfig} from 'vite';
 
-export default defineConfig(() => ({
+export default defineConfig({
 	root: __dirname,
 	cacheDir: '../../node_modules/.vite/apps/management-frontend',
 	server: {
@@ -19,11 +19,11 @@ export default defineConfig(() => ({
 		port: 4201,
 		host: 'localhost',
 	},
-	plugins: [!process.env.VITEST && reactRouter(), nxViteTsPaths(), nxCopyAssetsPlugin(['*.md'])],
-	// Uncomment this if you are using workers.
-	// worker: {
-	//  plugins: [ nxViteTsPaths() ],
-	// },
+	plugins: [
+		react(),
+		nxViteTsPaths(),
+		nxCopyAssetsPlugin(['*.md'])
+	],
 	build: {
 		outDir: '../../dist/apps/management-frontend',
 		emptyOutDir: true,
@@ -44,4 +44,4 @@ export default defineConfig(() => ({
 			provider: 'v8' as const,
 		},
 	},
-}));
+});
