@@ -13,10 +13,10 @@ export class ArgoClientService {
 	private readonly http: AxiosInstance;
 
 	constructor(
-		private readonly argoAuthService: ArgoAuthService,
-		private readonly configService: ConfigService<EnvironmentVariables, true>,
+		argoAuthService: ArgoAuthService,
+		configService: ConfigService<EnvironmentVariables, true>,
 	) {
-		const argoBaseUrl = this.configService.get<string>('ARGO_BASE_URL');
+		const argoBaseUrl = configService.get<string>('ARGO_BASE_URL');
 		const token = argoAuthService.getAuthToken();
 		this.http = axios.create({
 			baseURL: argoBaseUrl,
