@@ -1,9 +1,10 @@
 replicaCount: 1
 
 image:
-  repository: management-frontend
+  name: ghcr.io/jvalue/management-frontend
+  tag: d66939237f3b21b746d3407552d3a27d54354119
   pullPolicy: IfNotPresent
-  tag: "latest"
+  pullSecret: ghcr-login-secret
 
 service:
   type: ClusterIP
