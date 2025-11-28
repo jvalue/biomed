@@ -30,6 +30,6 @@ services:
       context: ./
       dockerfile: management-frontend.Dockerfile
     ports:
-      - "8080:80"
+      - "4201:80"
     depends_on:
       - management-backend
