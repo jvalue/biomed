@@ -1,0 +1,29 @@
+replicaCount: 1
+
+image:
+  repository: management-frontend
+  pullPolicy: IfNotPresent
+  tag: "latest"
+
+service:
+  type: ClusterIP
+  port: 80
+
+ingress:
+  enabled: false
+  className: ""
+  hosts:
+    - host: chart-example.local
+      paths:
+        - path: /
+          pathType: ImplementationSpecific
+
+serviceAccount:
+  create: true
+  name: ""
+
+httpRoute:
+  enabled: false
+
+autoscaling:
+  enabled: false
