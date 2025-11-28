@@ -2,8 +2,8 @@
 
 import {nxCopyAssetsPlugin} from '@nx/vite/plugins/nx-copy-assets.plugin';
 import {nxViteTsPaths} from '@nx/vite/plugins/nx-tsconfig-paths.plugin';
-import {reactRouter} from '@react-router/dev/vite';
 import {defineConfig} from 'vite';
+import { TanStackRouterVite } from '@tanstack/router-vite-plugin';
 
 export default defineConfig(() => ({
 	root: import.meta.dirname,
@@ -19,7 +19,7 @@ export default defineConfig(() => ({
 		port: 4201,
 		host: 'localhost',
 	},
-	plugins: [!process.env.VITEST && reactRouter(), nxViteTsPaths(), nxCopyAssetsPlugin(['*.md'])],
+	plugins: [TanStackRouterVite(), nxViteTsPaths(), nxCopyAssetsPlugin(['*.md'])],
 	// Uncomment this if you are using workers.
 	// worker: {
 	//  plugins: [ nxViteTsPaths() ],

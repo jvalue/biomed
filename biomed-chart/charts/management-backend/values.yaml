@@ -1,0 +1,25 @@
+replicaCount: 1
+
+image:
+  repository: management-backend
+  pullPolicy: IfNotPresent
+  tag: "latest"
+
+service:
+  type: ClusterIP
+  port: 3002
+
+serviceAccount:
+  create: true
+  name: ""
+
+httpRoute:
+  enabled: false
+
+autoscaling:
+  enabled: false
+
+ingress:
+  enabled: false
+# Env vars by parent values.yaml
+env: {}
