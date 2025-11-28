@@ -15,10 +15,7 @@
 			"!!package.json",
 			"!!.nx/*",
 			"!!**/*.js",
-			"!!**/*.mts",
-			"!!**/nx-welcome.tsx",
-			"!!**/entry.server.tsx",
-			"!!**/entry.client.tsx"
+			"!!**/*.mts"
 		]
 	},
 	"formatter": {
