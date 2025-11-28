@@ -1,0 +1,3 @@
+
+# For now, don't check in downloaded charts
+**/charts/*.tgz
