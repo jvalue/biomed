@@ -1,6 +1,6 @@
 import { useWorkflowRuns } from '../../api/hooks/useWorkflowRuns';
 
-export default function WorkflowList() {
+export default function WorkflowListComponent() {
 	const { data, isLoading, error, refetch } = useWorkflowRuns();
 
 	if (isLoading) return <div>Laden...</div>;
