@@ -5,8 +5,8 @@ import {nxViteTsPaths} from '@nx/vite/plugins/nx-tsconfig-paths.plugin';
 import {defineConfig} from 'vite';
 import { TanStackRouterVite } from '@tanstack/router-vite-plugin';
 
-export default defineConfig(() => ({
-	root: import.meta.dirname,
+export default defineConfig({
+	root: __dirname,
 	cacheDir: '../../node_modules/.vite/apps/management-frontend',
 	server: {
 		port: 4201,
@@ -19,11 +19,11 @@ export default defineConfig(() => ({
 		port: 4201,
 		host: 'localhost',
 	},
-	plugins: [TanStackRouterVite(), nxViteTsPaths(), nxCopyAssetsPlugin(['*.md'])],
-	// Uncomment this if you are using workers.
-	// worker: {
-	//  plugins: [ nxViteTsPaths() ],
-	// },
+	plugins: [
+		TanStackRouterVite(),
+		nxViteTsPaths(),
+		nxCopyAssetsPlugin(['*.md'])
+	],
 	build: {
 		outDir: '../../dist/apps/management-frontend',
 		emptyOutDir: true,
@@ -44,4 +44,4 @@ export default defineConfig(() => ({
 			provider: 'v8' as const,
 		},
 	},
-}));
+});

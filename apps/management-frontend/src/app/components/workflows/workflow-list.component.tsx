@@ -1,6 +1,6 @@
 import { useWorkflowRuns } from '../../api/hooks/useWorkflowRuns';
 
-export default function WorkflowList() {
+export default function WorkflowListComponent() {
 	const { data, isLoading, error, refetch } = useWorkflowRuns();
 
 	if (isLoading) return <div>Laden...</div>;
@@ -11,7 +11,7 @@ export default function WorkflowList() {
 			<button type={'button'} onClick={() => refetch()}>
 				Aktualisieren
 			</button>
-			{data?.items?.map((workflow) => (
+			{data?.items?.map((workflow: any) => (
 				<div key={workflow.metadata.name}>{workflow.metadata.name}</div>
 			))}
 		</div>
