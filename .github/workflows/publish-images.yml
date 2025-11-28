@@ -12,7 +12,7 @@ on:
 jobs:
   management-backend-build-and-publish:
     name: Publish Management Backend to GitHub Container registry
-    if: ${{ github.event_name == 'release' || github.event.workflow_run.conclusion == 'success' }}
+    if: ${{ github.event_name == 'workflow_dispatch' || github.event_name == 'release' || github.event.workflow_run.conclusion == 'success' }}
     runs-on: ubuntu-latest
 
     steps:
