@@ -5,6 +5,9 @@ import { AppModule } from './app/app.module';
 async function bootstrap(): Promise<INestApplication> {
 	const app = await NestFactory.create(AppModule);
 	app.setGlobalPrefix('api/v1');
+	app.enableCors({
+		origin: 'http://localhost:4201',
+	});
 	return app;
 }
 
