@@ -16,10 +16,8 @@ spec:
       labels:
         {{- include "management-frontend.selectorLabels" . | nindent 8 }}
     spec:
-      {{- with .Values.imagePullSecrets }}
       imagePullSecrets:
         - name: {{ .Values.image.pullSecret }}
-      {{- end }}
       serviceAccountName: {{ include "management-frontend.serviceAccountName" . }}
       securityContext:
         {{- toYaml .Values.podSecurityContext | nindent 8 }}
