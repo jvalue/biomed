@@ -8,7 +8,7 @@ management-frontend:
   image:
     repository: management-frontend
   env:
-    VITE_MANAGEMENT_BACKEND_BASE_URL: "http://10.131.64.56/crawler-management-backend/api/v1"
+    MANAGEMENT_BACKEND_BASE_URL: "http://10.131.64.56/crawler-management-backend/api/v1"
   service:
     port: 80
   ingress:
