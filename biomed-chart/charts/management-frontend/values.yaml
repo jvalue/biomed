@@ -2,7 +2,7 @@ replicaCount: 1
 
 image:
   name: ghcr.io/jvalue/management-frontend
-  tag: 4bde9a1dcafa50e5f0e55469bab3c1aeafad4630
+  tag: 2ec04e3bf6b302758076b355161b469687d7faf5
   pullPolicy: IfNotPresent
   pullSecret: ghcr-login-secret
 

@@ -7,6 +7,8 @@ management-frontend:
   replicaCount: 1
   image:
     repository: management-frontend
+  env:
+    VITE_MANAGEMENT_BACKEND_BASE_URL: "http://10.131.64.56/crawler-management-backend/api/v1"
   service:
     port: 80
   ingress:
@@ -32,6 +34,26 @@ management-backend:
   env:
     DATABASE_URL: "postgresql://postgres:postgres@biomed-release-database:5432/postgres?schema=public"
     NODE_ENV: "production"
+    PORT: 3002
+    STAGE: "development"
+    DATABASE_HOST: "biomed-management-release-database"
+    DATABASE_PORT: 5435
+    DATABASE_USER: "postgres"
+    DATABASE_PASSWORD: "postgres"
+    DATABASE_DATABASE: "postgres"
+    ARGO_BASE_URL: "http://10.131.64.56/argo/api/v1"
+    KUBE_BEARER_TOKEN: "invalid-token"
+  ingress:
+    enabled: true
+    className: private-ingress
+    hosts:
+      - host: ""
+        paths:
+          - path: /crawler-management-backend(/|$)(.*)
+            pathType: ImplementationSpecific
+    annotations:
+      nginx.ingress.kubernetes.io/use-regex: "true"
+      nginx.ingress.kubernetes.io/rewrite-target: /$2
 
 # Biomed-db
 database:

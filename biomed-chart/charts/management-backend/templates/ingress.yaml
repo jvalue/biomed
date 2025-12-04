@@ -7,11 +7,12 @@ metadata:
     {{- include "management-backend.labels" . | nindent 4 }}
   {{- with .Values.ingress.annotations }}
   annotations:
+    checksum/config: {{ toYaml .Values | sha256sum }}
     {{- toYaml . | nindent 4 }}
   {{- end }}
 spec:
-  {{- with .Values.ingress.className }}
-  ingressClassName: {{ . }}
+  {{- if .Values.ingress.className }}
+  ingressClassName: {{ .Values.ingress.className }}
   {{- end }}
   {{- if .Values.ingress.tls }}
   tls:
