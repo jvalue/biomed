@@ -39,12 +39,20 @@ spec:
             httpGet:
               path: /
               port: http
+          volumeMounts:
+            # override config.js file
+            - name: config
+              mountPath: "/var/www/config.js"
+              subPath: "config.js"
           resources:
             {{- toYaml .Values.resources | nindent 12 }}
       volumes:
-        - name: env-js
+        - name: config
           configMap:
             name: {{ include "management-frontend.fullname" . }}-env
+            items:
+              - key: config.js
+                path: config.js
       {{- with .Values.nodeSelector }}
       nodeSelector:
         {{- toYaml . | nindent 8 }}

@@ -8,7 +8,7 @@ management-frontend:
   image:
     repository: management-frontend
   env:
-    VITE_MANAGEMENT_BACKEND_BASE_URL: "http://<ARGO_SERVER_HOST>/crawler-management-backend/api/v1"
+    MANAGEMENT_BACKEND_BASE_URL: "http://<ARGO_SERVER_HOST>/crawler-management-backend/api/v1"
   service:
     port: 80
   ingress:
