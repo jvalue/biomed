@@ -11,12 +11,15 @@ management-frontend:
     port: 80
   ingress:
     enabled: true
-    className: "nginx"
+    className: private-ingress
     hosts:
-      - host: biomed.local
+      - host: ""
         paths:
-          - path: /
+          - path: /crawler-management(/|$)(.*)
             pathType: ImplementationSpecific
+    annotations:
+      nginx.ingress.kubernetes.io/use-regex: "true"
+      nginx.ingress.kubernetes.io/rewrite-target: /$2
 
 # Management-Backend
 management-backend:

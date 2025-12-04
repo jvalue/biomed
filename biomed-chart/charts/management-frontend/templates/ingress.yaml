@@ -5,13 +5,20 @@ metadata:
   name: {{ include "management-frontend.fullname" . }}
   labels:
     {{- include "management-frontend.labels" . | nindent 4 }}
+  {{- with .Values.ingress.annotations }}
+  annotations:
+    checksum/config: {{ toYaml .Values | sha256sum }}
+    {{- toYaml . | nindent 4 }}
+  {{- end }}
 spec:
   {{- if .Values.ingress.className }}
   ingressClassName: {{ .Values.ingress.className }}
   {{- end }}
   rules:
     {{- range .Values.ingress.hosts }}
-    - host: {{ .host | quote }}
+    - {{- if and .host (ne .host "") }}
+      host: {{ .host | quote }}
+      {{- end }}
       http:
         paths:
           {{- range .paths }}

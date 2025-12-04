@@ -1,15 +1,16 @@
+# yaml
 apiVersion: v1
 kind: Service
 metadata:
-  name: {{ include "database.fullname" . }}
+  name: {{ include "management-frontend.fullname" . }}
   labels:
-    {{- include "database.labels" . | nindent 4 }}
+    {{- include "management-frontend.labels" . | nindent 4 }}
 spec:
-  type: ClusterIP
+  type: {{ .Values.service.type }}
   ports:
-    - port: 5432
-      targetPort: postgres
+    - port: {{ .Values.service.port }}
+      targetPort: http
       protocol: TCP
-      name: postgres
+      name: http
   selector:
-    {{- include "database.selectorLabels" . | nindent 4 }}
+    {{- include "management-frontend.selectorLabels" . | nindent 4 }}
