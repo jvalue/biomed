@@ -1,30 +1,15 @@
-import { createRootRoute, createRoute, createRouter } from '@tanstack/react-router';
-import App from './app';
-import About from './routes/about';
-import WorkflowList from './routes/workflow-list';
+// src/router.tsx
+import { createRouter } from '@tanstack/react-router';
+import { routeTree } from '../routeTree.gen';
 
-const rootRoute = createRootRoute({
-	component: App,
-});
+// You must export a getRouter function that
+// returns a new router instance each time
+export function getRouter() {
+	const router = createRouter({
+		routeTree,
+		scrollRestoration: true,
+		basepath: '/crawler-management',
+	});
 
-const indexRoute = createRoute({
-	getParentRoute: () => rootRoute,
-	path: '/',
-	component: WorkflowList,
-});
-
-const aboutRoute = createRoute({
-	getParentRoute: () => rootRoute,
-	path: '/about',
-	component: About,
-});
-
-const routeTree = rootRoute.addChildren([indexRoute, aboutRoute]);
-
-export const router = createRouter({ routeTree });
-
-declare module '@tanstack/react-router' {
-	interface Register {
-		router: typeof router;
-	}
+	return router;
 }
