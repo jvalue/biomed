@@ -1,0 +1,16 @@
+# yaml
+apiVersion: rbac.authorization.k8s.io/v1
+kind: RoleBinding
+metadata:
+  name: {{ include "management-backend.fullname" . }}-rolebinding
+  namespace: {{ .Values.argoNamespace | quote }}
+  labels:
+{{ include "management-backend.labels" . | indent 4 }}
+subjects:
+  - kind: ServiceAccount
+    name: {{ include "management-backend.serviceAccountName" . }}
+    namespace: {{ .Release.Namespace }}
+roleRef:
+  apiGroup: rbac.authorization.k8s.io
+  kind: Role
+  name: {{ include "management-backend.fullname" . }}-argo-access
