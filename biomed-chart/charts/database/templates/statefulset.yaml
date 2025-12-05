@@ -21,11 +21,20 @@ spec:
           imagePullPolicy: {{ .Values.image.pullPolicy }}
           env:
             - name: POSTGRES_USER
-              value: {{ .Values.auth.user | quote }}
+              valueFrom:
+                secretKeyRef:
+                  name: "{{ .Values.secrets.databaseSecret }}"
+                  key: POSTGRES_USER
             - name: POSTGRES_PASSWORD
-              value: {{ .Values.auth.password | quote }}
+              valueFrom:
+                secretKeyRef:
+                  name:  "{{ .Values.secrets.databaseSecret }}"
+                  key: POSTGRES_PASSWORD
             - name: POSTGRES_DB
-              value: {{ .Values.auth.database | quote }}
+              valueFrom:
+                secretKeyRef:
+                  name: "{{ .Values.secrets.databaseSecret }}"
+                  key: POSTGRES_DB
             - name: PGDATA
               value: "/var/lib/postgresql/data/pgdata"
 

@@ -19,17 +19,16 @@ httpRoute:
 autoscaling:
   enabled: false
 
+secrets:
+  databaseSecret: biomed-db-credentials
 
-  # TODO: Move env variables to config map / secrets
+
 env:
   NODE_ENV: "production"
   PORT: 3002
   STAGE: "development"
   DATABASE_HOST: "biomed-management-release-database"
   DATABASE_PORT: 5435
-  DATABASE_USER: "postgres"
-  DATABASE_PASSWORD: "postgres"
-  DATABASE_DATABASE: "postgres"
   ARGO_BASE_URL: "http://<ARGO_SERVER_HOST>/argo/api/v1"
   KUBE_BEARER_TOKEN: "invalid-token"
 
