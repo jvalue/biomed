@@ -16,6 +16,7 @@ spec:
       labels:
         {{- include "management-backend.selectorLabels" . | nindent 8 }}
     spec:
+      serviceAccountName: {{ include "management-backend.serviceAccountName" . }}
       imagePullSecrets:
         - name: {{ .Values.image.pullSecret }}
       containers:

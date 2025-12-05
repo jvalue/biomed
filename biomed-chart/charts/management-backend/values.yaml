@@ -2,7 +2,7 @@ replicaCount: 1
 
 image:
   name: ghcr.io/jvalue/management-backend
-  tag: 2ec04e3bf6b302758076b355161b469687d7faf5
+  tag: 0b32d8eff4020d5503f4d82b3e7cf8ae7a761347
   pullPolicy: IfNotPresent
   pullSecret: ghcr-login-secret
 
@@ -13,6 +13,7 @@ service:
 serviceAccount:
   create: true
   name: ""
+  automount: true
 
 httpRoute:
   enabled: false
@@ -25,3 +26,8 @@ ingress:
 
 # Env vars by parent values.yaml
 env: {}
+
+rbac:
+  create: true
+
+argoNamespace: argo-managed-crawler
