@@ -6,7 +6,7 @@ image:
 auth:
   user: "postgres"
   password: "postgres"
-  database: "biomed-db"
+  database: "postgres"
 
 service:
   type: ClusterIP
@@ -28,4 +28,3 @@ httpRoute:
 persistence:
   enabled: true
   size: 1Gi
-  # storageClassName: "standard"
