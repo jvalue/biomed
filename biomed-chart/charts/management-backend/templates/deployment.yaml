@@ -28,6 +28,21 @@ spec:
               containerPort: {{ .Values.service.port }}
               protocol: TCP
           env:
+            - name: DATABASE_USER
+              valueFrom:
+                secretKeyRef:
+                  name: "{{ .Values.secrets.databaseSecret }}"
+                  key: POSTGRES_USER
+            - name: DATABASE_PASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name: "{{ .Values.secrets.databaseSecret }}"
+                  key: POSTGRES_PASSWORD
+            - name: DATABASE_DATABASE
+              valueFrom:
+                secretKeyRef:
+                  name: "{{ .Values.secrets.databaseSecret }}"
+                  key: POSTGRES_DB
             {{- range $key, $val := .Values.env }}
             - name: {{ $key }}
               value: {{ $val | quote }}

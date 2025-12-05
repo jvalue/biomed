@@ -3,14 +3,12 @@ image:
   pullPolicy: IfNotPresent
   tag: "16.1-alpine"
 
-auth:
-  user: "postgres"
-  password: "postgres"
-  database: "postgres"
-
 service:
   type: ClusterIP
   port: 5435
+
+secrets:
+  databaseSecret: biomed-db-credentials
 
 serviceAccount:
   create: false
