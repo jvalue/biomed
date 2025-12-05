@@ -1,5 +1,3 @@
-replicaCount: 1
-
 image:
   name: ghcr.io/jvalue/management-backend
   tag: 0b32d8eff4020d5503f4d82b3e7cf8ae7a761347
@@ -21,11 +19,19 @@ httpRoute:
 autoscaling:
   enabled: false
 
-ingress:
-  enabled: true
 
-# Env vars by parent values.yaml
-env: {}
+  # TODO: Move env variables to config map / secrets
+env:
+  NODE_ENV: "production"
+  PORT: 3002
+  STAGE: "development"
+  DATABASE_HOST: "biomed-management-release-database"
+  DATABASE_PORT: 5435
+  DATABASE_USER: "postgres"
+  DATABASE_PASSWORD: "postgres"
+  DATABASE_DATABASE: "postgres"
+  ARGO_BASE_URL: "http://<ARGO_SERVER_HOST>/argo/api/v1"
+  KUBE_BEARER_TOKEN: "invalid-token"
 
 rbac:
   create: true
