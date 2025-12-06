@@ -8,7 +8,7 @@ import {TanStackRouterVite} from '@tanstack/router-vite-plugin';
 export default defineConfig({
 	root: __dirname,
 	cacheDir: '../../node_modules/.vite/apps/management-frontend',
-	base: '/crawler-management/',
+	base: '/crawler-management',
 	server: {
 		port: 4201,
 		host: 'localhost',

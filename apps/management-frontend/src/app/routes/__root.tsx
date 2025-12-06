@@ -1,5 +1,4 @@
-// src/routes/__root.tsx
-import { createRootRoute, HeadContent, Outlet, Scripts } from '@tanstack/react-router';
+import { createRootRoute, Outlet } from '@tanstack/react-router';
 import type { ReactNode } from 'react';
 import App from '../app';
 
@@ -14,7 +13,7 @@ export const Route = createRootRoute({
 				content: 'width=device-width, initial-scale=1',
 			},
 			{
-				title: 'TanStack Start Starter',
+				title: 'Biomed Crawler Management',
 			},
 		],
 	}),
