@@ -44,7 +44,7 @@ jobs:
           echo IMAGE_ID=$IMAGE_ID
           echo VERSION=$VERSION
           docker tag $IMAGE_NAME $IMAGE_ID:$VERSION
-          docker push $IMAGE_ID --all-tags
+          docker push $IMAGE_ID:latest
   management-frontend-build-and-publish:
     name: Publish Management Frontend to GitHub Container registry
     if: ${{ github.event_name == 'workflow_dispatch' || github.event_name == 'release' || github.event.workflow_run.conclusion == 'success' }}
@@ -81,4 +81,4 @@ jobs:
           echo IMAGE_ID=$IMAGE_ID
           echo VERSION=$VERSION
           docker tag $IMAGE_NAME $IMAGE_ID:$VERSION
-          docker push $IMAGE_ID --all-tags
+          docker push $IMAGE_ID:latest
