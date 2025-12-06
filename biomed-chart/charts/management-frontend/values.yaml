@@ -1,6 +1,6 @@
 image:
   name: ghcr.io/jvalue/management-frontend
-  tag: 0b32d8eff4020d5503f4d82b3e7cf8ae7a761347
+  tag: latest
   pullPolicy: IfNotPresent
   pullSecret: ghcr-login-secret
 
