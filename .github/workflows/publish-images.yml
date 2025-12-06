@@ -41,9 +41,36 @@ jobs:
           IMAGE_ID=$(echo $IMAGE_ID | tr '[A-Z]' '[a-z]')
           # Get version from release name or latest if triggered manually
           VERSION=$(echo "${{ github.event.release.tag_name || github.sha }}")
+
           echo IMAGE_ID=$IMAGE_ID
           echo VERSION=$VERSION
-          docker tag $IMAGE_NAME $IMAGE_ID:$VERSION
+
+          # Try to find the locally built image for the service. Many compose setups produce a local repository
+          # name that differs from the simple service name (project_service). We try a few fallbacks to find it.
+          if docker image inspect "$IMAGE_NAME:latest" > /dev/null 2>&1; then
+            SOURCE="$IMAGE_NAME:latest"
+          else
+            # Try exact repo match
+            SOURCE=$(docker images --format '{{.Repository}}:{{.Tag}}' | grep -i "^${IMAGE_NAME}:" | head -n1 || true)
+            # Try any repository containing the image name
+            if [ -z "$SOURCE" ]; then
+              SOURCE=$(docker images --format '{{.Repository}}:{{.Tag}}' | grep -i "${IMAGE_NAME}" | head -n1 || true)
+            fi
+          fi
+
+          if [ -z "$SOURCE" ]; then
+            echo "Could not find a locally built image for service '$IMAGE_NAME'. Listing available images for debugging:"
+            docker images --format 'Repo: {{.Repository}} Tag: {{.Tag}} ID: {{.ID}}' | head -n 50
+            exit 1
+          fi
+
+          echo "Found built image: $SOURCE"
+
+          # Tag the found image with both the specific version and 'latest'
+          docker tag "$SOURCE" "$IMAGE_ID:$VERSION"
+          docker tag "$SOURCE" "$IMAGE_ID:latest"
+          # Push both tags to the registry
+          docker push $IMAGE_ID:$VERSION
           docker push $IMAGE_ID:latest
   management-frontend-build-and-publish:
     name: Publish Management Frontend to GitHub Container registry
@@ -80,5 +107,27 @@ jobs:
 
           echo IMAGE_ID=$IMAGE_ID
           echo VERSION=$VERSION
-          docker tag $IMAGE_NAME $IMAGE_ID:$VERSION
+
+          if docker image inspect "$IMAGE_NAME:latest" > /dev/null 2>&1; then
+            SOURCE="$IMAGE_NAME:latest"
+          else
+            SOURCE=$(docker images --format '{{.Repository}}:{{.Tag}}' | grep -i "^${IMAGE_NAME}:" | head -n1 || true)
+            if [ -z "$SOURCE" ]; then
+              SOURCE=$(docker images --format '{{.Repository}}:{{.Tag}}' | grep -i "${IMAGE_NAME}" | head -n1 || true)
+            fi
+          fi
+
+          if [ -z "$SOURCE" ]; then
+            echo "Could not find a locally built image for service '$IMAGE_NAME'. Listing available images for debugging:"
+            docker images --format 'Repo: {{.Repository}} Tag: {{.Tag}} ID: {{.ID}}' | head -n 50
+            exit 1
+          fi
+
+          echo "Found built image: $SOURCE"
+
+          # Tag the found image with both the specific version and 'latest'
+          docker tag "$SOURCE" "$IMAGE_ID:$VERSION"
+          docker tag "$SOURCE" "$IMAGE_ID:latest"
+          # Push both tags to the registry
+          docker push $IMAGE_ID:$VERSION
           docker push $IMAGE_ID:latest
