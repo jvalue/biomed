@@ -1,4 +1,4 @@
-import { Injectable } from '@nestjs/common';
+import { Injectable, Logger } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import * as fs from 'fs';
 import { EnvironmentVariables } from '../../env.validation';
@@ -8,6 +8,7 @@ import { EnvironmentVariables } from '../../env.validation';
  */
 @Injectable()
 export class ArgoAuthService {
+	private readonly logger = new Logger(ArgoAuthService.name);
 	private readonly saTokenPath = '/var/run/secrets/kubernetes.io/serviceaccount/token';
 
 	constructor(private readonly configService: ConfigService<EnvironmentVariables, true>) {}
@@ -46,8 +47,10 @@ export class ArgoAuthService {
 	 */
 	getAuthToken(): string {
 		if (this.isRunningInCluster()) {
+			this.logger.log('Running in cluster, using in-cluster token');
 			return this.getInClusterToken();
 		}
+		this.logger.log('Running locally, using token from env var');
 		return this.getLocalTokenFromEnv();
 	}
 }

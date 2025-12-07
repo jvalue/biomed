@@ -1,4 +1,4 @@
-import { Injectable } from '@nestjs/common';
+import { Injectable, Logger } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import axios, { AxiosInstance } from 'axios';
 import { EnvironmentVariables } from '../env.validation';
@@ -11,6 +11,7 @@ import { ArgoWorkflowRunListDto } from './dto/workflow-runs/argo-workflow-run-li
  */
 @Injectable()
 export class ArgoClientService {
+	private readonly logger = new Logger(ArgoClientService.name);
 	private readonly http: AxiosInstance;
 
 	constructor(
@@ -33,9 +34,11 @@ export class ArgoClientService {
 	 * List all current workflows in all namespaces
 	 */
 	async listWorkflows(): Promise<WorkflowRunDto[]> {
+		this.logger.log('Listing workflows from Argo Workflows API');
 		const res = await this.http.get(`/workflows/`);
 		const workflowsResponse: ArgoWorkflowRunListDto = res.data;
 
+		this.logger.debug('Argo Workflows API response:', workflowsResponse);
 		// Map ArgoWorkflowRunListDto to WorkflowRunDto
 		const workflowRuns: WorkflowRunDto[] = workflowsResponse.items?.map((item) => {
 			const workflowRun = new WorkflowRunDto();
