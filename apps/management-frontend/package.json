@@ -4,5 +4,7 @@
 	"type": "module",
 	"scripts": {},
 	"sideEffects": false,
-	"dependencies": {}
+	"dependencies": {
+		"@radix-ui/react-slot": "^1.2.4"
+	}
 }
