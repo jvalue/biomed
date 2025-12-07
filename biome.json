@@ -15,7 +15,9 @@
 			"!!package.json",
 			"!!.nx/*",
 			"!!**/*.js",
-			"!!**/*.mts"
+			"!!**/*.mts",
+			"!!**/styles.css",
+			"!!**/tailwind.config.js"
 		]
 	},
 	"formatter": {
