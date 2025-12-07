@@ -1,0 +1,22 @@
+image:
+  name: ghcr.io/jvalue/management-frontend
+  tag: latest
+  pullPolicy: IfNotPresent
+  pullSecret: ghcr-login-secret
+
+env:
+  MANAGEMENT_BACKEND_BASE_URL: "http://10.131.64.56/crawler-management-backend/api/v1"
+
+service:
+  type: ClusterIP
+  port: 80
+
+serviceAccount:
+  create: true
+  name: ""
+
+httpRoute:
+  enabled: false
+
+autoscaling:
+  enabled: false

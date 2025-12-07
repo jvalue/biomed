@@ -1,0 +1,18 @@
+apiVersion: v2
+name: biomed-chart
+description: Helm Chart for the Biomed Crawler Project
+
+type: application
+version: 0.1.0
+appVersion: "1.0.0"
+
+dependencies:
+  - name: management-frontend
+    version: "0.1.0"
+    repository: "file://charts/management-frontend"
+  - name: management-backend
+    version: "0.1.0"
+    repository: "file://charts/management-backend"
+  - name: database
+    version: "0.1.0"
+    repository: "file://charts/database"

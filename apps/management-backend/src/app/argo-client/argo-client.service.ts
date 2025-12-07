@@ -17,7 +17,7 @@ export class ArgoClientService {
 		configService: ConfigService<EnvironmentVariables, true>,
 	) {
 		const argoBaseUrl = configService.get<string>('ARGO_BASE_URL');
-		const token = argoAuthService.getAuthToken();
+		const token = 'Bearer ' + argoAuthService.getAuthToken();
 		this.http = axios.create({
 			baseURL: argoBaseUrl,
 			timeout: 10000,
