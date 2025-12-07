@@ -4,11 +4,18 @@ import { DocumentBuilder, SwaggerModule } from '@nestjs/swagger';
 import { AppModule } from './app/app.module';
 
 async function bootstrap(): Promise<INestApplication> {
-	const app = await NestFactory.create(AppModule);
+	const app = await NestFactory.create(AppModule, {
+		// We want to see logs of the following levels
+		logger:
+			process.env.NODE_ENV === 'production'
+				? ['fatal', 'error', 'warn', 'log']
+				: ['fatal', 'error', 'warn', 'log', 'debug'],
+	});
 	app.setGlobalPrefix('api/v1');
 	app.enableCors({
 		origin: 'http://localhost:4201',
 	});
+	// Swagger setup
 	const config = new DocumentBuilder()
 		.setTitle('Crawler Management Backend')
 		.setVersion('1.0')
