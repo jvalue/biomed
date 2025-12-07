@@ -1,3 +1,4 @@
+import { Button } from '@/src/app/components/design-components/button';
 import { useWorkflowRuns } from '../../api/hooks/useWorkflowRuns';
 
 export default function WorkflowListComponent() {
@@ -8,9 +9,9 @@ export default function WorkflowListComponent() {
 
 	return (
 		<div>
-			<button type={'button'} onClick={() => refetch()}>
+			<Button variant={'default'} size={'sm'} onClick={() => refetch()}>
 				Aktualisieren
-			</button>
+			</Button>
 			{data?.items?.map((workflow: any) => (
 				<div key={workflow.metadata.name}>{workflow.metadata.name}</div>
 			))}
