@@ -14,6 +14,11 @@ export function AppNav() {
 						About
 					</Link>
 				</li>
+				<li>
+					<Link to="/workflow-list" activeProps={{ style: { fontWeight: 'bold' } }}>
+						Workflow List
+					</Link>
+				</li>
 			</ul>
 		</nav>
 	);

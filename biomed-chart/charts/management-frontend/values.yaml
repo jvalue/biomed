@@ -1,0 +1,22 @@
+image:
+  name: ghcr.io/jvalue/management-frontend
+  tag: latest
+  pullPolicy: IfNotPresent
+  pullSecret: ghcr-login-secret
+
+env:
+  MANAGEMENT_BACKEND_BASE_URL: "http://<ARGO_SERVER_HOST>/crawler-management-backend/api/v1"
+
+service:
+  type: ClusterIP
+  port: 80
+
+serviceAccount:
+  create: true
+  name: ""
+
+httpRoute:
+  enabled: false
+
+autoscaling:
+  enabled: false
