@@ -4,18 +4,16 @@
 	"rsc": false,
 	"tsx": true,
 	"tailwind": {
-		"config": "",
-		"css": "src/styles.css",
+		"config": "apps/management-frontend/tailwind.config.js",
+		"css": "apps/management-frontend/src/styles.css",
 		"baseColor": "neutral",
 		"cssVariables": true,
 		"prefix": ""
 	},
 	"aliases": {
 		"components": "@/components",
-		"utils": "@/lib/utils",
-		"ui": "@/components/ui",
-		"lib": "@/lib",
-		"hooks": "@/hooks"
+		"utils": "@/src/utils/twMerge",
+		"ui": "apps/management-frontend/src/app/components/design-components"
 	},
 	"iconLibrary": "lucide"
 }
