@@ -1,0 +1,16 @@
+/**
+ * Mapper functions for argo
+ */
+import { WorkflowRunDto } from '../../workflow-runs/dto/workflow-run.dto';
+import { ArgoWorkflowRunDto } from '../dto/workflow-runs/argo-workflow-run.dto';
+
+export function mapArgoWorkflowRunDtoToWorkflowRunDto(run: ArgoWorkflowRunDto): WorkflowRunDto {
+	const workflowRun = new WorkflowRunDto();
+	workflowRun.name = run.metadata.name;
+	workflowRun.namespace = run.metadata.namespace;
+	workflowRun.workflowTemplateName = run.metadata.labels['workflows.argoproj.io/workflow-template'];
+	workflowRun.phase = run.status.phase;
+	workflowRun.startedAt = run.status.startedAt;
+	workflowRun.finishedAt = run.status.finishedAt;
+	return workflowRun;
+}
