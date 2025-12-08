@@ -1,0 +1,19 @@
+{
+	"$schema": "https://ui.shadcn.com/schema.json",
+	"style": "new-york",
+	"rsc": false,
+	"tsx": true,
+	"tailwind": {
+		"config": "apps/management-frontend/tailwind.config.js",
+		"css": "apps/management-frontend/src/styles.css",
+		"baseColor": "neutral",
+		"cssVariables": true,
+		"prefix": ""
+	},
+	"aliases": {
+		"components": "@/components",
+		"utils": "@/src/utils/twMerge",
+		"ui": "apps/management-frontend/src/app/components/design-components"
+	},
+	"iconLibrary": "lucide"
+}
