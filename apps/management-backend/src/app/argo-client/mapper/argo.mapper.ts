@@ -8,7 +8,7 @@ export function mapArgoWorkflowRunDtotoWorkflowRunDto(run: ArgoWorkflowRunDto): 
 	const workflowRun = new WorkflowRunDto();
 	workflowRun.name = run.metadata.name;
 	workflowRun.namespace = run.metadata.namespace;
-	workflowRun.workflowTemplateName = run.spec.workflowTemplateRef.name;
+	workflowRun.workflowTemplateName = run.metadata.labels['workflows.argoproj.io/workflow-template'];
 	workflowRun.phase = run.status.phase;
 	workflowRun.startedAt = run.status.startedAt;
 	workflowRun.finishedAt = run.status.finishedAt;
