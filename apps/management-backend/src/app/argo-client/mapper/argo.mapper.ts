@@ -4,7 +4,7 @@
 import { WorkflowRunDto } from '../../workflow-runs/dto/workflow-run.dto';
 import { ArgoWorkflowRunDto } from '../dto/workflow-runs/argo-workflow-run.dto';
 
-export function mapArgoWorkflowRunDtotoWorkflowRunDto(run: ArgoWorkflowRunDto): WorkflowRunDto {
+export function mapArgoWorkflowRunDtoToWorkflowRunDto(run: ArgoWorkflowRunDto): WorkflowRunDto {
 	const workflowRun = new WorkflowRunDto();
 	workflowRun.name = run.metadata.name;
 	workflowRun.namespace = run.metadata.namespace;
