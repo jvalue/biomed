@@ -1,4 +1,4 @@
-import { Type } from 'class-transformer';
+import { Expose, Type } from 'class-transformer';
 import { IsDate, IsString } from 'class-validator';
 
 export class ArgoWorkflowRunDto {
@@ -22,7 +22,8 @@ class ArgoWorkflowRunMetadataDto {
 
 class ArgoWorkflowRunMetadataLabelsDto {
 	@IsString()
-	'workflows.argoproj.io/workflow-template'!: string;
+	@Expose({ name: 'workflows.argoproj.io/workflow-template' })
+	workflowTemplate!: string;
 }
 
 class ArgoWorkflowRunStatusDto {
