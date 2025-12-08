@@ -21,7 +21,7 @@ async function bootstrap(): Promise<INestApplication> {
 		.setVersion('1.0')
 		.build();
 	const documentFactory = () => SwaggerModule.createDocument(app, config);
-	SwaggerModule.setup('crawler-management-backend/api', app, documentFactory);
+	SwaggerModule.setup('api/v1/docs', app, documentFactory);
 
 	return app;
 }
