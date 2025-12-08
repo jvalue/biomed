@@ -5,6 +5,7 @@ import { EnvironmentVariables } from '../env.validation';
 import { WorkflowRunDto } from '../workflow-runs/dto/workflow-run.dto';
 import { ArgoAuthService } from './argo-auth/argo-auth.service';
 import { ArgoWorkflowRunListDto } from './dto/workflow-runs/argo-workflow-run-list.dto';
+import { mapArgoWorkflowRunDtotoWorkflowRunDto } from './mapper/argo.mapper';
 
 /**
  * Service to interact with Argo Workflows API
@@ -39,18 +40,8 @@ export class ArgoClientService {
 		const workflowsResponse: ArgoWorkflowRunListDto = res.data;
 
 		this.logger.debug('Argo Workflows API response:', workflowsResponse);
+
 		// Map ArgoWorkflowRunListDto to WorkflowRunDto
-		const workflowRuns: WorkflowRunDto[] =
-			workflowsResponse.items?.map((item) => {
-				const workflowRun = new WorkflowRunDto();
-				workflowRun.name = item.metadata.name;
-				workflowRun.namespace = item.metadata.namespace;
-				workflowRun.workflowTemplateName = item.spec.workflowTemplateRef.name;
-				workflowRun.phase = item.status.phase;
-				workflowRun.startedAt = item.status.startedAt;
-				workflowRun.finishedAt = item.status.finishedAt;
-				return workflowRun;
-			}) ?? [];
-		return workflowRuns;
+		return workflowsResponse.items?.map(mapArgoWorkflowRunDtotoWorkflowRunDto) ?? [];
 	}
 }
