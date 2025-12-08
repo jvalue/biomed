@@ -32,7 +32,7 @@ export default function WorkflowRunsTable({ runs = [] }: WorkflowRunsTableProps)
 					<TableRow key={run.name}>
 						<TableCell>{run.name}</TableCell>
 						<TableCell>{run.namespace}</TableCell>
-						<TableCell>{run.workflowTemplateName ?? 'N/A'}</TableCell>
+						<TableCell>{run.workflowTemplateName}</TableCell>
 						<TableCell>{run.phase}</TableCell>
 						<TableCell>
 							{run.startedAt ? new Date(run.startedAt).toLocaleString() : 'not yet started'}

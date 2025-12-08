@@ -40,16 +40,17 @@ export class ArgoClientService {
 
 		this.logger.debug('Argo Workflows API response:', workflowsResponse);
 		// Map ArgoWorkflowRunListDto to WorkflowRunDto
-		const workflowRuns: WorkflowRunDto[] = workflowsResponse.items?.map((item) => {
-			const workflowRun = new WorkflowRunDto();
-			workflowRun.name = item.metadata.name;
-			workflowRun.namespace = item.metadata.namespace;
-			workflowRun.workflowTemplateName = item.spec.workflowTemplateRef.name;
-			workflowRun.phase = item.status.phase;
-			workflowRun.startedAt = item.status.startedAt;
-			workflowRun.finishedAt = item.status.finishedAt;
-			return workflowRun;
-		});
-		return workflowRuns ?? [];
+		const workflowRuns: WorkflowRunDto[] =
+			workflowsResponse.items?.map((item) => {
+				const workflowRun = new WorkflowRunDto();
+				workflowRun.name = item.metadata.name;
+				workflowRun.namespace = item.metadata.namespace;
+				workflowRun.workflowTemplateName = item.spec.workflowTemplateRef.name;
+				workflowRun.phase = item.status.phase;
+				workflowRun.startedAt = item.status.startedAt;
+				workflowRun.finishedAt = item.status.finishedAt;
+				return workflowRun;
+			}) ?? [];
+		return workflowRuns;
 	}
 }
