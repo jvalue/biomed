@@ -1,4 +1,4 @@
-import { INestApplication } from '@nestjs/common';
+import { INestApplication, ValidationPipe } from '@nestjs/common';
 import { NestFactory } from '@nestjs/core';
 import { DocumentBuilder, SwaggerModule } from '@nestjs/swagger';
 import { AppModule } from './app/app.module';
@@ -11,6 +11,14 @@ async function bootstrap(): Promise<INestApplication> {
 				? ['fatal', 'error', 'warn', 'log']
 				: ['fatal', 'error', 'warn', 'log', 'debug'],
 	});
+
+	// Used to validate data
+	app.useGlobalPipes(
+		new ValidationPipe({
+			transform: true,
+		}),
+	);
+
 	app.setGlobalPrefix('api/v1');
 	app.enableCors({
 		origin: 'http://localhost:4201',
