@@ -29,5 +29,5 @@ function RootComponent() {
 }
 
 function RootDocument({ children }: Readonly<{ children: ReactNode }>) {
-	return <App></App>;
+	return <App>{children}</App>;
 }

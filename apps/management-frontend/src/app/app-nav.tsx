@@ -1,25 +1,14 @@
-import { Link } from '@tanstack/react-router';
+import { AppSidebar } from '@/src/app/components/app-sidebar';
+import { SidebarProvider, SidebarTrigger } from '@/src/app/components/design-components/sidebar';
 
-export function AppNav() {
+export function AppNav({ children }: { children: React.ReactNode }) {
 	return (
-		<nav>
-			<ul>
-				<li>
-					<Link to="/" activeProps={{ style: { fontWeight: 'bold' } }}>
-						Home
-					</Link>
-				</li>
-				<li>
-					<Link to="/about" activeProps={{ style: { fontWeight: 'bold' } }}>
-						About
-					</Link>
-				</li>
-				<li>
-					<Link to="/workflow-list" activeProps={{ style: { fontWeight: 'bold' } }}>
-						Workflow List
-					</Link>
-				</li>
-			</ul>
-		</nav>
+		<SidebarProvider>
+			<AppSidebar />
+			<main>
+				<SidebarTrigger />
+				{children}
+			</main>
+		</SidebarProvider>
 	);
 }
