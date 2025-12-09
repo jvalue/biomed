@@ -11,9 +11,11 @@
 		"prefix": ""
 	},
 	"aliases": {
-		"components": "@/components",
-		"utils": "@/src/utils/twMerge",
-		"ui": "apps/management-frontend/src/app/components/design-components"
+		"components": "@/src/app/components/design-components",
+		"utils": "@/src/utils",
+		"ui": "@/src/app/components/design-components",
+		"hooks": "@/src/app/components/design-components/hooks",
+		"lib": "@/src"
 	},
 	"iconLibrary": "lucide"
 }
