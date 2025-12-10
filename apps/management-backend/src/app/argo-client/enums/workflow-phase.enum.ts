@@ -1,5 +1,5 @@
 export enum WorkflowPhaseEnum {
-	PENGING = 'Pending',
+	PENDING = 'Pending',
 	RUNNING = 'Running',
 	SUCCEEDED = 'Succeeded',
 	FAILED = 'Failed',
