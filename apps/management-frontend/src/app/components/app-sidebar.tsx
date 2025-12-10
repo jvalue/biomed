@@ -42,7 +42,6 @@ export function AppSidebar() {
 						</SidebarMenu>
 					</SidebarGroupContent>
 				</SidebarGroup>
-				<SidebarGroup />
 				<SidebarGroup>
 					<SidebarGroupLabel>Statistics and Workflow Information</SidebarGroupLabel>
 					<SidebarGroupContent>
@@ -59,7 +58,6 @@ export function AppSidebar() {
 						</SidebarMenu>
 					</SidebarGroupContent>
 				</SidebarGroup>
-				<SidebarGroup />
 			</SidebarContent>
 			<SidebarFooter />
 		</Sidebar>
