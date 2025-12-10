@@ -4,7 +4,7 @@ import WorkflowListComponent from '../components/workflows/workflow-list.compone
 export const Route = createFileRoute('/workflow-list')({
 	component: () => (
 		<div>
-			<h2>Workflow List</h2>
+			<h1>Workflow List</h1>
 			<WorkflowListComponent />
 		</div>
 	),

@@ -15,16 +15,16 @@ export interface WorkflowRunsTableProps {
 
 export default function WorkflowRunsTable({ runs = [] }: WorkflowRunsTableProps) {
 	return (
-		<Table>
+		<Table className="m-4 mt-6">
 			<TableCaption>Currently running workflow runs.</TableCaption>
 			<TableHeader>
 				<TableRow>
-					<TableHead>Name/ID</TableHead>
-					<TableHead>Namespace</TableHead>
-					<TableHead>Workflow Template</TableHead>
-					<TableHead>Phase</TableHead>
-					<TableHead>Started at</TableHead>
-					<TableHead>Finished at</TableHead>
+					<TableHead className="text-primary">Name/ID</TableHead>
+					<TableHead className="text-primary">Namespace</TableHead>
+					<TableHead className="text-primary">Workflow Template</TableHead>
+					<TableHead className="text-primary">Phase</TableHead>
+					<TableHead className="text-primary">Started at</TableHead>
+					<TableHead className="text-primary">Finished at</TableHead>
 				</TableRow>
 			</TableHeader>
 			<TableBody>
