@@ -1,5 +1,6 @@
 import { ApiProperty } from '@nestjs/swagger';
 import { IsDate, IsString } from 'class-validator';
+import { WorkflowPhaseEnum } from '../../argo-client/enums/workflow-phase.enum';
 
 export class WorkflowRunDto {
 	@ApiProperty({ description: 'The name/id of the workflow run' })
@@ -18,7 +19,7 @@ export class WorkflowRunDto {
 
 	@ApiProperty({ description: 'The current phase/status of the workflow run' })
 	@IsString()
-	phase!: string;
+	phase!: WorkflowPhaseEnum;
 
 	@ApiProperty({ description: 'The time when the workflow run started' })
 	@IsDate()
