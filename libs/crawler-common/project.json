@@ -1,0 +1,23 @@
+{
+	"name": "crawler-common",
+	"$schema": "../../node_modules/nx/schemas/project-schema.json",
+	"projectType": "library",
+	"sourceRoot": "libs/crawler-common/crawler_common",
+	"targets": {
+		"test": {
+			"executor": "@nx/workspace:run-commands",
+			"options": {
+				"command": "uv run pytest tests/",
+				"cwd": "libs/crawler-common"
+			}
+		},
+		"lint": {
+			"executor": "@nx/workspace:run-commands",
+			"options": {
+				"command": "uv run ruff check crawler_common/",
+				"cwd": "libs/crawler-common"
+			}
+		}
+	},
+	"tags": ["type:library", "scope:crawler"]
+}
