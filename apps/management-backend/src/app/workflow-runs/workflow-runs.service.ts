@@ -1,7 +1,7 @@
 import { Injectable, Logger } from '@nestjs/common';
 import { ArgoClientService } from '../argo-client/argo-client.service';
-import { WorkflowPhaseEnum } from '../argo-client/enums/workflow-phase.enum';
 import { WorkflowRunDto } from './dto/workflow-run.dto';
+import { WorkflowRunFilterDto } from './dto/workflow-run-filter.dto';
 
 @Injectable()
 export class WorkflowRunsService {
@@ -11,14 +11,9 @@ export class WorkflowRunsService {
 
 	/**
 	 * Lists all Argo Workflows.
+	 * @param filter Optional filtering options
 	 */
-	async listWorkflows(): Promise<WorkflowRunDto[]> {
-		return this.argoClientService.listWorkflows({
-			namespace: 'argo-managed-crawler',
-			template: 'test-workflow',
-			phases: [WorkflowPhaseEnum.ERROR, WorkflowPhaseEnum.SUCCEEDED],
-			createdAfter: '2025-12-09T00:00:00Z',
-			finishedBefore: '2025-12-10T23:59:59Z',
-		});
+	async listWorkflows(filter?: WorkflowRunFilterDto): Promise<WorkflowRunDto[]> {
+		return this.argoClientService.listWorkflows(filter);
 	}
 }
