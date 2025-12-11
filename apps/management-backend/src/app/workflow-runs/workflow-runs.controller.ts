@@ -1,6 +1,7 @@
-import { Controller, Get, Logger } from '@nestjs/common';
+import { Controller, Get, Logger, Query } from '@nestjs/common';
 import { ApiOkResponse, ApiOperation } from '@nestjs/swagger';
 import { WorkflowRunDto } from './dto/workflow-run.dto';
+import { WorkflowRunFilterDto } from './dto/workflow-run-filter.dto';
 import { WorkflowRunsService } from './workflow-runs.service';
 
 @Controller('workflow-runs')
@@ -12,7 +13,7 @@ export class WorkflowRunsController {
 	@ApiOperation({ summary: 'Lists all Argo Workflows' })
 	@ApiOkResponse({ type: [WorkflowRunDto], description: 'List of Argo Workflows' })
 	@Get()
-	async listArgoWorkflows(): Promise<WorkflowRunDto[]> {
-		return this.workflowRunsService.listWorkflows();
+	async listArgoWorkflows(@Query() filterParams?: WorkflowRunFilterDto): Promise<WorkflowRunDto[]> {
+		return this.workflowRunsService.listWorkflows(filterParams);
 	}
 }
