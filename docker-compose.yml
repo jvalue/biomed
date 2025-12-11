@@ -10,8 +10,10 @@ services:
 
   crawler-general:
     build:
-      context: ./apps/crawler
+      context: .
+      dockerfile: apps/crawler/Dockerfile
     working_dir: /app
     command: uv run crawler_general/hello.py
     volumes:
       - ./apps/crawler:/app
+      - ./libs/crawler-common:/app/libs/crawler-common

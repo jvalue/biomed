@@ -6,14 +6,16 @@ WORKDIR /app
 RUN pip install --upgrade pip \
     && pip install uv
 
-COPY pyproject.toml ./
-# Copy app code, but exclude .venv
-COPY crawler_general ./crawler_general
+# Copy application and shared library from monorepo root context
+# Expect build context to be the monorepo root (see docker-compose.yml)
+COPY apps/crawler/pyproject.toml ./pyproject.toml
+COPY apps/crawler/README.md ./README.md
+COPY apps/crawler/crawler_general ./crawler_general
+COPY libs/crawler-common ./libs/crawler-common
 
-
-# Compile requirements and install with uv
-RUN uv pip compile pyproject.toml -o requirements.txt \
-    && uv pip install --system -r requirements.txt
+# Install shared library first, then the app itself
+RUN uv pip install --system ./libs/crawler-common \
+    && uv pip install --system .
 
 # Run the app with uv
 CMD ["uv", "run", "crawler_general/hello.py"]
