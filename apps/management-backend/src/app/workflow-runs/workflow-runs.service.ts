@@ -14,6 +14,7 @@ export class WorkflowRunsService {
 	/**
 	 * Lists all Argo Workflows.
 	 * @param filter Optional filtering options
+	 * @param pagination Optional pagination options
 	 */
 	async listWorkflows(
 		filter?: WorkflowRunFilterDto,
