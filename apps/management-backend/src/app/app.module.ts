@@ -7,6 +7,7 @@ import { DbConfigService } from './db-config.service';
 import { DemoModule } from './demo/demo.module';
 import { validate } from './env.validation';
 import { WorkflowRunsModule } from './workflow-runs/workflow-runs.module';
+import { WorkflowTemplatesModule } from './workflow-templates/workflow-templates.module';
 
 @Module({
 	imports: [
@@ -20,6 +21,7 @@ import { WorkflowRunsModule } from './workflow-runs/workflow-runs.module';
 		}),
 		DemoModule,
 		WorkflowRunsModule,
+		WorkflowTemplatesModule,
 	],
 	controllers: [AppController],
 	providers: [AppService],
