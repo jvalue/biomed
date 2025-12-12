@@ -7,15 +7,16 @@ import { CurserBasedPaginationRequestDto } from '../pagination/dto/cursor-based-
 import { WorkflowRunDto } from '../workflow-runs/dto/workflow-run.dto';
 import { WorkflowRunFilterDto } from '../workflow-runs/dto/workflow-run-filter.dto';
 import { WorkflowTemplateDto } from '../workflow-templates/dto/workflow-template.dto';
+import { WorkflowTemplatesFilterDto } from '../workflow-templates/dto/workflow-templates-filter.dto';
 import { ArgoAuthService } from './argo-auth/argo-auth.service';
 import { ArgoCursorPaginatedListDto } from './dto/argo-cursor-paginated-list-dto';
 import { ArgoWorkflowRunDto } from './dto/workflow-runs/argo-workflow-run.dto';
-import { WorkflowPhaseEnum } from './enums/workflow-phase.enum';
 import {
 	mapArgoCursorPaginatedListDtoToCursorBasedPaginationResponseDto,
 	mapArgoWorkflowRunDtoToWorkflowRunDto,
 	mapArgoWorkflowTemplateDtoToWorkflowTemplateDto,
 } from './mapper/argo.mapper';
+import { ArgoQueryParamBuilder } from './utils/argo-query-param-builder';
 
 /**
  * Service to interact with Argo Workflows API
@@ -60,15 +61,26 @@ export class ArgoClientService {
 			'items.metadata.labels',
 		];
 
-		const queryParams = this.assembleListWorkflowsQueryParams(
+		const argoQueryParamBuilder = new ArgoQueryParamBuilder();
+		// Label selectors
+		argoQueryParamBuilder.addLabelSelector(
+			'workflows.argoproj.io/workflow-template',
 			filterOptions?.workflowTemplateName,
-			filterOptions?.phases,
-			filterOptions?.createdAfter?.toISOString(),
-			filterOptions?.finishedBefore?.toISOString(),
-			paginationOptions?.limit,
-			paginationOptions?.offset,
-			requestedFields,
 		);
+		argoQueryParamBuilder.addLabelSelector('workflows.argoproj.io/phase', filterOptions?.phases);
+
+		// Normal query parameters
+		argoQueryParamBuilder.add('createdAfter', filterOptions?.createdAfter?.toISOString());
+		argoQueryParamBuilder.add('finishedBefore', filterOptions?.finishedBefore?.toISOString());
+		argoQueryParamBuilder.add('listOptions.limit', paginationOptions?.limit);
+		argoQueryParamBuilder.add('listOptions.continue', paginationOptions?.offset);
+
+		// Required fields
+		argoQueryParamBuilder.add('fields', requestedFields);
+
+		const queryParams = argoQueryParamBuilder.build();
+
+		// Construct URL
 
 		let url = filterOptions?.namespace ? `/workflows/${filterOptions.namespace}` : `/workflows/`;
 		if (queryParams) {
@@ -88,10 +100,31 @@ export class ArgoClientService {
 		);
 	}
 
-	async listWorkflowTemplates(): Promise<CurserBasedPaginationResponseDto<WorkflowTemplateDto>> {
+	async listWorkflowTemplates(
+		filterOptions?: WorkflowTemplatesFilterDto,
+		paginationOptions?: CurserBasedPaginationRequestDto,
+	): Promise<CurserBasedPaginationResponseDto<WorkflowTemplateDto>> {
 		this.logger.log('Listing workflow templates from Argo Workflows API');
 
-		const res = await this.http.get('/workflow-templates/');
+		const argoQueryParamBuilder = new ArgoQueryParamBuilder();
+
+		// Normal query parameters
+		argoQueryParamBuilder.add('namePattern', filterOptions?.nameSearchString);
+		argoQueryParamBuilder.add('listOptions.limit', paginationOptions?.limit);
+		argoQueryParamBuilder.add('listOptions.continue', paginationOptions?.offset);
+
+		const queryParams = argoQueryParamBuilder.build();
+
+		// Construct URL
+		let url = filterOptions?.namespace
+			? `/workflow-templates/${filterOptions.namespace}`
+			: `/workflow-templates/`;
+		if (queryParams) {
+			url += `${queryParams}`;
+		}
+		this.logger.debug('Constructed URL for listing workflow templates:', url);
+
+		const res = await this.http.get(url);
 		const templatesResponse: ArgoCursorPaginatedListDto<any> = res.data;
 
 		this.logger.debug('Argo Workflows API response for templates:', templatesResponse);
@@ -101,68 +134,5 @@ export class ArgoClientService {
 			templatesResponse,
 			mapArgoWorkflowTemplateDtoToWorkflowTemplateDto,
 		);
-	}
-
-	/**
-	 * Assemble query parameters for listing workflows
-	 * @param template
-	 * @param phases
-	 * @param startedAfter
-	 * @param finishedBefore
-	 * @param limit max number of items to return
-	 * @param offset number of items to skip
-	 * @param requestedFields list of fields to include in the response
-	 * @private
-	 */
-	private assembleListWorkflowsQueryParams(
-		template?: string,
-		phases?: WorkflowPhaseEnum[],
-		startedAfter?: string,
-		finishedBefore?: string,
-		limit?: number,
-		offset?: number,
-		requestedFields?: string[],
-	): string {
-		let paramsString = '';
-
-		if (template) {
-			paramsString += `?listOptions.labelSelector=workflows.argoproj.io/workflow-template=${template}`;
-		}
-
-		if (phases && phases.length > 0) {
-			const phasesParam = phases.map((phase) => `${phase}`).join(',');
-			paramsString += paramsString
-				? `, workflows.argoproj.io/phase in (${phasesParam})`
-				: `?listOptions.labelSelector=workflows.argoproj.io/phase in (${phasesParam})`;
-		}
-
-		if (startedAfter) {
-			paramsString += paramsString
-				? `&createdAfter=${startedAfter}`
-				: `?createdAfter=${startedAfter}`;
-		}
-
-		if (finishedBefore) {
-			paramsString += paramsString
-				? `&finishedBefore=${finishedBefore}`
-				: `?finishedBefore=${finishedBefore}`;
-		}
-
-		if (limit) {
-			paramsString += paramsString ? `&listOptions.limit=${limit}` : `?listOptions.limit=${limit}`;
-		}
-
-		if (offset) {
-			paramsString += paramsString
-				? `&listOptions.continue=${offset}`
-				: `?listOptions.continue=${offset}`;
-		}
-
-		if (requestedFields && requestedFields.length > 0) {
-			const fieldsParam = requestedFields.join(',');
-			paramsString += paramsString ? `&fields=${fieldsParam}` : `?fields=${fieldsParam}`;
-		}
-
-		return paramsString;
 	}
 }
