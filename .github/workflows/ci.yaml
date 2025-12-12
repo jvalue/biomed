@@ -95,8 +95,7 @@
           run: npx nx run management-frontend:build
 
         - name: Test (Nx)
-          run: npx nx run management-frontend:test -- --ci
-
+          run: npx nx run management-frontend:test
     management-backend:
       name: Management Backend CI
       needs: detect-changes
@@ -123,4 +122,4 @@
           run: npx nx run management-backend:build
 
         - name: Test (Nx)
-          run: npx nx run management-backend:test -- --ci
+          run: npx nx run management-backend:test
