@@ -1,6 +1,7 @@
 import { Controller, Get, Logger, Query } from '@nestjs/common';
 import { ApiOkResponse, ApiOperation } from '@nestjs/swagger';
 import { CurserBasedPaginationResponseDto } from '../pagination/dto/curser-based-pagination-response.dto';
+import { CurserBasedPaginationRequestDto } from '../pagination/dto/cursor-based-pagination-request.dto';
 import { WorkflowRunDto } from './dto/workflow-run.dto';
 import { WorkflowRunFilterDto } from './dto/workflow-run-filter.dto';
 import { WorkflowRunsService } from './workflow-runs.service';
@@ -16,7 +17,8 @@ export class WorkflowRunsController {
 	@Get()
 	async listArgoWorkflows(
 		@Query() filterParams?: WorkflowRunFilterDto,
+		@Query() paginationParams?: CurserBasedPaginationRequestDto,
 	): Promise<CurserBasedPaginationResponseDto<WorkflowRunDto>> {
-		return this.workflowRunsService.listWorkflows(filterParams);
+		return this.workflowRunsService.listWorkflows(filterParams, paginationParams);
 	}
 }

@@ -3,6 +3,7 @@ import { ConfigService } from '@nestjs/config';
 import axios, { AxiosInstance } from 'axios';
 import { EnvironmentVariables } from '../env.validation';
 import { CurserBasedPaginationResponseDto } from '../pagination/dto/curser-based-pagination-response.dto';
+import { CurserBasedPaginationRequestDto } from '../pagination/dto/cursor-based-pagination-request.dto';
 import { WorkflowRunDto } from '../workflow-runs/dto/workflow-run.dto';
 import { WorkflowRunFilterDto } from '../workflow-runs/dto/workflow-run-filter.dto';
 import { ArgoAuthService } from './argo-auth/argo-auth.service';
@@ -44,6 +45,7 @@ export class ArgoClientService {
 	 */
 	async listWorkflows(
 		filterOptions?: WorkflowRunFilterDto,
+		paginationOptions?: CurserBasedPaginationRequestDto,
 	): Promise<CurserBasedPaginationResponseDto<WorkflowRunDto>> {
 		this.logger.log('Listing workflows from Argo Workflows API');
 		const queryParams = this.assembleListWorkflowsQueryParams(
@@ -51,6 +53,8 @@ export class ArgoClientService {
 			filterOptions?.phases,
 			filterOptions?.createdAfter?.toISOString(),
 			filterOptions?.finishedBefore?.toISOString(),
+			paginationOptions?.limit,
+			paginationOptions?.offset,
 		);
 
 		let url = filterOptions?.namespace ? `/workflows/${filterOptions.namespace}` : `/workflows/`;
@@ -77,6 +81,8 @@ export class ArgoClientService {
 	 * @param phases
 	 * @param startedAfter
 	 * @param finishedBefore
+	 * @param limit max number of items to return
+	 * @param offset number of items to skip
 	 * @private
 	 */
 	private assembleListWorkflowsQueryParams(
@@ -84,6 +90,8 @@ export class ArgoClientService {
 		phases?: WorkflowPhaseEnum[],
 		startedAfter?: string,
 		finishedBefore?: string,
+		limit?: number,
+		offset?: number,
 	): string {
 		let paramsString = '';
 
@@ -108,6 +116,16 @@ export class ArgoClientService {
 			paramsString += paramsString
 				? `&finishedBefore=${finishedBefore}`
 				: `?finishedBefore=${finishedBefore}`;
+		}
+
+		if (limit) {
+			paramsString += paramsString ? `&listOptions.limit=${limit}` : `?listOptions.limit=${limit}`;
+		}
+
+		if (offset) {
+			paramsString += paramsString
+				? `&listOptions.continue=${offset}`
+				: `?listOptions.continue=${offset}`;
 		}
 
 		return paramsString;
