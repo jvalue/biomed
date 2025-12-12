@@ -35,16 +35,4 @@ export default defineConfig({
 			transformMixedEsModules: true,
 		},
 	},
-	test: {
-		name: 'management-frontend',
-		watch: false,
-		globals: true,
-		environment: 'jsdom',
-		include: ['{src,tests}/**/*.{test,spec}.{js,mjs,cjs,ts,mts,cts,jsx,tsx}'],
-		reporters: ['default'],
-		coverage: {
-			reportsDirectory: '../../coverage/apps/management-frontend',
-			provider: 'v8' as const,
-		},
-	},
 });
