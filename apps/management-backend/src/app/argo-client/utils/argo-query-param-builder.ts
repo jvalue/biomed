@@ -64,6 +64,6 @@ export class ArgoQueryParamBuilder {
 			.replace(/%2C/g, ',') // comma
 			.replace(/%28/g, '(') // (
 			.replace(/%29/g, ')') // )
-			.replace(/%20/g, ' ');
+			.replace(/%20/g, ' '); // space
 	}
 }

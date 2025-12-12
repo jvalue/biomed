@@ -4,7 +4,7 @@ import { IsNumber, IsOptional } from 'class-validator';
 
 export class CurserBasedPaginationRequestDto {
 	@ApiProperty({
-		type: IsNumber,
+		type: Number,
 		description: 'Number of items to retrieve (if available)',
 		required: false,
 	})
@@ -14,7 +14,7 @@ export class CurserBasedPaginationRequestDto {
 	limit?: number;
 
 	@ApiProperty({
-		type: IsNumber,
+		type: Number,
 		description: 'Number of skipped items (can only be used in combination with limit)',
 		required: false,
 	})
