@@ -2,12 +2,17 @@ import { Injectable, Logger } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import axios, { AxiosInstance } from 'axios';
 import { EnvironmentVariables } from '../env.validation';
+import { CurserBasedPaginationResponseDto } from '../pagination/dto/curser-based-pagination-response.dto';
 import { WorkflowRunDto } from '../workflow-runs/dto/workflow-run.dto';
 import { WorkflowRunFilterDto } from '../workflow-runs/dto/workflow-run-filter.dto';
 import { ArgoAuthService } from './argo-auth/argo-auth.service';
-import { ArgoWorkflowRunListDto } from './dto/workflow-runs/argo-workflow-run-list.dto';
+import { ArgoCursorPaginatedListDto } from './dto/argo-cursor-paginated-list-dto';
+import { ArgoWorkflowRunDto } from './dto/workflow-runs/argo-workflow-run.dto';
 import { WorkflowPhaseEnum } from './enums/workflow-phase.enum';
-import { mapArgoWorkflowRunDtoToWorkflowRunDto } from './mapper/argo.mapper';
+import {
+	mapArgoCursorPaginatedListDtoToCursorBasedPaginationResponseDto,
+	mapArgoWorkflowRunDtoToWorkflowRunDto,
+} from './mapper/argo.mapper';
 
 /**
  * Service to interact with Argo Workflows API
@@ -37,7 +42,9 @@ export class ArgoClientService {
 	 * List all current workflows in all namespaces
 	 * @param filterOptions Filtering options
 	 */
-	async listWorkflows(filterOptions?: WorkflowRunFilterDto): Promise<WorkflowRunDto[]> {
+	async listWorkflows(
+		filterOptions?: WorkflowRunFilterDto,
+	): Promise<CurserBasedPaginationResponseDto<WorkflowRunDto>> {
 		this.logger.log('Listing workflows from Argo Workflows API');
 		const queryParams = this.assembleListWorkflowsQueryParams(
 			filterOptions?.workflowTemplateName,
@@ -53,12 +60,15 @@ export class ArgoClientService {
 		this.logger.debug('Constructed URL for listing workflows:', url);
 
 		const res = await this.http.get(url);
-		const workflowsResponse: ArgoWorkflowRunListDto = res.data;
+		const workflowsResponse: ArgoCursorPaginatedListDto<ArgoWorkflowRunDto> = res.data;
 
 		this.logger.debug('Argo Workflows API response:', workflowsResponse);
 
-		// Map ArgoWorkflowRunListDto to WorkflowRunDto
-		return workflowsResponse.items?.map(mapArgoWorkflowRunDtoToWorkflowRunDto) ?? [];
+		// Map ArgoCursorPaginatedListDto<ArgoWorkflowRunDto> to CurserBasedPaginationResponseDto<WorkflowRunDto>
+		return mapArgoCursorPaginatedListDtoToCursorBasedPaginationResponseDto(
+			workflowsResponse,
+			mapArgoWorkflowRunDtoToWorkflowRunDto,
+		);
 	}
 
 	/**
