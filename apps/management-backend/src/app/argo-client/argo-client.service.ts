@@ -11,6 +11,7 @@ import { WorkflowTemplatesFilterDto } from '../workflow-templates/dto/workflow-t
 import { ArgoAuthService } from './argo-auth/argo-auth.service';
 import { ArgoCursorPaginatedListDto } from './dto/argo-cursor-paginated-list-dto';
 import { ArgoWorkflowRunDto } from './dto/workflow-runs/argo-workflow-run.dto';
+import { ArgoWorkflowTemplateDto } from './dto/workflow-templates/argo-workflow-template.dto';
 import {
 	mapArgoCursorPaginatedListDtoToCursorBasedPaginationResponseDto,
 	mapArgoWorkflowRunDtoToWorkflowRunDto,
@@ -53,6 +54,7 @@ export class ArgoClientService {
 	): Promise<CurserBasedPaginationResponseDto<WorkflowRunDto>> {
 		this.logger.log('Listing workflows from Argo Workflows API');
 		const requestedFields = [
+			'metadata.continue',
 			'items.metadata.name',
 			'items.metadata.namespace',
 			'items.status.phase',
@@ -102,16 +104,13 @@ export class ArgoClientService {
 
 	async listWorkflowTemplates(
 		filterOptions?: WorkflowTemplatesFilterDto,
-		paginationOptions?: CurserBasedPaginationRequestDto,
-	): Promise<CurserBasedPaginationResponseDto<WorkflowTemplateDto>> {
+	): Promise<WorkflowTemplateDto[]> {
 		this.logger.log('Listing workflow templates from Argo Workflows API');
 
 		const argoQueryParamBuilder = new ArgoQueryParamBuilder();
 
 		// Normal query parameters
 		argoQueryParamBuilder.add('namePattern', filterOptions?.nameSearchString);
-		argoQueryParamBuilder.add('listOptions.limit', paginationOptions?.limit);
-		argoQueryParamBuilder.add('listOptions.continue', paginationOptions?.offset);
 
 		const queryParams = argoQueryParamBuilder.build();
 
@@ -125,14 +124,11 @@ export class ArgoClientService {
 		this.logger.debug('Constructed URL for listing workflow templates:', url);
 
 		const res = await this.http.get(url);
-		const templatesResponse: ArgoCursorPaginatedListDto<any> = res.data;
+		const templatesResponse: ArgoWorkflowTemplateDto[] = res.data?.items;
 
 		this.logger.debug('Argo Workflows API response for templates:', templatesResponse);
 
-		// Map ArgoCursorPaginatedListDto<ArgoWorkflowTemplateDto> to CurserBasedPaginationResponseDto<WorkflowTemplatesDto>
-		return mapArgoCursorPaginatedListDtoToCursorBasedPaginationResponseDto(
-			templatesResponse,
-			mapArgoWorkflowTemplateDtoToWorkflowTemplateDto,
-		);
+		// Map ArgoWorkflowTemplateDto[] to WorkflowTemplateDto[] as we do not offer pagination here
+		return templatesResponse?.map(mapArgoWorkflowTemplateDtoToWorkflowTemplateDto) ?? [];
 	}
 }
