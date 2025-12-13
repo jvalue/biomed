@@ -18,6 +18,7 @@ const menuItems = {
 	general: [{ name: 'Home', link: '/' }],
 	// Statistics and Workflow Information
 	stats: [{ name: 'Workflow List', link: '/workflow-list' }],
+	templates: [{ name: 'Workflow Templates', link: '/workflow-templates' }],
 };
 
 export function AppSidebar() {
@@ -47,6 +48,22 @@ export function AppSidebar() {
 					<SidebarGroupContent>
 						<SidebarMenu>
 							{menuItems.stats.map((item) => (
+								<SidebarMenuItem key={item.name}>
+									<SidebarMenuButton asChild>
+										<Link to={item.link} activeProps={{ style: { fontWeight: 'bold' } }}>
+											{item.name}
+										</Link>
+									</SidebarMenuButton>
+								</SidebarMenuItem>
+							))}
+						</SidebarMenu>
+					</SidebarGroupContent>
+				</SidebarGroup>
+				<SidebarGroup>
+					<SidebarGroupLabel>Orchestration</SidebarGroupLabel>
+					<SidebarGroupContent>
+						<SidebarMenu>
+							{menuItems.templates.map((item) => (
 								<SidebarMenuItem key={item.name}>
 									<SidebarMenuButton asChild>
 										<Link to={item.link} activeProps={{ style: { fontWeight: 'bold' } }}>
