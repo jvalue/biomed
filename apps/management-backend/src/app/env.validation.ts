@@ -28,6 +28,12 @@ export class EnvironmentVariables {
 
 	@IsString()
 	ARGO_BASE_URL!: string;
+
+	@IsString()
+	ADMIN_USERNAME!: string;
+
+	@IsString()
+	ADMIN_PASSWORD!: string;
 }
 
 export function validate(config: Record<string, unknown>): EnvironmentVariables {
