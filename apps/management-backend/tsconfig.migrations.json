@@ -1,0 +1,17 @@
+{
+	"extends": "./tsconfig.json",
+	"compilerOptions": {
+		"module": "commonjs",
+		"outDir": "../../dist/apps/management-backend-migrations",
+		"rootDir": "src",
+		"declaration": false,
+		"experimentalDecorators": true,
+		"emitDecoratorMetadata": true,
+		"esModuleInterop": true,
+		"resolveJsonModule": true,
+		"skipLibCheck": true,
+		"target": "ES2021",
+		"moduleResolution": "node"
+	},
+	"files": ["src/migrations.main.ts"]
+}

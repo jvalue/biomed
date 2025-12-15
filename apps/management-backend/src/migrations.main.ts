@@ -1,3 +1,4 @@
+import 'reflect-metadata';
 /*
 This file is used by typeorm to generate migrations in nx scripts.
  */
