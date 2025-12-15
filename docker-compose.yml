@@ -18,7 +18,7 @@ services:
     volumes:
       - ./apps/crawler:/app
       - ./libs/crawler-common:/app/libs/crawler-common
-      - "5435:5435"
+      - "5436:5436"
 
   management-backend:
     image: management-backend
