@@ -2,9 +2,9 @@ FROM python:3.14-slim
 
 WORKDIR /app
 
-# Install uv
+# Install uv (pinned)
 RUN pip install --upgrade pip \
-    && pip install uv
+    && pip install "uv==0.9.13"
 
 # Copy application and shared library from monorepo root context
 # Expect build context to be the monorepo root (see docker-compose.yml)
