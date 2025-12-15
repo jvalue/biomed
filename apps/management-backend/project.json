@@ -87,18 +87,25 @@
 				"command": "biome check --write"
 			}
 		},
+		"build:migrations": {
+			"executor": "nx:run-commands",
+			"outputs": ["{workspaceRoot}/dist/apps/management-backend-migrations"],
+			"options": {
+				"command": "tsc --project apps/management-backend/tsconfig.migrations.json"
+			}
+		},
 		"migrations": {
 			"executor": "nx:run-commands",
-			"dependsOn": ["build"],
+			"dependsOn": ["build:migrations", "build"],
 			"configurations": {
 				"run": {
-					"command": "npx typeorm -d dist/apps/management-backend/migrations.main.js migration:run"
+					"command": "npx typeorm -d dist/apps/management-backend-migrations/migrations.main.js migration:run"
 				},
 				"generate": {
-					"command": "npx typeorm -d dist/apps/management-backend/migrations.main.js migration:generate apps/management-backend/src/app/migrations/{args.name}"
+					"command": "npx typeorm -d dist/apps/management-backend-migrations/migrations.main.js migration:generate apps/management-backend/src/app/migrations/{args.name}"
 				},
 				"revert": {
-					"command": "npx typeorm -d dist/apps/management-backend/migrations.main.js migration:revert"
+					"command": "npx typeorm -d dist/apps/management-backend-migrations/migrations.main.js migration:revert"
 				}
 			}
 		}
