@@ -2,8 +2,8 @@ import { Injectable, Logger } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import axios, { AxiosInstance } from 'axios';
 import { EnvironmentVariables } from '../env.validation';
-import { CurserBasedPaginationResponseDto } from '../pagination/dto/curser-based-pagination-response.dto';
-import { CurserBasedPaginationRequestDto } from '../pagination/dto/cursor-based-pagination-request.dto';
+import { CursorBasedPaginationRequestDto } from '../pagination/dto/cursor-based-pagination-request.dto';
+import { CursorBasedPaginationResponseDto } from '../pagination/dto/cursor-based-pagination-response.dto';
 import { WorkflowRunDto } from '../workflow-runs/dto/workflow-run.dto';
 import { WorkflowRunFilterDto } from '../workflow-runs/dto/workflow-run-filter.dto';
 import { ArgoAuthService } from './argo-auth/argo-auth.service';
@@ -46,8 +46,8 @@ export class ArgoClientService {
 	 */
 	async listWorkflows(
 		filterOptions?: WorkflowRunFilterDto,
-		paginationOptions?: CurserBasedPaginationRequestDto,
-	): Promise<CurserBasedPaginationResponseDto<WorkflowRunDto>> {
+		paginationOptions?: CursorBasedPaginationRequestDto,
+	): Promise<CursorBasedPaginationResponseDto<WorkflowRunDto>> {
 		this.logger.log('Listing workflows from Argo Workflows API');
 		const requestedFields = [
 			'items.metadata.name',
@@ -61,7 +61,7 @@ export class ArgoClientService {
 		const queryParams = this.assembleListWorkflowsQueryParams(
 			filterOptions?.workflowTemplateName,
 			filterOptions?.phases,
-			filterOptions?.createdAfter?.toISOString(),
+			filterOptions?.startedAfter?.toISOString(),
 			filterOptions?.finishedBefore?.toISOString(),
 			paginationOptions?.limit,
 			paginationOptions?.offset,
@@ -79,7 +79,7 @@ export class ArgoClientService {
 
 		this.logger.debug('Argo Workflows API response:', workflowsResponse);
 
-		// Map ArgoCursorPaginatedListDto<ArgoWorkflowRunDto> to CurserBasedPaginationResponseDto<WorkflowRunDto>
+		// Map ArgoCursorPaginatedListDto<ArgoWorkflowRunDto> to CursorBasedPaginationResponseDto<WorkflowRunDto>
 		return mapArgoCursorPaginatedListDtoToCursorBasedPaginationResponseDto(
 			workflowsResponse,
 			mapArgoWorkflowRunDtoToWorkflowRunDto,
