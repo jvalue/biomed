@@ -1,4 +1,4 @@
-import { useNavigate } from '@tanstack/react-router';
+import { useRouter } from '@tanstack/react-router';
 import { FormEvent, useState } from 'react';
 import { useAuth } from '@/src/app/contexts/AuthContext';
 
@@ -7,13 +7,13 @@ export function Login() {
 	const [password, setPassword] = useState('');
 	const [error, setError] = useState('');
 	const { login } = useAuth();
-	const navigate = useNavigate();
+	const router = useRouter();
 
 	const handleSubmit = async (e: FormEvent) => {
 		e.preventDefault();
 		try {
 			await login(username, password);
-			navigate({ to: '/' });
+			await router.navigate({ to: '/' });
 		} catch (err) {
 			setError('Login failed. Please check your credentials and try again.');
 		}

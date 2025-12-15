@@ -1,11 +1,14 @@
 import { createFileRoute } from '@tanstack/react-router';
-import WorkflowListComponent from '../components/workflows/workflow-list.component';
+import { AuthGuard } from '@/src/app/components/auth-guard';
+import WorkflowList from '../components/workflows/workflow-list';
 
 export const Route = createFileRoute('/workflow-list')({
 	component: () => (
-		<div>
-			<h1>Workflow List</h1>
-			<WorkflowListComponent />
-		</div>
+		<AuthGuard>
+			<div>
+				<h1>Workflow List</h1>
+				<WorkflowList />
+			</div>
+		</AuthGuard>
 	),
 });
