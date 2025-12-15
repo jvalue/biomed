@@ -2,7 +2,7 @@ import { Spinner } from '@/src/app/components/design-components/spinner';
 import WorkflowRunsTable from '@/src/app/components/workflows/workflow-runs-table';
 import { useWorkflowRuns } from '../../api/hooks/useWorkflowRuns';
 
-export default function WorkflowListComponent() {
+export default function WorkflowList() {
 	const { data, isLoading, error, refetch } = useWorkflowRuns();
 
 	if (isLoading)
