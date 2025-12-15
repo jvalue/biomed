@@ -10,6 +10,7 @@ interface AuthContextType {
 	ability: AppAbility;
 	login: (username: string, password: string) => Promise<void>;
 	logout: () => void;
+	isLoading: boolean;
 	isAuthenticated: boolean;
 }
 
@@ -20,19 +21,29 @@ const createAppAbility: CreateAbility<AppAbility> = (rules: any[] = []) => new P
 export function AuthProvider({ children }: { children: ReactNode }) {
 	const [user, setUser] = useState<UserDto | null>(null);
 	const [ability, setAbility] = useState<AppAbility>(createAppAbility());
+	const [isLoading, setIsLoading] = useState<boolean>(true);
 
 	useEffect(() => {
 		const token = localStorage.getItem('accessToken');
 		if (token) {
 			fetchUserProfile(token);
+		} else {
+			setIsLoading(false);
 		}
 	}, []);
 
 	const fetchUserProfile = async (token: string) => {
-		const response = await managementBackendClient.get('/auth/me');
-		const data = response.data;
-		setUser(data.user);
-		setAbility(new PureAbility(data.abilityRules));
+		try {
+			const response = await managementBackendClient.get('/auth/me');
+			const data = response.data;
+			setUser(data.user);
+			setAbility(new PureAbility(data.abilityRules));
+		} catch (error) {
+			console.error('Failed to fetch user profile:', error);
+			localStorage.removeItem('accessToken');
+		} finally {
+			setIsLoading(false);
+		}
 	};
 
 	const login = async (username: string, password: string) => {
@@ -50,7 +61,9 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 	};
 
 	return (
-		<AuthContext.Provider value={{ user, ability, login, logout, isAuthenticated: !!user }}>
+		<AuthContext.Provider
+			value={{ user, ability, login, logout, isAuthenticated: !!user, isLoading }}
+		>
 			{children}
 		</AuthContext.Provider>
 	);
