@@ -7,7 +7,7 @@ services:
       - POSTGRES_PASSWORD=postgres
       - PGPORT=5435
     ports:
-      - "5435:5432"
+      - "5435:5435"
 
   crawler-general:
     build:
