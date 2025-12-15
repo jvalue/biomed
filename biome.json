@@ -17,7 +17,9 @@
 			"!!**/*.js",
 			"!!**/*.mts",
 			"!!**/styles.css",
-			"!!**/tailwind.config.js"
+			"!!**/tailwind.config.js",
+			"!!**/main.tsx",
+			"!!**/field.tsx"
 		]
 	},
 	"formatter": {

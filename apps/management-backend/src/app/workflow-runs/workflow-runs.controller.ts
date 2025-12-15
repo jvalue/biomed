@@ -1,4 +1,4 @@
-import { Controller, Get, Logger, Query, UseGuards } from '@nestjs/common';
+import { Controller, Get, Query, UseGuards } from '@nestjs/common';
 import { ApiOkResponse, ApiOperation } from '@nestjs/swagger';
 import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
 import { CurserBasedPaginationResponseDto } from '../pagination/dto/curser-based-pagination-response.dto';
@@ -9,8 +9,6 @@ import { WorkflowRunsService } from './workflow-runs.service';
 
 @Controller('workflow-runs')
 export class WorkflowRunsController {
-	private readonly logger = new Logger(WorkflowRunsController.name);
-
 	constructor(private readonly workflowRunsService: WorkflowRunsService) {}
 
 	@ApiOperation({ summary: 'Lists all Argo Workflows' })
