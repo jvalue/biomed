@@ -45,7 +45,7 @@ export class AuthController {
 		return {
 			user: {
 				id: user.id,
-				email: user.username,
+				username: user.username,
 				status: user.status,
 				permissions: user.permissions,
 			},

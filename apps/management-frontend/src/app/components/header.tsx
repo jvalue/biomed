@@ -1,4 +1,3 @@
-// apps/management-frontend/src/app/components/header.tsx
 import { Link } from '@tanstack/react-router';
 import { Avatar, AvatarFallback } from '@/src/app/components/design-components/avatar';
 import { LogoutButton } from '@/src/app/components/design-components/logout-button';
@@ -6,7 +5,10 @@ import { SidebarTrigger } from '@/src/app/components/design-components/sidebar';
 import { useAuth } from '@/src/app/contexts/AuthContext';
 
 export function Header() {
-	const { user, isAuthenticated } = useAuth();
+	const { user, isAuthenticated, isLoading } = useAuth();
+	console.log(isAuthenticated);
+	console.log(user);
+	console.log(isLoading);
 
 	return (
 		<div className="sticky top-0 z-30 flex h-16 sm:h-20 w-full items-center justify-between bg-background px-3 sm:px-6 lg:px-12 pb-2 pt-4 border-b border-sidebar-border">
@@ -19,7 +21,7 @@ export function Header() {
 				</h2>
 			</Link>
 			<div className="flex items-center gap-4">
-				{isAuthenticated ? (
+				{!isLoading && isAuthenticated ? (
 					<>
 						<Link to="/">
 							<div className="h-9 w-9 sm:h-10 sm:w-10">
