@@ -1,5 +1,6 @@
 import { Expose, Type } from 'class-transformer';
 import { IsDate, IsString } from 'class-validator';
+import { WorkflowPhaseEnum } from '../../enums/workflow-phase.enum';
 
 export class ArgoWorkflowRunDto {
 	@Type(() => ArgoWorkflowRunMetadataDto)
@@ -27,9 +28,8 @@ class ArgoWorkflowRunMetadataLabelsDto {
 }
 
 class ArgoWorkflowRunStatusDto {
-	// TODO: possibly change to enum
 	@IsString()
-	phase!: string;
+	phase!: WorkflowPhaseEnum;
 
 	@IsDate()
 	startedAt?: Date;

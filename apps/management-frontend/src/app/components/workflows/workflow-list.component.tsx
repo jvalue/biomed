@@ -20,7 +20,7 @@ export default function WorkflowListComponent() {
 				In the following table you can see all runs (finished and still running) sorted by starting
 				date.
 			</p>
-			<WorkflowRunsTable runs={data}></WorkflowRunsTable>
+			<WorkflowRunsTable runs={data?.data}></WorkflowRunsTable>
 		</div>
 	);
 }
