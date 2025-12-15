@@ -1,4 +1,4 @@
-import { Controller, Get, Logger, Query, UseGuards } from '@nestjs/common';
+import { Controller, Get, Query, UseGuards } from '@nestjs/common';
 import { ApiOkResponse, ApiOperation } from '@nestjs/swagger';
 import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
 import { WorkflowTemplateDto } from './dto/workflow-template.dto';
@@ -7,8 +7,6 @@ import { WorkflowTemplatesService } from './workflow-templates.service';
 
 @Controller('workflow-templates')
 export class WorkflowTemplatesController {
-	private readonly logger = new Logger(WorkflowTemplatesController.name);
-
 	constructor(private readonly workflowTemplatesService: WorkflowTemplatesService) {}
 
 	@ApiOperation({ summary: 'Lists all Argo Workflow Templates' })

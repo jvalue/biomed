@@ -16,15 +16,3 @@ managementBackendClient.interceptors.request.use(
 	},
 	(error) => Promise.reject(error),
 );
-
-// Response Interceptor: Handlet 401 Unauthorized Responses
-managementBackendClient.interceptors.response.use(
-	(response) => response,
-	(error) => {
-		if (error.response?.status === 401) {
-			localStorage.removeItem('accessToken');
-			window.location.href = '/login';
-		}
-		return Promise.reject(error);
-	},
-);
