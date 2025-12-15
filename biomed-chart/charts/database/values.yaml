@@ -1,0 +1,28 @@
+image:
+  repository: postgres
+  pullPolicy: IfNotPresent
+  tag: "16.1-alpine"
+
+service:
+  type: ClusterIP
+  port: 5435
+
+secrets:
+  databaseSecret: biomed-db-credentials
+
+serviceAccount:
+  create: false
+  name: ""
+
+ingress:
+  enabled: false
+
+autoscaling:
+  enabled: false
+
+httpRoute:
+  enabled: false
+
+persistence:
+  enabled: true
+  size: 1Gi

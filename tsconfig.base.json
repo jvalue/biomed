@@ -14,7 +14,15 @@
 		"skipLibCheck": true,
 		"skipDefaultLibCheck": true,
 		"baseUrl": ".",
-		"paths": {}
+		"paths": {
+			"@/src/app/components/design-components": [
+				"apps/management-frontend/src/app/components/design-components"
+			],
+			"@/src/app/components/design-components/hooks": [
+				"apps/management-frontend/src/app/components/design-components/hooks"
+			],
+			"@/src/utils": ["apps/management-frontend/src/utils"]
+		}
 	},
 	"exclude": ["node_modules", "tmp"]
 }
