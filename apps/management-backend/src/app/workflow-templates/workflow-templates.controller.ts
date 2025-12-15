@@ -1,5 +1,6 @@
-import { Controller, Get, Logger, Query } from '@nestjs/common';
+import { Controller, Get, Logger, Query, UseGuards } from '@nestjs/common';
 import { ApiOkResponse, ApiOperation } from '@nestjs/swagger';
+import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
 import { WorkflowTemplateDto } from './dto/workflow-template.dto';
 import { WorkflowTemplatesFilterDto } from './dto/workflow-templates-filter.dto';
 import { WorkflowTemplatesService } from './workflow-templates.service';
@@ -12,6 +13,7 @@ export class WorkflowTemplatesController {
 
 	@ApiOperation({ summary: 'Lists all Argo Workflow Templates' })
 	@ApiOkResponse({ type: [WorkflowTemplateDto], description: 'List of Argo Workflow Templates' })
+	@UseGuards(JwtAuthGuard)
 	@Get()
 	async listArgoWorkflowTemplates(
 		@Query() filterParams?: WorkflowTemplatesFilterDto,
