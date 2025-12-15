@@ -1,0 +1,38 @@
+image:
+  name: ghcr.io/jvalue/management-backend
+  tag: latest
+  pullPolicy: IfNotPresent
+  pullSecret: ghcr-login-secret
+
+service:
+  type: ClusterIP
+  port: 3002
+
+serviceAccount:
+  create: true
+  name: ""
+  automount: true
+
+httpRoute:
+  enabled: false
+
+autoscaling:
+  enabled: false
+
+secrets:
+  databaseSecret: biomed-db-credentials
+
+
+env:
+  NODE_ENV: "production"
+  PORT: 3002
+  STAGE: "development"
+  DATABASE_HOST: "biomed-management-release-database"
+  DATABASE_PORT: 5435
+  ARGO_BASE_URL: "http://<ARGO_SERVER_HOST>/argo/api/v1"
+  KUBE_BEARER_TOKEN: "invalid-token"
+
+rbac:
+  create: true
+
+argoNamespace: argo-managed-crawler

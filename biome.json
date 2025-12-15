@@ -16,7 +16,8 @@
 			"!!.nx/*",
 			"!!**/*.js",
 			"!!**/*.mts",
-			"!!**/nx-welcome.tsx"
+			"!!**/styles.css",
+			"!!**/tailwind.config.js"
 		]
 	},
 	"formatter": {
@@ -29,7 +30,8 @@
 		"rules": {
 			"recommended": true,
 			"style": {
-				"useImportType": "off"
+				"useImportType": "off",
+				"useNodejsImportProtocol": "off"
 			}
 		}
 	},

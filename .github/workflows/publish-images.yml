@@ -1,0 +1,133 @@
+name: Publish Container Images
+
+on:
+  workflow_dispatch:
+  release:
+    types: [ 'created' ]
+  workflow_run:
+    workflows: [ "CI Workspaces" ]
+    types: [ "completed" ]
+    branches: [ "main" ]
+
+jobs:
+  management-backend-build-and-publish:
+    name: Publish Management Backend to GitHub Container registry
+    if: ${{ github.event_name == 'workflow_dispatch' || github.event_name == 'release' || github.event.workflow_run.conclusion == 'success' }}
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 'lts/*'
+
+      - uses: actions/checkout@v4
+
+      - name: Build docker image
+        run: docker compose build management-backend
+
+      - name: Log in to the Container registry
+        uses: docker/login-action@v1
+        with:
+          registry: ghcr.io/jvalue
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Upload to GitHub Container registry
+        run: |
+          # Image name as described in docker-compose.yaml using the image key
+          IMAGE_NAME=management-backend
+          IMAGE_ID=ghcr.io/${{ github.repository_owner }}/$IMAGE_NAME
+          # Change all uppercase to lowercase
+          IMAGE_ID=$(echo $IMAGE_ID | tr '[A-Z]' '[a-z]')
+          # Get version from release name or latest if triggered manually
+          VERSION=$(echo "${{ github.event.release.tag_name || github.sha }}")
+
+          echo IMAGE_ID=$IMAGE_ID
+          echo VERSION=$VERSION
+
+          # Try to find the locally built image for the service. Many compose setups produce a local repository
+          # name that differs from the simple service name (project_service). We try a few fallbacks to find it.
+          if docker image inspect "$IMAGE_NAME:latest" > /dev/null 2>&1; then
+            SOURCE="$IMAGE_NAME:latest"
+          else
+            # Try exact repo match
+            SOURCE=$(docker images --format '{{.Repository}}:{{.Tag}}' | grep -i "^${IMAGE_NAME}:" | head -n1 || true)
+            # Try any repository containing the image name
+            if [ -z "$SOURCE" ]; then
+              SOURCE=$(docker images --format '{{.Repository}}:{{.Tag}}' | grep -i "${IMAGE_NAME}" | head -n1 || true)
+            fi
+          fi
+
+          if [ -z "$SOURCE" ]; then
+            echo "Could not find a locally built image for service '$IMAGE_NAME'. Listing available images for debugging:"
+            docker images --format 'Repo: {{.Repository}} Tag: {{.Tag}} ID: {{.ID}}' | head -n 50
+            exit 1
+          fi
+
+          echo "Found built image: $SOURCE"
+
+          # Tag the found image with both the specific version and 'latest'
+          docker tag "$SOURCE" "$IMAGE_ID:$VERSION"
+          docker tag "$SOURCE" "$IMAGE_ID:latest"
+          # Push both tags to the registry
+          docker push $IMAGE_ID:$VERSION
+          docker push $IMAGE_ID:latest
+  management-frontend-build-and-publish:
+    name: Publish Management Frontend to GitHub Container registry
+    if: ${{ github.event_name == 'workflow_dispatch' || github.event_name == 'release' || github.event.workflow_run.conclusion == 'success' }}
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 'lts/*'
+
+      - uses: actions/checkout@v4
+
+      - name: Build docker image
+        run: docker compose build management-frontend
+
+      - name: Log in to the Container registry
+        uses: docker/login-action@v1
+        with:
+          registry: ghcr.io/jvalue
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Upload to GitHub Container registry
+        run: |
+          # Image name as described in docker-compose.yaml using the image key
+          IMAGE_NAME=management-frontend
+          IMAGE_ID=ghcr.io/${{ github.repository_owner }}/$IMAGE_NAME
+
+          # Change all uppercase to lowercase
+          IMAGE_ID=$(echo $IMAGE_ID | tr '[A-Z]' '[a-z]')
+          # Get version from release name or latest if triggered manually
+          VERSION=$(echo "${{ github.event.release.tag_name || github.sha }}")
+
+          echo IMAGE_ID=$IMAGE_ID
+          echo VERSION=$VERSION
+
+          if docker image inspect "$IMAGE_NAME:latest" > /dev/null 2>&1; then
+            SOURCE="$IMAGE_NAME:latest"
+          else
+            SOURCE=$(docker images --format '{{.Repository}}:{{.Tag}}' | grep -i "^${IMAGE_NAME}:" | head -n1 || true)
+            if [ -z "$SOURCE" ]; then
+              SOURCE=$(docker images --format '{{.Repository}}:{{.Tag}}' | grep -i "${IMAGE_NAME}" | head -n1 || true)
+            fi
+          fi
+
+          if [ -z "$SOURCE" ]; then
+            echo "Could not find a locally built image for service '$IMAGE_NAME'. Listing available images for debugging:"
+            docker images --format 'Repo: {{.Repository}} Tag: {{.Tag}} ID: {{.ID}}' | head -n 50
+            exit 1
+          fi
+
+          echo "Found built image: $SOURCE"
+
+          # Tag the found image with both the specific version and 'latest'
+          docker tag "$SOURCE" "$IMAGE_ID:$VERSION"
+          docker tag "$SOURCE" "$IMAGE_ID:latest"
+          # Push both tags to the registry
+          docker push $IMAGE_ID:$VERSION
+          docker push $IMAGE_ID:latest

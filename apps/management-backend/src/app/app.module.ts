@@ -6,6 +6,7 @@ import { AppService } from './app.service';
 import { DbConfigService } from './db-config.service';
 import { DemoModule } from './demo/demo.module';
 import { validate } from './env.validation';
+import { WorkflowRunsModule } from './workflow-runs/workflow-runs.module';
 
 @Module({
 	imports: [
@@ -18,6 +19,7 @@ import { validate } from './env.validation';
 			useClass: DbConfigService,
 		}),
 		DemoModule,
+		WorkflowRunsModule,
 	],
 	controllers: [AppController],
 	providers: [AppService],
