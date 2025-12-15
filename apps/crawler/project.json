@@ -76,9 +76,5 @@
 		}
 	},
 	"tags": [],
-	"release": {
-		"version": {
-			"generator": "@nxlv/python:release-version"
-		}
-	}
+	"release": {}
 }
