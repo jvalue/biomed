@@ -1,4 +1,4 @@
-import { Body, Controller, Get, Param, Patch, Query, UseGuards } from '@nestjs/common';
+import { Body, Controller, Get, Logger, Param, Patch, Query, UseGuards } from '@nestjs/common';
 import {
 	ApiForbiddenResponse,
 	ApiNotFoundResponse,
@@ -17,6 +17,7 @@ import { UsersService } from './users.service';
 @Controller('users')
 @UseGuards(JwtAuthGuard)
 export class UsersController {
+	private readonly logger = new Logger(UsersController.name);
 	constructor(private readonly usersService: UsersService) {}
 
 	@ApiOperation({ summary: 'Get all pending users' })
@@ -29,13 +30,24 @@ export class UsersController {
 		return this.usersService.findUsers(requestingUser, status);
 	}
 
-	@ApiOperation({ summary: 'Approve a pending user' })
+	@ApiOperation({ summary: 'Approve a user' })
 	@ApiOkResponse({ description: 'User approved successfully' })
 	@ApiNotFoundResponse({ description: 'User not found' })
 	@ApiForbiddenResponse({ description: 'You do not have permission to approve users' })
 	@Patch(':id/approve')
 	async approveUser(@Param('id') userId: string, @CurrentUser() requestingUser: UserEntity) {
+		this.logger.warn('approve user called on userId: ' + userId);
 		return this.usersService.approveUser(userId, requestingUser);
+	}
+
+	@ApiOperation({ summary: 'Block a user' })
+	@ApiOkResponse({ description: 'User blocked successfully' })
+	@ApiNotFoundResponse({ description: 'User not found' })
+	@ApiForbiddenResponse({ description: 'You do not have permission to block users' })
+	@Patch(':id/block')
+	async blockUser(@Param('id') userId: string, @CurrentUser() requestingUser: UserEntity) {
+		this.logger.warn('blockUser called on userId: ' + userId);
+		return this.usersService.blockUser(userId, requestingUser);
 	}
 
 	@ApiOperation({ summary: 'Update user permissions' })

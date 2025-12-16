@@ -52,16 +52,34 @@ export class UsersService {
 		// Check if user has rights to approve users
 		const ability = this.abilityFactory.defineAbilityFor(requestingUser);
 		if (!ability.can('approve', 'user')) {
-			this.logger.warn(
-				`User ${requestingUser.id} attempted to approve a pending user without permission`,
-			);
+			this.logger.warn(`User ${requestingUser.id} attempted to approve a user without permission`);
 			throw new ForbiddenException('You do not have permission to approve users');
 		}
+
+		await this.findUserByIdOrFail(userId);
 
 		await this.usersRepository.update(userId, {
 			status: UserStatus.ACTIVE,
 			approvedBy: requestingUser.id,
 			approvedAt: new Date(),
+		});
+		return this.findById(userId);
+	}
+
+	async blockUser(userId: string, requestingUser: UserEntity): Promise<UserEntity> {
+		// Check if user has rights to block users
+		const ability = this.abilityFactory.defineAbilityFor(requestingUser);
+		if (!ability.can('block', 'user')) {
+			this.logger.warn(`User ${requestingUser.id} attempted to block a user without permission`);
+			throw new ForbiddenException('You do not have permission to block users');
+		}
+
+		await this.findUserByIdOrFail(userId);
+
+		await this.usersRepository.update(userId, {
+			status: UserStatus.BLOCKED,
+			approvedBy: null,
+			approvedAt: null,
 		});
 		return this.findById(userId);
 	}
@@ -80,7 +98,23 @@ export class UsersService {
 			throw new ForbiddenException('You do not have permission to update user permissions');
 		}
 
+		await this.findUserByIdOrFail(userId);
+
 		await this.usersRepository.update(userId, { permissions });
 		return this.findById(userId);
+	}
+
+	/**
+	 * Find a user by ID or throw a ForbiddenException if not found
+	 * @param userId
+	 * @private
+	 */
+	private async findUserByIdOrFail(userId: string): Promise<UserEntity> {
+		const user = await this.findById(userId);
+		if (!user) {
+			this.logger.warn(`User with id ${userId} not found`);
+			throw new ForbiddenException('User not found');
+		}
+		return user;
 	}
 }

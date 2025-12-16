@@ -10,10 +10,10 @@ import {
 	TabsList,
 	TabsTrigger,
 } from '@/src/app/components/design-components/tabs';
-import { LoginForm } from '@/src/app/components/login/login-form';
-import { RegisterForm } from '@/src/app/components/login/register-form';
+import { LoginFormComponent } from '@/src/app/components/login/login-form.component';
+import { RegisterFormComponent } from '@/src/app/components/login/register-form.component';
 
-export function Login() {
+export function LoginComponent() {
 	return (
 		<div className="grid grid-cols-12 gap-4">
 			<Card className="col-span-6 col-start-4">
@@ -32,10 +32,10 @@ export function Login() {
 					</CardHeader>
 					<CardContent>
 						<TabsContent value="login">
-							<LoginForm />
+							<LoginFormComponent />
 						</TabsContent>
 						<TabsContent value="register">
-							<RegisterForm />
+							<RegisterFormComponent />
 						</TabsContent>
 					</CardContent>
 				</Tabs>

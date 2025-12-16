@@ -30,7 +30,7 @@ export class AuthController {
 		return this.authService.register(registerDto);
 	}
 
-	@ApiOperation({ summary: 'Login a user' })
+	@ApiOperation({ summary: 'LoginComponent a user' })
 	@ApiCreatedResponse({ description: 'User logged in successfully' })
 	@ApiUnauthorizedResponse({ description: 'Invalid credentials' })
 	@ApiForbiddenResponse({ description: 'Account not approved yet' })

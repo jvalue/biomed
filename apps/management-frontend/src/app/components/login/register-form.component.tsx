@@ -14,7 +14,7 @@ import { useAuth } from '@/src/app/contexts/AuthContext';
 
 type registerError = 'NONE' | 'UNKNOWN' | 'WEAK_PASSWORD' | 'CONFLICT';
 
-export function RegisterForm() {
+export function RegisterFormComponent() {
 	const [username, setUsername] = useState('');
 	const [password, setPassword] = useState('');
 	const [error, setError] = useState<registerError>('NONE');
