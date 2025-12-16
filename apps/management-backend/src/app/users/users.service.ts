@@ -33,18 +33,17 @@ export class UsersService {
 		return this.usersRepository.count();
 	}
 
-	async findPendingUsers(requestingUser: UserEntity): Promise<UserEntity[]> {
+	async findUsers(requestingUser: UserEntity, status?: UserStatus): Promise<UserEntity[]> {
 		// Check if user has rights to read users
 		const ability = this.abilityFactory.defineAbilityFor(requestingUser);
 		if (!ability.can('read', 'user')) {
-			this.logger.warn(
-				`User ${requestingUser.id} attempted to read pending users without permission`,
-			);
+			this.logger.warn(`User ${requestingUser.id} attempted to read users without permission`);
 			throw new ForbiddenException('You do not have permission to read users');
 		}
 
+		const whereClause = status ? { status } : {};
 		return this.usersRepository.find({
-			where: { status: UserStatus.PENDING },
+			where: whereClause,
 			order: { createdAt: 'DESC' },
 		});
 	}
