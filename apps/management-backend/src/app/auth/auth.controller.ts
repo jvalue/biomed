@@ -2,6 +2,7 @@ import { Body, Controller, Get, Post, UseGuards } from '@nestjs/common';
 import {
 	ApiConflictResponse,
 	ApiCreatedResponse,
+	ApiForbiddenResponse,
 	ApiNotFoundResponse,
 	ApiOkResponse,
 	ApiOperation,
@@ -32,6 +33,7 @@ export class AuthController {
 	@ApiOperation({ summary: 'Login a user' })
 	@ApiCreatedResponse({ description: 'User logged in successfully' })
 	@ApiUnauthorizedResponse({ description: 'Invalid credentials' })
+	@ApiForbiddenResponse({ description: 'Account not approved yet' })
 	@Post('login')
 	async login(@Body() loginDto: LoginDataDto) {
 		return this.authService.login(loginDto);
