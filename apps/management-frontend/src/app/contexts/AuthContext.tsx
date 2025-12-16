@@ -56,11 +56,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 	};
 
 	const register = async (username: string, password: string) => {
-		const response = await managementBackendClient.post('/auth/register', { username, password });
-		const data = response.data;
-		localStorage.setItem('accessToken', data.accessToken);
-		setUser(data.user);
-		setAbility(new PureAbility(data.abilityRules));
+		// There is nothing more to do here since registration does not log in the user
+		await managementBackendClient.post('/auth/register', { username, password });
 	};
 
 	const logout = () => {
