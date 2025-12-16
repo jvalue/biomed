@@ -1,5 +1,6 @@
 import { Body, Controller, Get, Post, UseGuards } from '@nestjs/common';
 import {
+	ApiConflictResponse,
 	ApiCreatedResponse,
 	ApiNotFoundResponse,
 	ApiOkResponse,
@@ -22,6 +23,7 @@ export class AuthController {
 
 	@ApiOperation({ summary: 'Register a new user' })
 	@ApiCreatedResponse({ description: 'User registered successfully, now waiting for approval' })
+	@ApiConflictResponse({ description: 'Username already exists' })
 	@Post('register')
 	async register(@Body() registerDto: LoginDataDto) {
 		return this.authService.register(registerDto);
