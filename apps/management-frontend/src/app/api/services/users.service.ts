@@ -28,4 +28,25 @@ export const usersService = {
 	blockUser: async (userId: string): Promise<void> => {
 		await managementBackendClient.patch(`/users/${userId}/block`);
 	},
+
+	/*
+	 * Method to update a user's permissions.
+	 * @param userId - The id of the user to update.
+	 * @param permissions - The new set of permissions for the user.
+	 */
+	updateUserPermissions: async (userId: string, permissions: string[]): Promise<UserDto> => {
+		const response = await managementBackendClient.patch<UserDto>(`/users/${userId}/permissions`, {
+			permissions,
+		});
+		return response.data;
+	},
+
+	/*
+	 * Method to get a user by id.
+	 * @param userId - The id of the user to fetch.
+	 */
+	getUserById: async (userId: string): Promise<UserDto> => {
+		const response = await managementBackendClient.get<UserDto>(`/users/${userId}`);
+		return response.data;
+	},
 };
