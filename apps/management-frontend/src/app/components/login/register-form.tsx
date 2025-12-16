@@ -1,6 +1,6 @@
-import { useRouter } from '@tanstack/react-router';
-import { FormEvent, useState } from 'react';
-import { Button } from '@/src/app/components/design-components/button';
+import {useRouter} from '@tanstack/react-router';
+import {FormEvent, useState} from 'react';
+import {Button} from '@/src/app/components/design-components/button';
 import {
 	Field,
 	FieldDescription,
@@ -9,16 +9,16 @@ import {
 	FieldLegend,
 	FieldSet,
 } from '@/src/app/components/design-components/field';
-import { Input } from '@/src/app/components/design-components/input';
-import { useAuth } from '@/src/app/contexts/AuthContext';
+import {Input} from '@/src/app/components/design-components/input';
+import {useAuth} from '@/src/app/contexts/AuthContext';
 
-type loginError = 'NONE' | 'INVALID' | 'UNKNOWN' | 'WEAK_PASSWORD';
+type registerError = 'NONE' | 'UNKNOWN' | 'WEAK_PASSWORD' | 'CONFLICT';
 
 export function RegisterForm() {
 	const [username, setUsername] = useState('');
 	const [password, setPassword] = useState('');
-	const [error, setError] = useState<loginError>('NONE');
-	const { register } = useAuth();
+	const [error, setError] = useState<registerError>('NONE');
+	const {register} = useAuth();
 	const router = useRouter();
 
 	const handleSubmit = async (e?: FormEvent) => {
@@ -33,10 +33,10 @@ export function RegisterForm() {
 
 		try {
 			await register(username, password);
-			await router.navigate({ to: '/' });
+			await router.navigate({to: '/'});
 		} catch (err: any) {
-			if (err.response?.status === 401) {
-				setError('INVALID');
+			if (err.response?.status === 409) {
+				setError('CONFLICT');
 			} else {
 				setError('UNKNOWN');
 			}
@@ -69,9 +69,9 @@ export function RegisterForm() {
 							<FieldDescription>
 								Must contain only alphanumeric characters and numbers.
 							</FieldDescription>
-							{error === 'INVALID' && (
+							{error === 'CONFLICT' && (
 								<FieldDescription className="text-destructive">
-									Wrong username or password
+									Username already exists. Please choose a different one.
 								</FieldDescription>
 							)}
 						</Field>
@@ -98,11 +98,6 @@ export function RegisterForm() {
 									character.
 								</FieldDescription>
 							)}
-							{error === 'INVALID' && (
-								<FieldDescription className="text-destructive">
-									Wrong username or password
-								</FieldDescription>
-							)}
 						</Field>
 					</FieldGroup>
 				</FieldSet>
@@ -113,7 +108,7 @@ export function RegisterForm() {
 						</FieldDescription>
 					)}
 					<Button type="button" onClick={() => handleSubmit()}>
-						Login
+						Register
 					</Button>
 					<FieldDescription>
 						After registering your account is pending until approved by an administrator.
