@@ -34,7 +34,7 @@ export class WorkflowRunDto {
 		type: String,
 		format: 'date-time',
 		required: false,
-		description: 'The time when the workflow run was created',
+		description: 'The time when the workflow run was started',
 	})
 	@IsOptional()
 	@Type(() => Date)

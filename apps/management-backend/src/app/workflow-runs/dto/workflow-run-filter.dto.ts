@@ -45,7 +45,7 @@ export class WorkflowRunFilterDto {
 	@IsOptional()
 	@Type(() => Date)
 	@IsDate()
-	createdAfter?: Date;
+	startedAfter?: Date;
 
 	@ApiProperty({ type: String, format: 'date-time', required: false })
 	@IsOptional()

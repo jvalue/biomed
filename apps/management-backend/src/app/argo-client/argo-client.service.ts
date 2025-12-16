@@ -2,8 +2,8 @@ import { Injectable, Logger } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import axios, { AxiosInstance } from 'axios';
 import { EnvironmentVariables } from '../env.validation';
-import { CurserBasedPaginationResponseDto } from '../pagination/dto/curser-based-pagination-response.dto';
-import { CurserBasedPaginationRequestDto } from '../pagination/dto/cursor-based-pagination-request.dto';
+import { CursorBasedPaginationRequestDto } from '../pagination/dto/cursor-based-pagination-request.dto';
+import { CursorBasedPaginationResponseDto } from '../pagination/dto/cursor-based-pagination-response.dto';
 import { WorkflowRunDto } from '../workflow-runs/dto/workflow-run.dto';
 import { WorkflowRunFilterDto } from '../workflow-runs/dto/workflow-run-filter.dto';
 import { ArgoAuthService } from './argo-auth/argo-auth.service';
@@ -42,19 +42,30 @@ export class ArgoClientService {
 	/**
 	 * List all current workflows in all namespaces
 	 * @param filterOptions Filtering options
+	 * @param paginationOptions Options for cursor-based pagination
 	 */
 	async listWorkflows(
 		filterOptions?: WorkflowRunFilterDto,
-		paginationOptions?: CurserBasedPaginationRequestDto,
-	): Promise<CurserBasedPaginationResponseDto<WorkflowRunDto>> {
+		paginationOptions?: CursorBasedPaginationRequestDto,
+	): Promise<CursorBasedPaginationResponseDto<WorkflowRunDto>> {
 		this.logger.log('Listing workflows from Argo Workflows API');
+		const requestedFields = [
+			'items.metadata.name',
+			'items.metadata.namespace',
+			'items.status.phase',
+			'items.status.startedAt',
+			'items.status.finishedAt',
+			'items.metadata.labels',
+		];
+
 		const queryParams = this.assembleListWorkflowsQueryParams(
 			filterOptions?.workflowTemplateName,
 			filterOptions?.phases,
-			filterOptions?.createdAfter?.toISOString(),
+			filterOptions?.startedAfter?.toISOString(),
 			filterOptions?.finishedBefore?.toISOString(),
 			paginationOptions?.limit,
 			paginationOptions?.offset,
+			requestedFields,
 		);
 
 		let url = filterOptions?.namespace ? `/workflows/${filterOptions.namespace}` : `/workflows/`;
@@ -68,7 +79,7 @@ export class ArgoClientService {
 
 		this.logger.debug('Argo Workflows API response:', workflowsResponse);
 
-		// Map ArgoCursorPaginatedListDto<ArgoWorkflowRunDto> to CurserBasedPaginationResponseDto<WorkflowRunDto>
+		// Map ArgoCursorPaginatedListDto<ArgoWorkflowRunDto> to CursorBasedPaginationResponseDto<WorkflowRunDto>
 		return mapArgoCursorPaginatedListDtoToCursorBasedPaginationResponseDto(
 			workflowsResponse,
 			mapArgoWorkflowRunDtoToWorkflowRunDto,
@@ -83,6 +94,7 @@ export class ArgoClientService {
 	 * @param finishedBefore
 	 * @param limit max number of items to return
 	 * @param offset number of items to skip
+	 * @param requestedFields list of fields to include in the response
 	 * @private
 	 */
 	private assembleListWorkflowsQueryParams(
@@ -92,6 +104,7 @@ export class ArgoClientService {
 		finishedBefore?: string,
 		limit?: number,
 		offset?: number,
+		requestedFields?: string[],
 	): string {
 		let paramsString = '';
 
@@ -126,6 +139,11 @@ export class ArgoClientService {
 			paramsString += paramsString
 				? `&listOptions.continue=${offset}`
 				: `?listOptions.continue=${offset}`;
+		}
+
+		if (requestedFields && requestedFields.length > 0) {
+			const fieldsParam = requestedFields.join(',');
+			paramsString += paramsString ? `&fields=${fieldsParam}` : `?fields=${fieldsParam}`;
 		}
 
 		return paramsString;
