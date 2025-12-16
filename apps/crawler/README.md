@@ -49,7 +49,4 @@ pytest apps/crawler/tests -q
 **Notes & Tips**
 - The app package is `crawler_general` and the sample script lives at `apps/crawler/crawler_general/hello.py`.
 - The project uses `pyproject.toml` and `hatch` for packaging; installing via `pip` on a local path will build the package as needed.
-- The `uv` binary is used in the Dockerfile to keep a single environment for `pip` and `run` steps — if you don't have it locally, use the virtualenv instructions above.
-
-If you want, I can also add a short script to run the app from the repo root or add a `Makefile` target — tell me which you prefer.
-
+- The `uv` binary is used in the Dockerfile to keep a single environment for `pip` and `run` steps.
