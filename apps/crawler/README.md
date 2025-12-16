@@ -67,7 +67,7 @@ uv run pytest apps/crawler/tests --cov
 **Notes & Tips**
 - The app package is `crawler_general` and the sample script lives at `apps/crawler/crawler_general/hello.py`.
 - This project uses a **uv workspace** with a single shared `.venv/` at the repository root containing all Python projects.
-- Root `pyproject.toml` defines workspace members: `libs/crawler-common` and `apps/crawler`.
+- Root `pyproject.toml` defines workspace members and pins Python version to 3.13. When you run `uv sync`, it automatically creates a venv with Python 3.13.
 - Run `uv sync` from the root whenever dependencies change in any `pyproject.toml`.
 - The Dockerfile installs packages system-wide (not using venv) for container isolation.
-- `uv` automatically downloads and manages the correct Python version - no need to install Python separately.
+- `uv` automatically downloads and manages the correct Python version - no manual configuration needed.
