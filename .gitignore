@@ -14,6 +14,21 @@
 # dependencies
 node_modules
 
+# Python
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+*.egg-info/
+.eggs/
+.python-version
+.venv/
+.uv-cache/
+.pytest_cache/
+.ruff_cache/
+.tox/
+.nox/
+
 # IDEs and editors
 .project
 .classpath
@@ -57,3 +72,5 @@ generated/
 *.sqlite
 vite.config.*.timestamp*
 vitest.config.*.timestamp*
+.coverage
+progress.txt
