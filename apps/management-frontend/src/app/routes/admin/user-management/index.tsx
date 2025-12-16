@@ -4,7 +4,7 @@ import { PermissionGuard } from '@/src/app/components/guards/permission-guard';
 import UsersTableComponent from '@/src/app/components/users/users-table.component';
 import { useAuth } from '@/src/app/contexts/AuthContext';
 
-export const Route = createFileRoute('/admin/user-management')({
+export const Route = createFileRoute('/admin/user-management/')({
 	component: RouteComponent,
 });
 

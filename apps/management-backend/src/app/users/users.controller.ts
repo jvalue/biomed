@@ -83,4 +83,18 @@ export class UsersController {
 	) {
 		return this.usersService.updatePermissions(userId, body.permissions, requestingUser);
 	}
+
+	@ApiOperation({ summary: 'Get user by id' })
+	@ApiOkResponse({ description: 'User retrieved successfully' })
+	@ApiNotFoundResponse({ description: 'User not found' })
+	@ApiForbiddenResponse({
+		description: 'You do not have permission to read users',
+	})
+	@Get(':id')
+	async getUserById(
+		@Param('id') userId: string,
+		@CurrentUser() requestingUser: UserEntity,
+	): Promise<UserDto> {
+		return this.usersService.getUserById(userId, requestingUser);
+	}
 }

@@ -35,6 +35,22 @@ export class UsersService {
 		return this.usersRepository.count();
 	}
 
+	async getUserById(userId: string, requestingUser: UserEntity): Promise<UserDto> {
+		// Check if user has rights to read users
+		const ability = this.abilityFactory.defineAbilityFor(requestingUser);
+		if (!ability.can('read', 'user')) {
+			this.logger.warn(`User ${requestingUser.id} attempted to read a user without permission`);
+			throw new ForbiddenException('You do not have permission to read users');
+		}
+
+		const user = await this.findById(userId);
+		if (!user) {
+			this.logger.warn(`User with id ${userId} not found`);
+			throw new ForbiddenException('User not found');
+		}
+		return mapUserEntityToUserDto(user);
+	}
+
 	async findUsers(requestingUser: UserEntity, status?: UserStatus): Promise<UserDto[]> {
 		// Check if user has rights to read users
 		const ability = this.abilityFactory.defineAbilityFor(requestingUser);
@@ -100,6 +116,10 @@ export class UsersService {
 				`User ${requestingUser.id} attempted to update user permissions without permission`,
 			);
 			throw new ForbiddenException('You do not have permission to update user permissions');
+		}
+		if (userId === requestingUser.id) {
+			this.logger.warn(`User ${requestingUser.id} attempted to update their own permissions`);
+			throw new ForbiddenException('You cannot update your own permissions');
 		}
 
 		await this.findUserByIdOrFail(userId);
