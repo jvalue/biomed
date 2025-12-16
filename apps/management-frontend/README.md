@@ -82,3 +82,14 @@ import {PermissionGuard} from '../guards/permission-guard';
 	<ProtectedComponent/>
 </PermissionGuard>
 ```
+
+## CASL Can
+We use CASL for authorization management. The `Can` component allows conditional rendering based on user permissions.
+How to use it:
+```tsx
+import {Can} from "@casl/react";
+
+<Can ability={ability} I='read' a='workflow'>
+	<ProtectedComponent/>
+</Can>
+```
