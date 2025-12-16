@@ -11,9 +11,9 @@ import { CurrentUser } from '../auth/decorators/current-user.decorator';
 import { UserPermission } from '../auth/enums/user-permission.enum';
 import { UserStatus } from '../auth/enums/user-status.enum';
 import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
+import { UserDto } from './dto/user.dto';
 import { UserEntity } from './entity/user.entity';
 import { UsersService } from './users.service';
-import {UserDto} from "./dto/user.dto";
 
 @Controller('users')
 @UseGuards(JwtAuthGuard)
@@ -27,7 +27,10 @@ export class UsersController {
 	@ApiForbiddenResponse({ description: 'You do not have permission to read users' })
 	@ApiQuery({ name: 'status', required: false, description: 'Filter users by status' })
 	@Get()
-	async getUsers(@CurrentUser() requestingUser: UserEntity, @Query('status') status?: UserStatus): Promise<UserDto[]> {
+	async getUsers(
+		@CurrentUser() requestingUser: UserEntity,
+		@Query('status') status?: UserStatus,
+	): Promise<UserDto[]> {
 		return this.usersService.findUsers(requestingUser, status);
 	}
 

@@ -1,12 +1,12 @@
-import {ForbiddenException, Injectable, Logger} from '@nestjs/common';
-import {InjectRepository} from '@nestjs/typeorm';
-import {Repository} from 'typeorm';
-import {AbilityFactory} from '../auth/ability-factory';
-import {UserPermission} from '../auth/enums/user-permission.enum';
-import {UserStatus} from '../auth/enums/user-status.enum';
-import {UserEntity} from './entity/user.entity';
-import {UserDto} from "./dto/user.dto";
-import {mapUserEntityToUserDto} from "./mapper/users.mapper";
+import { ForbiddenException, Injectable, Logger } from '@nestjs/common';
+import { InjectRepository } from '@nestjs/typeorm';
+import { Repository } from 'typeorm';
+import { AbilityFactory } from '../auth/ability-factory';
+import { UserPermission } from '../auth/enums/user-permission.enum';
+import { UserStatus } from '../auth/enums/user-status.enum';
+import { UserDto } from './dto/user.dto';
+import { UserEntity } from './entity/user.entity';
+import { mapUserEntityToUserDto } from './mapper/users.mapper';
 
 @Injectable()
 export class UsersService {
@@ -16,8 +16,7 @@ export class UsersService {
 		@InjectRepository(UserEntity)
 		private readonly usersRepository: Repository<UserEntity>,
 		private readonly abilityFactory: AbilityFactory,
-	) {
-	}
+	) {}
 
 	async create(userData: Partial<UserEntity>): Promise<UserEntity> {
 		const user = this.usersRepository.create(userData);
@@ -25,11 +24,11 @@ export class UsersService {
 	}
 
 	async findById(id: string): Promise<UserEntity | null> {
-		return this.usersRepository.findOne({where: {id}});
+		return this.usersRepository.findOne({ where: { id } });
 	}
 
 	async findByUsername(username: string): Promise<UserEntity | null> {
-		return this.usersRepository.findOne({where: {username}});
+		return this.usersRepository.findOne({ where: { username } });
 	}
 
 	async count(): Promise<number> {
@@ -44,10 +43,10 @@ export class UsersService {
 			throw new ForbiddenException('You do not have permission to read users');
 		}
 
-		const whereClause = status ? {status} : {};
+		const whereClause = status ? { status } : {};
 		const users = await this.usersRepository.find({
 			where: whereClause,
-			order: {createdAt: 'DESC'},
+			order: { createdAt: 'DESC' },
 		});
 		return users.map(mapUserEntityToUserDto);
 	}
@@ -105,7 +104,7 @@ export class UsersService {
 
 		await this.findUserByIdOrFail(userId);
 
-		await this.usersRepository.update(userId, {permissions});
+		await this.usersRepository.update(userId, { permissions });
 	}
 
 	/**
