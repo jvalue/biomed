@@ -29,7 +29,7 @@ Base brand colors and design tokens are defined in `'tailwind.config.js'`. Keep 
 
 ## DTOs and Services
 
-- DTOs: place in `'src/app/api/dto/'` with subfolders per domain (e.g. `'workflow/workflow-run.dto.ts'`, `'pagination/curser-based-pagination-response.dto.ts'`). Keep them simple TypeScript types/interfaces.
+- DTOs: place in `'src/app/api/dto/'` with subfolders per domain (e.g. `'workflow/workflow-run.dto.ts'`, `'pagination/cursor-based-pagination-response.dto.ts'`). Keep them simple TypeScript types/interfaces.
 - Services: place in `'src/app/api/services/'`. Services encapsulate backend communication, compose the client, and expose typed functions for the UI (e.g. `'workflow-service.ts'`).
 
 ## ShadCN Components
