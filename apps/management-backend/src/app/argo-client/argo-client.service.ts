@@ -1,23 +1,23 @@
-import { Injectable, Logger } from '@nestjs/common';
-import { ConfigService } from '@nestjs/config';
-import axios, { AxiosInstance } from 'axios';
-import { EnvironmentVariables } from '../env.validation';
-import { CursorBasedPaginationRequestDto } from '../pagination/dto/cursor-based-pagination-request.dto';
-import { CursorBasedPaginationResponseDto } from '../pagination/dto/cursor-based-pagination-response.dto';
-import { WorkflowRunDto } from '../workflow-runs/dto/workflow-run.dto';
-import { WorkflowRunFilterDto } from '../workflow-runs/dto/workflow-run-filter.dto';
-import { WorkflowTemplateDto } from '../workflow-templates/dto/workflow-template.dto';
-import { WorkflowTemplatesFilterDto } from '../workflow-templates/dto/workflow-templates-filter.dto';
-import { ArgoAuthService } from './argo-auth/argo-auth.service';
-import { ArgoCursorPaginatedListDto } from './dto/argo-cursor-paginated-list-dto';
-import { ArgoWorkflowRunDto } from './dto/workflow-runs/argo-workflow-run.dto';
-import { ArgoWorkflowTemplateDto } from './dto/workflow-templates/argo-workflow-template.dto';
+import {Injectable, Logger} from '@nestjs/common';
+import {ConfigService} from '@nestjs/config';
+import axios, {AxiosInstance} from 'axios';
+import {EnvironmentVariables} from '../env.validation';
+import {CursorBasedPaginationRequestDto} from '../pagination/dto/cursor-based-pagination-request.dto';
+import {CursorBasedPaginationResponseDto} from '../pagination/dto/cursor-based-pagination-response.dto';
+import {WorkflowRunDto} from '../workflow-runs/dto/workflow-run.dto';
+import {WorkflowRunFilterDto} from '../workflow-runs/dto/workflow-run-filter.dto';
+import {WorkflowTemplateDto} from '../workflow-templates/dto/workflow-template.dto';
+import {WorkflowTemplatesFilterDto} from '../workflow-templates/dto/workflow-templates-filter.dto';
+import {ArgoAuthService} from './argo-auth/argo-auth.service';
+import {ArgoCursorPaginatedListDto} from './dto/argo-cursor-paginated-list-dto';
+import {ArgoWorkflowRunDto} from './dto/workflow-runs/argo-workflow-run.dto';
+import {ArgoWorkflowTemplateDto} from './dto/workflow-templates/argo-workflow-template.dto';
 import {
 	mapArgoCursorPaginatedListDtoToCursorBasedPaginationResponseDto,
 	mapArgoWorkflowRunDtoToWorkflowRunDto,
 	mapArgoWorkflowTemplateDtoToWorkflowTemplateDto,
 } from './mapper/argo.mapper';
-import { ArgoQueryParamBuilder } from './utils/argo-query-param-builder';
+import {ArgoQueryParamBuilder} from './utils/argo-query-param-builder';
 
 /**
  * Service to interact with Argo Workflows API
@@ -68,17 +68,11 @@ export class ArgoClientService {
 		argoQueryParamBuilder.addLabelSelector(
 			'workflows.argoproj.io/workflow-template',
 			filterOptions?.workflowTemplateName,
-			filterOptions?.phases,
-			filterOptions?.startedAfter?.toISOString(),
-			filterOptions?.finishedBefore?.toISOString(),
-			paginationOptions?.limit,
-			paginationOptions?.offset,
-			requestedFields,
 		);
 		argoQueryParamBuilder.addLabelSelector('workflows.argoproj.io/phase', filterOptions?.phases);
 
 		// Normal query parameters
-		argoQueryParamBuilder.add('createdAfter', filterOptions?.createdAfter?.toISOString());
+		argoQueryParamBuilder.add('createdAfter', filterOptions?.startedAfter?.toISOString());
 		argoQueryParamBuilder.add('finishedBefore', filterOptions?.finishedBefore?.toISOString());
 		argoQueryParamBuilder.add('listOptions.limit', paginationOptions?.limit);
 		argoQueryParamBuilder.add('listOptions.continue', paginationOptions?.offset);

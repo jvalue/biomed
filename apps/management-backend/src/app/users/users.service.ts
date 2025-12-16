@@ -1,10 +1,12 @@
-import { ForbiddenException, Injectable, Logger } from '@nestjs/common';
-import { InjectRepository } from '@nestjs/typeorm';
-import { Repository } from 'typeorm';
-import { AbilityFactory } from '../auth/ability-factory';
-import { UserPermission } from '../auth/enums/user-permission.enum';
-import { UserStatus } from '../auth/enums/user-status.enum';
-import { UserEntity } from './entity/user.entity';
+import {ForbiddenException, Injectable, Logger} from '@nestjs/common';
+import {InjectRepository} from '@nestjs/typeorm';
+import {Repository} from 'typeorm';
+import {AbilityFactory} from '../auth/ability-factory';
+import {UserPermission} from '../auth/enums/user-permission.enum';
+import {UserStatus} from '../auth/enums/user-status.enum';
+import {UserEntity} from './entity/user.entity';
+import {UserDto} from "./dto/user.dto";
+import {mapUserEntityToUserDto} from "./mapper/users.mapper";
 
 @Injectable()
 export class UsersService {
@@ -14,7 +16,8 @@ export class UsersService {
 		@InjectRepository(UserEntity)
 		private readonly usersRepository: Repository<UserEntity>,
 		private readonly abilityFactory: AbilityFactory,
-	) {}
+	) {
+	}
 
 	async create(userData: Partial<UserEntity>): Promise<UserEntity> {
 		const user = this.usersRepository.create(userData);
@@ -22,18 +25,18 @@ export class UsersService {
 	}
 
 	async findById(id: string): Promise<UserEntity | null> {
-		return this.usersRepository.findOne({ where: { id } });
+		return this.usersRepository.findOne({where: {id}});
 	}
 
 	async findByUsername(username: string): Promise<UserEntity | null> {
-		return this.usersRepository.findOne({ where: { username } });
+		return this.usersRepository.findOne({where: {username}});
 	}
 
 	async count(): Promise<number> {
 		return this.usersRepository.count();
 	}
 
-	async findUsers(requestingUser: UserEntity, status?: UserStatus): Promise<UserEntity[]> {
+	async findUsers(requestingUser: UserEntity, status?: UserStatus): Promise<UserDto[]> {
 		// Check if user has rights to read users
 		const ability = this.abilityFactory.defineAbilityFor(requestingUser);
 		if (!ability.can('read', 'user')) {
@@ -41,14 +44,15 @@ export class UsersService {
 			throw new ForbiddenException('You do not have permission to read users');
 		}
 
-		const whereClause = status ? { status } : {};
-		return this.usersRepository.find({
+		const whereClause = status ? {status} : {};
+		const users = await this.usersRepository.find({
 			where: whereClause,
-			order: { createdAt: 'DESC' },
+			order: {createdAt: 'DESC'},
 		});
+		return users.map(mapUserEntityToUserDto);
 	}
 
-	async approveUser(userId: string, requestingUser: UserEntity): Promise<UserEntity> {
+	async approveUser(userId: string, requestingUser: UserEntity): Promise<void> {
 		// Check if user has rights to approve users
 		const ability = this.abilityFactory.defineAbilityFor(requestingUser);
 		if (!ability.can('approve', 'user')) {
@@ -66,10 +70,9 @@ export class UsersService {
 			approvedAt: new Date(),
 			permissions: permissions,
 		});
-		return this.findById(userId);
 	}
 
-	async blockUser(userId: string, requestingUser: UserEntity): Promise<UserEntity> {
+	async blockUser(userId: string, requestingUser: UserEntity): Promise<void> {
 		// Check if user has rights to block users
 		const ability = this.abilityFactory.defineAbilityFor(requestingUser);
 		if (!ability.can('block', 'user')) {
@@ -84,14 +87,13 @@ export class UsersService {
 			approvedBy: null,
 			approvedAt: null,
 		});
-		return this.findById(userId);
 	}
 
 	async updatePermissions(
 		userId: string,
 		permissions: UserPermission[],
 		requestingUser: UserEntity,
-	): Promise<UserEntity> {
+	): Promise<void> {
 		// Check if user has rights to update user permissions
 		const ability = this.abilityFactory.defineAbilityFor(requestingUser);
 		if (!ability.can('update', 'user')) {
@@ -103,8 +105,7 @@ export class UsersService {
 
 		await this.findUserByIdOrFail(userId);
 
-		await this.usersRepository.update(userId, { permissions });
-		return this.findById(userId);
+		await this.usersRepository.update(userId, {permissions});
 	}
 
 	/**
