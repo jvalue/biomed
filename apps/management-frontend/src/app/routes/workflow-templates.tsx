@@ -1,5 +1,5 @@
 import { createFileRoute } from '@tanstack/react-router';
-import { AuthGuard } from '@/src/app/components/auth-guard';
+import { AuthGuard } from '@/src/app/components/guards/auth-guard';
 import WorkflowTemplatesList from '@/src/app/components/workflow-templates/workflow-templates-list';
 
 export const Route = createFileRoute('/workflow-templates')({
