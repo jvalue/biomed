@@ -1,15 +1,19 @@
-import { Injectable } from '@nestjs/common';
+import { ForbiddenException, Injectable, Logger } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
+import { AbilityFactory } from '../auth/ability-factory';
 import { UserPermission } from '../auth/enums/user-permission.enum';
 import { UserStatus } from '../auth/enums/user-status.enum';
 import { UserEntity } from './entity/user.entity';
 
 @Injectable()
 export class UsersService {
+	private readonly logger = new Logger(UsersService.name);
+
 	constructor(
 		@InjectRepository(UserEntity)
 		private readonly usersRepository: Repository<UserEntity>,
+		private readonly abilityFactory: AbilityFactory,
 	) {}
 
 	async create(userData: Partial<UserEntity>): Promise<UserEntity> {
@@ -29,23 +33,54 @@ export class UsersService {
 		return this.usersRepository.count();
 	}
 
-	async findPendingUsers(): Promise<UserEntity[]> {
+	async findPendingUsers(requestingUser: UserEntity): Promise<UserEntity[]> {
+		// Check if user has rights to read users
+		const ability = this.abilityFactory.defineAbilityFor(requestingUser);
+		if (!ability.can('read', 'user')) {
+			this.logger.warn(
+				`User ${requestingUser.id} attempted to read pending users without permission`,
+			);
+			throw new ForbiddenException('You do not have permission to read users');
+		}
+
 		return this.usersRepository.find({
 			where: { status: UserStatus.PENDING },
 			order: { createdAt: 'DESC' },
 		});
 	}
 
-	async approveUser(userId: string, adminId: string): Promise<UserEntity> {
+	async approveUser(userId: string, requestingUser: UserEntity): Promise<UserEntity> {
+		// Check if user has rights to approve users
+		const ability = this.abilityFactory.defineAbilityFor(requestingUser);
+		if (!ability.can('approve', 'user')) {
+			this.logger.warn(
+				`User ${requestingUser.id} attempted to approve a pending user without permission`,
+			);
+			throw new ForbiddenException('You do not have permission to approve users');
+		}
+
 		await this.usersRepository.update(userId, {
 			status: UserStatus.ACTIVE,
-			approvedBy: adminId,
+			approvedBy: requestingUser.id,
 			approvedAt: new Date(),
 		});
 		return this.findById(userId);
 	}
 
-	async updatePermissions(userId: string, permissions: UserPermission[]): Promise<UserEntity> {
+	async updatePermissions(
+		userId: string,
+		permissions: UserPermission[],
+		requestingUser: UserEntity,
+	): Promise<UserEntity> {
+		// Check if user has rights to update user permissions
+		const ability = this.abilityFactory.defineAbilityFor(requestingUser);
+		if (!ability.can('update', 'user')) {
+			this.logger.warn(
+				`User ${requestingUser.id} attempted to update user permissions without permission`,
+			);
+			throw new ForbiddenException('You do not have permission to update user permissions');
+		}
+
 		await this.usersRepository.update(userId, { permissions });
 		return this.findById(userId);
 	}

@@ -55,3 +55,30 @@ window.__CONFIG__ = {
   API_BASE_URL: "https://example/api",
   // other public runtime vars
 };
+```
+
+## Guards
+### Auth Guard
+The Auth Guard ensures that only authenticated users can access certain routes. If a user is not authenticated, they are redirected to the login page.
+How to use it:
+```tsx
+import { AuthGuard } from '../guards/auth-guard';
+<AuthGuard>
+  <ProtectedComponent />
+</AuthGuard>
+```
+
+### Permission Guard
+The Permission Guard checks if the user has the required permissions to access a route. If not, an access denied card is shown with the missing permissions.
+How to use it:
+```tsx
+import {PermissionGuard} from '../guards/permission-guard';
+
+<PermissionGuard
+	ability={ability}
+	required={[
+		{action: 'read', subject: 'user', label: 'read users'},
+	]}>
+	<ProtectedComponent/>
+</PermissionGuard>
+```
