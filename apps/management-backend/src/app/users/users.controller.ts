@@ -19,13 +19,24 @@ import { UsersService } from './users.service';
 @UseGuards(JwtAuthGuard)
 export class UsersController {
 	private readonly logger = new Logger(UsersController.name);
+
 	constructor(private readonly usersService: UsersService) {}
 
 	@ApiOperation({ summary: 'Get all pending users' })
-	@ApiOkResponse({ description: 'List of pending users retrieved successfully' })
+	@ApiOkResponse({
+		description: 'List of pending users retrieved successfully',
+	})
 	@ApiUnauthorizedResponse({ description: 'Unauthorized' })
-	@ApiForbiddenResponse({ description: 'You do not have permission to read users' })
-	@ApiQuery({ name: 'status', required: false, description: 'Filter users by status' })
+	@ApiForbiddenResponse({
+		description: 'You do not have permission to read users',
+	})
+	@ApiQuery({
+		name: 'status',
+		required: false,
+		enum: ['PENDING', 'ACTIVE', 'BLOCKED'],
+		enumName: 'UserStatus',
+		description: 'Filter users by status',
+	})
 	@Get()
 	async getUsers(
 		@CurrentUser() requestingUser: UserEntity,
@@ -37,7 +48,9 @@ export class UsersController {
 	@ApiOperation({ summary: 'Approve a user' })
 	@ApiOkResponse({ description: 'User approved successfully' })
 	@ApiNotFoundResponse({ description: 'User not found' })
-	@ApiForbiddenResponse({ description: 'You do not have permission to approve users' })
+	@ApiForbiddenResponse({
+		description: 'You do not have permission to approve users',
+	})
 	@Patch(':id/approve')
 	async approveUser(@Param('id') userId: string, @CurrentUser() requestingUser: UserEntity) {
 		this.logger.warn('approve user called on userId: ' + userId);
@@ -47,7 +60,9 @@ export class UsersController {
 	@ApiOperation({ summary: 'Block a user' })
 	@ApiOkResponse({ description: 'User blocked successfully' })
 	@ApiNotFoundResponse({ description: 'User not found' })
-	@ApiForbiddenResponse({ description: 'You do not have permission to block users' })
+	@ApiForbiddenResponse({
+		description: 'You do not have permission to block users',
+	})
 	@Patch(':id/block')
 	async blockUser(@Param('id') userId: string, @CurrentUser() requestingUser: UserEntity) {
 		this.logger.warn('blockUser called on userId: ' + userId);
@@ -57,7 +72,9 @@ export class UsersController {
 	@ApiOperation({ summary: 'Update user permissions' })
 	@ApiOkResponse({ description: 'User permissions updated successfully' })
 	@ApiNotFoundResponse({ description: 'User not found' })
-	@ApiForbiddenResponse({ description: 'You do not have permission to update user permissions' })
+	@ApiForbiddenResponse({
+		description: 'You do not have permission to update user permissions',
+	})
 	@Patch(':id/permissions')
 	async updatePermissions(
 		@Param('id') userId: string,
