@@ -2,7 +2,7 @@ import { ApiProperty } from '@nestjs/swagger';
 import { Type } from 'class-transformer';
 import { IsNumber, IsOptional } from 'class-validator';
 
-export class CurserBasedPaginationRequestDto {
+export class CursorBasedPaginationRequestDto {
 	@ApiProperty({
 		type: Number,
 		description: 'Number of items to retrieve (if available)',

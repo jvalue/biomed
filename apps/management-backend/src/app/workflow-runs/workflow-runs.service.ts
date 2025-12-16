@@ -1,8 +1,8 @@
 import { ForbiddenException, Injectable, Logger } from '@nestjs/common';
 import { ArgoClientService } from '../argo-client/argo-client.service';
 import { AbilityFactory } from '../auth/ability-factory';
-import { CurserBasedPaginationResponseDto } from '../pagination/dto/curser-based-pagination-response.dto';
-import { CurserBasedPaginationRequestDto } from '../pagination/dto/cursor-based-pagination-request.dto';
+import { CursorBasedPaginationRequestDto } from '../pagination/dto/cursor-based-pagination-request.dto';
+import { CursorBasedPaginationResponseDto } from '../pagination/dto/cursor-based-pagination-response.dto';
 import { UserEntity } from '../users/entity/user.entity';
 import { WorkflowRunDto } from './dto/workflow-run.dto';
 import { WorkflowRunFilterDto } from './dto/workflow-run-filter.dto';
@@ -25,8 +25,8 @@ export class WorkflowRunsService {
 	async listWorkflows(
 		requestingUser: UserEntity,
 		filter?: WorkflowRunFilterDto,
-		pagination?: CurserBasedPaginationRequestDto,
-	): Promise<CurserBasedPaginationResponseDto<WorkflowRunDto>> {
+		pagination?: CursorBasedPaginationRequestDto,
+	): Promise<CursorBasedPaginationResponseDto<WorkflowRunDto>> {
 		// Check if user has rights to read workflows
 		const ability = this.abilityFactory.defineAbilityFor(requestingUser);
 		if (!ability.can('read', 'workflow')) {
