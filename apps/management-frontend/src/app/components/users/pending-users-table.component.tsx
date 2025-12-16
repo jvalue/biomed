@@ -1,4 +1,4 @@
-import { usePendingUsers } from '@/src/app/api/hooks/usePendingUsers';
+import { useUsers } from '@/src/app/api/hooks/useUsers';
 import { Spinner } from '@/src/app/components/design-components/spinner';
 import {
 	Table,
@@ -9,9 +9,10 @@ import {
 	TableHeader,
 	TableRow,
 } from '@/src/app/components/design-components/table';
+import { UserStatus } from '../../api/dto/user/user.dto';
 
 export default function PendingUsersTable() {
-	const { data, isLoading, error } = usePendingUsers();
+	const { data, isLoading, error } = useUsers(UserStatus.PENDING);
 
 	if (isLoading)
 		return (
@@ -37,7 +38,7 @@ export default function PendingUsersTable() {
 					<TableRow key={user.username}>
 						<TableCell>{user.username}</TableCell>
 						<TableCell>{new Date(user.createdAt).toLocaleString()}</TableCell>
-						<TableCell>Approve</TableCell>´
+						<TableCell>Approve</TableCell>
 					</TableRow>
 				))}
 			</TableBody>

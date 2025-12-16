@@ -1,9 +1,11 @@
-import { UserDto } from '@/src/app/api/dto/user/user.dto';
+import { UserDto, UserStatus } from '@/src/app/api/dto/user/user.dto';
 import { managementBackendClient } from '../management-backend-client';
 
 export const usersService = {
-	getPendingUsers: async (): Promise<UserDto[]> => {
-		const { data } = await managementBackendClient.get('users/pending');
-		return data;
+	getUsers: async (status?: UserStatus): Promise<UserDto[]> => {
+		const response = await managementBackendClient.get<UserDto[]>('/users', {
+			params: status ? { status } : {},
+		});
+		return response.data;
 	},
 };
