@@ -28,7 +28,11 @@ export function AppSidebar() {
 						<SidebarMenu>
 							<SidebarMenuItem key="home">
 								<SidebarMenuButton asChild>
-									<Link to="/" activeProps={{ style: { fontWeight: 'bold' } }}>
+									<Link
+										to="/"
+										activeProps={{ style: { fontWeight: 'bold' } }}
+										activeOptions={{ exact: true }}
+									>
 										Home
 									</Link>
 								</SidebarMenuButton>
@@ -43,7 +47,11 @@ export function AppSidebar() {
 							<SidebarMenu>
 								<SidebarMenuItem key="workflow-list">
 									<SidebarMenuButton asChild>
-										<Link to="/workflow-list" activeProps={{ style: { fontWeight: 'bold' } }}>
+										<Link
+											to="/workflow-list"
+											activeProps={{ style: { fontWeight: 'bold' } }}
+											activeOptions={{ exact: true }}
+										>
 											Workflow List
 										</Link>
 									</SidebarMenuButton>
@@ -59,7 +67,11 @@ export function AppSidebar() {
 							<SidebarMenu>
 								<SidebarMenuItem key="workflow-templates">
 									<SidebarMenuButton asChild>
-										<Link to="/workflow-templates" activeProps={{ style: { fontWeight: 'bold' } }}>
+										<Link
+											to="/workflow-templates"
+											activeProps={{ style: { fontWeight: 'bold' } }}
+											activeOptions={{ exact: true }}
+										>
 											Workflow Templates
 										</Link>
 									</SidebarMenuButton>
@@ -70,13 +82,28 @@ export function AppSidebar() {
 				</Can>
 				<Can ability={ability} I="read" a="user">
 					<SidebarGroup>
-						<SidebarGroupLabel>Admin Sections</SidebarGroupLabel>
+						<SidebarGroupLabel>Admin Section</SidebarGroupLabel>
 						<SidebarGroupContent>
 							<SidebarMenu>
 								<SidebarMenuItem key="admin">
 									<SidebarMenuButton asChild>
-										<Link to="/admin" activeProps={{ style: { fontWeight: 'bold' } }}>
-											Admin Page
+										<Link
+											to="/admin"
+											activeProps={{ style: { fontWeight: 'bold' } }}
+											activeOptions={{ exact: true }}
+										>
+											Admin Overview
+										</Link>
+									</SidebarMenuButton>
+								</SidebarMenuItem>
+								<SidebarMenuItem key="admin-user-management">
+									<SidebarMenuButton asChild>
+										<Link
+											to="/admin/user-management"
+											activeProps={{ style: { fontWeight: 'bold' } }}
+											activeOptions={{ exact: true }}
+										>
+											User Management
 										</Link>
 									</SidebarMenuButton>
 								</SidebarMenuItem>
