@@ -27,9 +27,28 @@ async function bootstrap(): Promise<INestApplication> {
 	const config = new DocumentBuilder()
 		.setTitle('Crawler Management Backend')
 		.setVersion('1.0')
+		.addBearerAuth(
+			{
+				type: 'http',
+				scheme: 'bearer',
+				bearerFormat: 'JWT',
+				in: 'header',
+			},
+			'bearer',
+		)
 		.build();
-	const documentFactory = () => SwaggerModule.createDocument(app, config);
-	SwaggerModule.setup('api/v1/docs', app, documentFactory);
+	const documentFactory = () => {
+		const doc = SwaggerModule.createDocument(app, config);
+		// Add global security requirement
+		doc.security = [{ bearer: [] }];
+		return doc;
+	};
+
+	SwaggerModule.setup('api/v1/docs', app, documentFactory, {
+		swaggerOptions: {
+			persistAuthorization: true,
+		},
+	});
 
 	return app;
 }
