@@ -24,6 +24,8 @@ function RouteComponent() {
 						waiting for approval here. To approve a user click on the approval button. If you can't
 						see an approval button, you don't have the permission to approve users.
 					</p>
+					<br />
+					<h2>Users waiting for approval:</h2>
 					<PendingUsersTable />
 				</div>
 			</PermissionGuard>

@@ -14,7 +14,7 @@ import { useAuth } from '@/src/app/contexts/AuthContext';
 
 type loginError = 'NONE' | 'INVALID' | 'UNKNOWN' | 'ACCOUNT_PENDING';
 
-export function LoginForm() {
+export function LoginFormComponent() {
 	const [username, setUsername] = useState('');
 	const [password, setPassword] = useState('');
 	const [error, setError] = useState<loginError>('NONE');
