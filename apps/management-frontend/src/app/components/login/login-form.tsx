@@ -12,7 +12,7 @@ import {
 import { Input } from '@/src/app/components/design-components/input';
 import { useAuth } from '@/src/app/contexts/AuthContext';
 
-type loginError = 'NONE' | 'INVALID' | 'UNKNOWN';
+type loginError = 'NONE' | 'INVALID' | 'UNKNOWN' | 'ACCOUNT_PENDING';
 
 export function LoginForm() {
 	const [username, setUsername] = useState('');
@@ -29,6 +29,8 @@ export function LoginForm() {
 		} catch (err: any) {
 			if (err.response?.status === 401) {
 				setError('INVALID');
+			} else if (err.response?.status === 403) {
+				setError('ACCOUNT_PENDING');
 			} else {
 				setError('UNKNOWN');
 			}
@@ -94,6 +96,11 @@ export function LoginForm() {
 					{error === 'UNKNOWN' && (
 						<FieldDescription className="text-destructive">
 							An unknown error occurred, please try again later or contact your administrator
+						</FieldDescription>
+					)}
+					{error === 'ACCOUNT_PENDING' && (
+						<FieldDescription className="text-destructive">
+							Your account is not approved yet. Please contact your administrator.
 						</FieldDescription>
 					)}
 					<Button type="submit">Login</Button>

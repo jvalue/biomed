@@ -1,4 +1,9 @@
-import { ConflictException, Injectable, UnauthorizedException } from '@nestjs/common';
+import {
+	ConflictException,
+	ForbiddenException,
+	Injectable,
+	UnauthorizedException,
+} from '@nestjs/common';
 import { JwtService } from '@nestjs/jwt';
 import * as bcrypt from 'bcrypt';
 import { UsersService } from '../users/users.service';
@@ -47,7 +52,7 @@ export class AuthService {
 		}
 
 		if (user.status !== UserStatus.ACTIVE) {
-			throw new UnauthorizedException('Account not approved yet');
+			throw new ForbiddenException('Account not approved yet');
 		}
 
 		const accessToken = this.jwtService.sign({

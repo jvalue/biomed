@@ -1,6 +1,6 @@
-import {useRouter} from '@tanstack/react-router';
-import {FormEvent, useState} from 'react';
-import {Button} from '@/src/app/components/design-components/button';
+import { useRouter } from '@tanstack/react-router';
+import { FormEvent, useState } from 'react';
+import { Button } from '@/src/app/components/design-components/button';
 import {
 	Field,
 	FieldDescription,
@@ -9,8 +9,8 @@ import {
 	FieldLegend,
 	FieldSet,
 } from '@/src/app/components/design-components/field';
-import {Input} from '@/src/app/components/design-components/input';
-import {useAuth} from '@/src/app/contexts/AuthContext';
+import { Input } from '@/src/app/components/design-components/input';
+import { useAuth } from '@/src/app/contexts/AuthContext';
 
 type registerError = 'NONE' | 'UNKNOWN' | 'WEAK_PASSWORD' | 'CONFLICT';
 
@@ -18,7 +18,7 @@ export function RegisterForm() {
 	const [username, setUsername] = useState('');
 	const [password, setPassword] = useState('');
 	const [error, setError] = useState<registerError>('NONE');
-	const {register} = useAuth();
+	const { register } = useAuth();
 	const router = useRouter();
 
 	const handleSubmit = async (e?: FormEvent) => {
@@ -33,7 +33,7 @@ export function RegisterForm() {
 
 		try {
 			await register(username, password);
-			await router.navigate({to: '/'});
+			await router.navigate({ to: '/' });
 		} catch (err: any) {
 			if (err.response?.status === 409) {
 				setError('CONFLICT');
@@ -50,7 +50,7 @@ export function RegisterForm() {
 					<FieldLegend>Register</FieldLegend>
 					<FieldDescription>
 						Please enter your username and password to create a new account. If you already have an
-						account, please switch to the login tab.
+						account, please switch to the "Login" tab.
 					</FieldDescription>
 					<FieldGroup>
 						<Field>
