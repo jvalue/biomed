@@ -72,3 +72,5 @@ generated/
 *.sqlite
 vite.config.*.timestamp*
 vitest.config.*.timestamp*
+.coverage
+progress.txt
