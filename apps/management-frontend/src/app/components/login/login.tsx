@@ -11,6 +11,7 @@ import {
 	TabsTrigger,
 } from '@/src/app/components/design-components/tabs';
 import { LoginForm } from '@/src/app/components/login/login-form';
+import { RegisterForm } from '@/src/app/components/login/register-form';
 
 export function Login() {
 	return (
@@ -33,7 +34,9 @@ export function Login() {
 						<TabsContent value="login">
 							<LoginForm />
 						</TabsContent>
-						<TabsContent value="register"></TabsContent>
+						<TabsContent value="register">
+							<RegisterForm />
+						</TabsContent>
 					</CardContent>
 				</Tabs>
 			</Card>

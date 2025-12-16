@@ -9,6 +9,7 @@ interface AuthContextType {
 	user: UserDto | null;
 	ability: AppAbility;
 	login: (username: string, password: string) => Promise<void>;
+	register: (username: string, password: string) => Promise<void>;
 	logout: () => void;
 	isLoading: boolean;
 	isAuthenticated: boolean;
@@ -54,6 +55,14 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 		setAbility(new PureAbility(data.abilityRules));
 	};
 
+	const register = async (username: string, password: string) => {
+		const response = await managementBackendClient.post('/auth/register', { username, password });
+		const data = response.data;
+		localStorage.setItem('accessToken', data.accessToken);
+		setUser(data.user);
+		setAbility(new PureAbility(data.abilityRules));
+	};
+
 	const logout = () => {
 		localStorage.removeItem('accessToken');
 		setUser(null);
@@ -62,7 +71,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
 	return (
 		<AuthContext.Provider
-			value={{ user, ability, login, logout, isAuthenticated: !!user, isLoading }}
+			value={{ user, ability, login, register, logout, isAuthenticated: !!user, isLoading }}
 		>
 			{children}
 		</AuthContext.Provider>

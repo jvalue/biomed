@@ -6,9 +6,6 @@ import { useAuth } from '@/src/app/contexts/AuthContext';
 
 export function Header() {
 	const { user, isAuthenticated, isLoading } = useAuth();
-	console.log(isAuthenticated);
-	console.log(user);
-	console.log(isLoading);
 
 	return (
 		<div className="sticky top-0 z-30 flex h-16 sm:h-20 w-full items-center justify-between bg-background px-3 sm:px-6 lg:px-12 pb-2 pt-4 border-b border-sidebar-border">
