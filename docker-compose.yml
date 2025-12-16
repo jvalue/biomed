@@ -14,11 +14,10 @@ services:
       context: .
       dockerfile: apps/crawler/Dockerfile
     working_dir: /app
-    command: uv run crawler_general/hello.py
+    command: python crawler_general/hello.py
     volumes:
       - ./apps/crawler:/app
       - ./libs/crawler-common:/app/libs/crawler-common
-      - "5436:5436"
 
   management-backend:
     image: management-backend
