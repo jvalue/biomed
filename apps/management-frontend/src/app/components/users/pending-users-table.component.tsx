@@ -12,7 +12,7 @@ import {
 } from '@/src/app/components/design-components/table';
 import { UserStatus } from '../../api/dto/user/user.dto';
 
-export default function PendingUsersTable() {
+export default function PendingUsersTableComponent() {
 	const { data, isLoading, error } = useUsers(UserStatus.PENDING);
 	const approveUserMutation = useApproveUser();
 	const blockUserMutation = useBlockUser();
