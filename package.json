@@ -9,7 +9,8 @@
     "lint": "nx run-many --target=lint --all",
     "lint:fix": "nx run-many --target=lint:fix --all",
     "be": "nx serve management-backend",
-    "fe": "nx serve management-frontend"
+    "fe": "nx serve management-frontend",
+    "crawler": "uv run apps/crawler/crawler_general/hello.py"
   },
   "keywords": [],
   "author": "",
@@ -62,6 +63,8 @@
     "@nx/vite": "^22.1.1",
     "@nx/vitest": "22.1.1",
     "@nx/web": "22.1.1",
+    "@nx/workspace": "22.1.1",
+    "@react-router/dev": "^7.2.0",
     "@swc-node/register": "~1.9.1",
     "@swc/core": "^1.7.26",
     "@swc/helpers": "~0.5.11",
