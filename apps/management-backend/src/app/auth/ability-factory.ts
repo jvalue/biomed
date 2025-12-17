@@ -4,12 +4,16 @@ import { UserEntity } from '../users/entity/user.entity';
 import { UserPermission } from './enums/user-permission.enum';
 import { AppAbility } from './types/ability.types';
 
+/**
+ * AbilityFactory is responsible for defining and serializing user abilities
+ * based on their permissions.
+ */
 @Injectable()
 export class AbilityFactory {
 	defineAbilityFor(user: UserEntity): AppAbility {
 		const { can, build } = new AbilityBuilder<AppAbility>(PureAbility);
 
-		// Feingranulare Permissions für normale User
+		//  Fine-grained permission mapping
 		const permissionMap: Record<UserPermission, () => void> = {
 			// Workflow Permissions
 			[UserPermission.WORKFLOW_CREATE]: () => can('create', 'workflow'),
