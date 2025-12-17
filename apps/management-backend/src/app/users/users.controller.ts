@@ -8,15 +8,17 @@ import {
 	ApiUnauthorizedResponse,
 } from '@nestjs/swagger';
 import { CurrentUser } from '../auth/decorators/current-user.decorator';
+import { RequirePermission } from '../auth/decorators/require-permission.decorator';
 import { UserPermission } from '../auth/enums/user-permission.enum';
 import { UserStatus } from '../auth/enums/user-status.enum';
 import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
+import { PermissionsGuard } from '../auth/guards/permissions.guard';
 import { UserDto } from './dto/user.dto';
 import { UserEntity } from './entity/user.entity';
 import { UsersService } from './users.service';
 
 @Controller('users')
-@UseGuards(JwtAuthGuard)
+@UseGuards(JwtAuthGuard, PermissionsGuard)
 export class UsersController {
 	private readonly logger = new Logger(UsersController.name);
 
@@ -37,12 +39,10 @@ export class UsersController {
 		enumName: 'UserStatus',
 		description: 'Filter users by status',
 	})
+	@RequirePermission('read', 'user')
 	@Get()
-	async getUsers(
-		@CurrentUser() requestingUser: UserEntity,
-		@Query('status') status?: UserStatus,
-	): Promise<UserDto[]> {
-		return this.usersService.findUsers(requestingUser, status);
+	async getUsers(@Query('status') status?: UserStatus): Promise<UserDto[]> {
+		return this.usersService.findUsers(status);
 	}
 
 	@ApiOperation({ summary: 'Approve a user' })
@@ -51,6 +51,7 @@ export class UsersController {
 	@ApiForbiddenResponse({
 		description: 'You do not have permission to approve users',
 	})
+	@RequirePermission('update', 'user')
 	@Patch(':id/approve')
 	async approveUser(@Param('id') userId: string, @CurrentUser() requestingUser: UserEntity) {
 		this.logger.warn('approve user called on userId: ' + userId);
@@ -63,10 +64,11 @@ export class UsersController {
 	@ApiForbiddenResponse({
 		description: 'You do not have permission to block users',
 	})
+	@RequirePermission('update', 'user')
 	@Patch(':id/block')
-	async blockUser(@Param('id') userId: string, @CurrentUser() requestingUser: UserEntity) {
+	async blockUser(@Param('id') userId: string) {
 		this.logger.warn('blockUser called on userId: ' + userId);
-		return this.usersService.blockUser(userId, requestingUser);
+		return this.usersService.blockUser(userId);
 	}
 
 	@ApiOperation({ summary: 'Update user permissions' })
@@ -75,6 +77,7 @@ export class UsersController {
 	@ApiForbiddenResponse({
 		description: 'You do not have permission to update user permissions',
 	})
+	@RequirePermission('update', 'user')
 	@Patch(':id/permissions')
 	async updatePermissions(
 		@Param('id') userId: string,
@@ -90,11 +93,9 @@ export class UsersController {
 	@ApiForbiddenResponse({
 		description: 'You do not have permission to read users',
 	})
+	@RequirePermission('read', 'user')
 	@Get(':id')
-	async getUserById(
-		@Param('id') userId: string,
-		@CurrentUser() requestingUser: UserEntity,
-	): Promise<UserDto> {
-		return this.usersService.getUserById(userId, requestingUser);
+	async getUserById(@Param('id') userId: string): Promise<UserDto> {
+		return this.usersService.getUserById(userId);
 	}
 }
