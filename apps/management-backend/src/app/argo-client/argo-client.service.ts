@@ -72,7 +72,7 @@ export class ArgoClientService {
 		argoQueryParamBuilder.addLabelSelector('workflows.argoproj.io/phase', filterOptions?.phases);
 
 		// Normal query parameters
-		argoQueryParamBuilder.add('createdAfter', filterOptions?.createdAfter?.toISOString());
+		argoQueryParamBuilder.add('createdAfter', filterOptions?.startedAfter?.toISOString());
 		argoQueryParamBuilder.add('finishedBefore', filterOptions?.finishedBefore?.toISOString());
 		argoQueryParamBuilder.add('listOptions.limit', paginationOptions?.limit);
 		argoQueryParamBuilder.add('listOptions.continue', paginationOptions?.offset);
