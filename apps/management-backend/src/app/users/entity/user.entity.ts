@@ -14,13 +14,13 @@ export class UserEntity {
 	id: string;
 
 	@Column({
-		type: 'string',
+		type: 'varchar',
 		unique: true,
 	})
 	username: string;
 
 	@Column({
-		type: 'string',
+		type: 'varchar',
 	})
 	passwordHash: string;
 
@@ -38,7 +38,7 @@ export class UserEntity {
 	status: UserStatus;
 
 	@Column({
-		type: 'string',
+		type: 'varchar',
 		nullable: true,
 	})
 	approvedBy?: string;
