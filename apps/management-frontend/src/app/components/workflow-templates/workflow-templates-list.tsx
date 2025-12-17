@@ -3,7 +3,7 @@ import { Spinner } from '@/src/app/components/design-components/spinner';
 import WorkflowTemplatesTable from '@/src/app/components/workflow-templates/workflow-templates-table';
 
 export default function WorkflowTemplatesList() {
-	const { data, isLoading, error, refetch } = useWorkflowTemplates();
+	const { data, isLoading, error } = useWorkflowTemplates();
 
 	if (isLoading)
 		return (
