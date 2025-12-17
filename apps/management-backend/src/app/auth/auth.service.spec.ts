@@ -1,5 +1,6 @@
 import { ConflictException, ForbiddenException, UnauthorizedException } from '@nestjs/common';
 import * as bcrypt from 'bcrypt';
+import type { Response } from 'express';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { AuthService } from './auth.service';
 import { UserStatus } from './enums/user-status.enum';
@@ -19,6 +20,7 @@ describe('AuthService', () => {
 	};
 	let mockJwtService: { sign: ReturnType<typeof vi.fn> };
 	let mockAbilityFactory: { serializeAbility: ReturnType<typeof vi.fn> };
+	let mockResponse: Partial<Response>;
 
 	beforeEach(() => {
 		vi.resetAllMocks();
@@ -30,6 +32,10 @@ describe('AuthService', () => {
 		};
 		mockJwtService = { sign: vi.fn() };
 		mockAbilityFactory = { serializeAbility: vi.fn() };
+
+		mockResponse = {
+			cookie: vi.fn(),
+		};
 
 		service = new AuthService(
 			mockUsersService as any,
@@ -66,9 +72,9 @@ describe('AuthService', () => {
 	it('login throws UnauthorizedException when user not found', async () => {
 		mockUsersService.findByUsername.mockResolvedValue(null);
 
-		await expect(service.login({ username: 'no', password: 'pw' })).rejects.toBeInstanceOf(
-			UnauthorizedException,
-		);
+		await expect(
+			service.login({ username: 'no', password: 'pw' }, mockResponse as Response),
+		).rejects.toBeInstanceOf(UnauthorizedException);
 	});
 
 	it('login throws UnauthorizedException when password invalid', async () => {
@@ -76,9 +82,9 @@ describe('AuthService', () => {
 		mockUsersService.findByUsername.mockResolvedValue(user);
 		(bcrypt.compare as any).mockResolvedValue(false);
 
-		await expect(service.login({ username: 'u', password: 'wrong' })).rejects.toBeInstanceOf(
-			UnauthorizedException,
-		);
+		await expect(
+			service.login({ username: 'u', password: 'wrong' }, mockResponse as Response),
+		).rejects.toBeInstanceOf(UnauthorizedException);
 	});
 
 	it('login throws ForbiddenException when user is not active', async () => {
@@ -86,12 +92,12 @@ describe('AuthService', () => {
 		mockUsersService.findByUsername.mockResolvedValue(user);
 		(bcrypt.compare as any).mockResolvedValue(true);
 
-		await expect(service.login({ username: 'u', password: 'pw' })).rejects.toBeInstanceOf(
-			ForbiddenException,
-		);
+		await expect(
+			service.login({ username: 'u', password: 'pw' }, mockResponse as Response),
+		).rejects.toBeInstanceOf(ForbiddenException);
 	});
 
-	it('login returns tokens and user when credentials valid and user active', async () => {
+	it('login sets httponly cookie and returns user when credentials valid and user active', async () => {
 		const user = {
 			id: '1',
 			username: 'u',
@@ -108,11 +114,23 @@ describe('AuthService', () => {
 		mockJwtService.sign.mockReturnValue('access-token');
 		mockAbilityFactory.serializeAbility.mockReturnValue(['rule']);
 
-		const result = await service.login({ username: 'u', password: 'pw' });
+		const result = await service.login({ username: 'u', password: 'pw' }, mockResponse as Response);
 
 		expect(mockJwtService.sign).toHaveBeenCalledWith({ sub: user.id, username: user.username });
+
+		const expectedOptions = {
+			httpOnly: true,
+			secure: process.env.NODE_ENV === 'production',
+			sameSite: 'strict',
+			maxAge: 30 * 60 * 1000,
+		};
+		expect(mockResponse.cookie as any).toHaveBeenCalledWith(
+			'accessToken',
+			'access-token',
+			expectedOptions,
+		);
+
 		expect(result).toEqual({
-			accessToken: 'access-token',
 			user: {
 				id: user.id,
 				username: user.username,

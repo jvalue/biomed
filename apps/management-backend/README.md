@@ -2,6 +2,12 @@
 
 ## Setup Instructions
 
+### Setup Environment Variables
+
+The management backend requires several environment variables to be set for proper configuration.
+Copy the `.env.example` file to a new file named `.env` and fill in the required values.
+Additionally for docker copy the `.env.docker.example` to `.env.docker` and fill in the required values.
+
 ### Setup Database
 
 To make the backend work you first have to set up a database.
@@ -72,15 +78,20 @@ It integrates seamlessly with Passport (http://www.passportjs.org/), which is us
 The combination of CASL and Passport provides a robust solution for managing user access and permissions in the backend.
 
 ### User management workflow
+
 The user management workflow is as follows:
-0. If there is no user in the database, an initial admin user is created on application startup with credentials defined in environment variables.
+
+0. If there is no user in the database, an initial admin user is created on application startup with credentials defined
+   in environment variables.
 1. A user registers an account with a username and password.
 2. An admin approves the user account and assigns permissions.
 3. The user can log in and access resources based on their assigned permissions.
 
 ### Authentication workflow
+
 The authentication workflow is handled by Passport using JWT strategy.
-When a user logs in with his credentials (username and password), they receive a JWT which is used for subsequent requests to
+When a user logs in with his credentials (username and password), they receive a JWT which is used for subsequent
+requests to
 authenticate the user.
 
 ### Defining Permissions
@@ -123,15 +134,17 @@ user: UserEntity
 ```
 
 ### Checking Permissions in Services
-In addition to protecting endpoints, you can also check permissions directly in your services using the `AbilityFactory`.
+
+In addition to protecting endpoints, you can also check permissions directly in your services using the
+`AbilityFactory`.
 This can be done as follows:
 
 ```typescript
 const ability = this.abilityFactory.defineAbilityFor(user);
 if (ability.can('update', 'user')) {
-   // User has permission to update the resource
+	// User has permission to update the resource
 } else {
-   // User does not have permission
+	// User does not have permission
 }
 ```
 
