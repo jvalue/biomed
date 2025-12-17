@@ -1,0 +1,12 @@
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"
+
+[tool.uv.workspace]
+members = [
+    "libs/crawler-common",
+    "apps/crawler",
+]
+
+[tool.uv.sources]
+crawler-common = { workspace = true }

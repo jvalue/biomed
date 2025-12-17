@@ -13,6 +13,7 @@ class ArgoWorkflowTemplateMetadataDto {
 	@IsString()
 	namespace!: string;
 
+	@Type(() => Date)
 	@IsDate()
 	creationTimestamp!: Date;
 }
