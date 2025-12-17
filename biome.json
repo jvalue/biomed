@@ -23,6 +23,7 @@
 		]
 	},
 	"formatter": {
+		"useEditorconfig": true,
 		"enabled": true,
 		"indentStyle": "tab",
 		"lineWidth": 100

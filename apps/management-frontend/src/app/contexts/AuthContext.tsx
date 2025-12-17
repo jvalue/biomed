@@ -1,4 +1,4 @@
-import { CreateAbility, PureAbility } from '@casl/ability';
+import { CreateAbility, PureAbility, RawRule } from '@casl/ability';
 import { createContext, ReactNode, useContext, useEffect, useState } from 'react';
 import { UserDto } from '@/src/app/api/dto/user/user.dto';
 import { managementBackendClient } from '../api/management-backend-client';
@@ -17,7 +17,8 @@ interface AuthContextType {
 
 const AuthContext = createContext<AuthContextType | null>(null);
 
-const createAppAbility: CreateAbility<AppAbility> = (rules: any[] = []) => new PureAbility(rules);
+const createAppAbility: CreateAbility<AppAbility> = (rules: RawRule[] = []) =>
+	new PureAbility(rules);
 
 export function AuthProvider({ children }: { children: ReactNode }) {
 	const [user, setUser] = useState<UserDto | null>(null);
@@ -34,6 +35,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 			const data = response.data;
 			setUser(data.user);
 			setAbility(new PureAbility(data.abilityRules));
+			// biome-ignore lint/suspicious/noExplicitAny: <doesn't work differently>
 		} catch (error: any) {
 			if (error.response?.status === 401) {
 				// Silent fail - User isn't logged in

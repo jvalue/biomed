@@ -12,11 +12,9 @@ import {
 	SidebarMenu,
 	SidebarMenuButton,
 	SidebarMenuItem,
-	useSidebar,
 } from './design-components/sidebar';
 
 export function AppSidebar() {
-	const { state, open, setOpen, openMobile, setOpenMobile, isMobile, toggleSidebar } = useSidebar();
 	const { ability } = useAuth();
 	return (
 		<Sidebar>

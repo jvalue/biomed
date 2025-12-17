@@ -3,7 +3,7 @@ import WorkflowRunsTable from '@/src/app/components/workflows/workflow-runs-tabl
 import { useWorkflowRuns } from '../../api/hooks/useWorkflowRuns';
 
 export default function WorkflowList() {
-	const { data, isLoading, error, refetch } = useWorkflowRuns();
+	const { data, isLoading, error } = useWorkflowRuns();
 
 	if (isLoading)
 		return (

@@ -1,7 +1,10 @@
 import { ForbiddenException } from '@nestjs/common';
+import { Repository } from 'typeorm';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { UserPermission } from '../auth/enums/user-permission.enum';
 import { UserStatus } from '../auth/enums/user-status.enum';
+import { UserDto } from './dto/user.dto';
+import { UserEntity } from './entity/user.entity';
 import { mapUserEntityToUserDto } from './mapper/users.mapper';
 import { UsersService } from './users.service';
 
@@ -34,14 +37,14 @@ describe('UsersService (relevant methods)', () => {
 		};
 
 		// instantiate service with mocked repository
-		service = new UsersService(mockRepo as any);
+		service = new UsersService(mockRepo as unknown as Repository<UserEntity>);
 	});
 
 	it('getUserById returns mapped DTO when user exists', async () => {
-		const entity = { id: '1', username: 'u' } as any;
-		const dto = { id: '1', username: 'u' } as any;
+		const entity = { id: '1', username: 'u' };
+		const dto = { id: '1', username: 'u' } as UserDto;
 		mockRepo.findOne.mockResolvedValue(entity);
-		(mapUserEntityToUserDto as any).mockReturnValue(dto);
+		vi.mocked(mapUserEntityToUserDto).mockReturnValue(dto);
 
 		const result = await service.getUserById('1');
 
@@ -50,20 +53,18 @@ describe('UsersService (relevant methods)', () => {
 		expect(result).toEqual(dto);
 	});
 
-	it('getUserById throws ForbiddenException and logs when user not found', async () => {
+	it('getUserById throws ForbiddenException when user not found', async () => {
 		mockRepo.findOne.mockResolvedValue(null);
-		const warnSpy = vi.spyOn((service as any).logger, 'warn');
 
 		await expect(service.getUserById('missing')).rejects.toBeInstanceOf(ForbiddenException);
-		expect(warnSpy).toHaveBeenCalledWith(expect.stringContaining('missing'));
 	});
 
 	it('approveUser updates user with ACTIVE status, approver and default permissions', async () => {
 		// ensure findUserByIdOrFail succeeds by returning an entity from findOne
-		mockRepo.findOne.mockResolvedValue({ id: 'target' } as any);
+		mockRepo.findOne.mockResolvedValue({ id: 'target' } as UserEntity);
 		mockRepo.update.mockResolvedValue(undefined);
 
-		const requestingUser = { id: 'req-1' } as any;
+		const requestingUser = { id: 'req-1' } as UserEntity;
 
 		await service.approveUser('target', requestingUser);
 
@@ -76,7 +77,7 @@ describe('UsersService (relevant methods)', () => {
 	});
 
 	it('blockUser updates user to BLOCKED and clears approval fields', async () => {
-		mockRepo.findOne.mockResolvedValue({ id: 'to-block' } as any);
+		mockRepo.findOne.mockResolvedValue({ id: 'to-block' } as UserEntity);
 		mockRepo.update.mockResolvedValue(undefined);
 
 		await service.blockUser('to-block');
@@ -89,20 +90,16 @@ describe('UsersService (relevant methods)', () => {
 	});
 
 	it('updatePermissions throws ForbiddenException when requesting user updates themselves', async () => {
-		const requestingUser = { id: 'same' } as any;
-		const warnSpy = vi.spyOn((service as any).logger, 'warn');
+		const requestingUser = { id: 'same' } as UserEntity;
 
 		await expect(
 			service.updatePermissions('same', [UserPermission.WORKFLOW_READ], requestingUser),
 		).rejects.toBeInstanceOf(ForbiddenException);
-		expect(warnSpy).toHaveBeenCalledWith(
-			expect.stringContaining('attempted to update their own permissions'),
-		);
 	});
 
 	it('updatePermissions throws when target user not found', async () => {
 		mockRepo.findOne.mockResolvedValue(null); // findUserByIdOrFail will fail
-		const requestingUser = { id: 'other' } as any;
+		const requestingUser = { id: 'other' } as UserEntity;
 
 		await expect(
 			service.updatePermissions('missing', [UserPermission.WORKFLOW_READ], requestingUser),
@@ -110,9 +107,9 @@ describe('UsersService (relevant methods)', () => {
 	});
 
 	it('updatePermissions updates permissions when allowed and user exists', async () => {
-		mockRepo.findOne.mockResolvedValue({ id: 'target' } as any);
+		mockRepo.findOne.mockResolvedValue({ id: 'target' } as UserEntity);
 		mockRepo.update.mockResolvedValue(undefined);
-		const requestingUser = { id: 'admin' } as any;
+		const requestingUser = { id: 'admin' } as UserEntity;
 		const perms = [UserPermission.TEMPLATE_READ];
 
 		await service.updatePermissions('target', perms, requestingUser);

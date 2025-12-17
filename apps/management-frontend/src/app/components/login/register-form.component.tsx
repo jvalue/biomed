@@ -33,6 +33,7 @@ export function RegisterFormComponent() {
 		try {
 			await register(username, password);
 			setIsRegistered(true);
+			// biome-ignore lint/suspicious/noExplicitAny: <doesn't work differently>
 		} catch (err: any) {
 			if (err.response?.status === 409) {
 				setError('CONFLICT');
