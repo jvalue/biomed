@@ -4,8 +4,8 @@ export default defineConfig({
 	test: {
 		environment: 'node',
 		globals: true,
-		include: ['src/**/*.spec.ts'],
-		setupFiles: ['src/test-setup.ts'],
+		include: ['src/**/*.spec.ts', '**/*.spec.ts'],
+		setupFiles: ['./test-setup.ts'],
 		coverage: {
 			provider: 'v8',
 			reportsDirectory: './coverage',

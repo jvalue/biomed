@@ -13,10 +13,15 @@ export class UserEntity {
 	@PrimaryGeneratedColumn('uuid')
 	id: string;
 
-	@Column({ unique: true })
+	@Column({
+		type: 'string',
+		unique: true,
+	})
 	username: string;
 
-	@Column()
+	@Column({
+		type: 'string',
+	})
 	passwordHash: string;
 
 	@Column({
@@ -32,7 +37,10 @@ export class UserEntity {
 	})
 	status: UserStatus;
 
-	@Column({ nullable: true })
+	@Column({
+		type: 'string',
+		nullable: true,
+	})
 	approvedBy?: string;
 
 	@Column({ type: 'timestamp', nullable: true })
