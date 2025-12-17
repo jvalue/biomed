@@ -1,5 +1,5 @@
 /**
- * Utility class to build query parameters for Argo API requests following the builder desing pattern.
+ * Utility class to build query parameters for Argo API requests following the builder design pattern.
  */
 export class ArgoQueryParamBuilder {
 	private readonly params = new Map<string, string[]>();
