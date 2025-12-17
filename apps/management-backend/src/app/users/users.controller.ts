@@ -54,7 +54,7 @@ export class UsersController {
 	@RequirePermission('update', 'user')
 	@Patch(':id/approve')
 	async approveUser(@Param('id') userId: string, @CurrentUser() requestingUser: UserEntity) {
-		this.logger.warn('approve user called on userId: ' + userId);
+		this.logger.warn(`approve user called on userId: ${userId}`);
 		return this.usersService.approveUser(userId, requestingUser);
 	}
 
@@ -67,7 +67,7 @@ export class UsersController {
 	@RequirePermission('update', 'user')
 	@Patch(':id/block')
 	async blockUser(@Param('id') userId: string) {
-		this.logger.warn('blockUser called on userId: ' + userId);
+		this.logger.warn(`block user called on userId: ${userId}`);
 		return this.usersService.blockUser(userId);
 	}
 

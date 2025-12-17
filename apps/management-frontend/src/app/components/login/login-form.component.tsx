@@ -26,6 +26,7 @@ export function LoginFormComponent() {
 		try {
 			await login(username, password);
 			await router.navigate({ to: '/' });
+			// biome-ignore lint/suspicious/noExplicitAny: <doesn't work differently>
 		} catch (err: any) {
 			if (err.response?.status === 401) {
 				setError('INVALID');

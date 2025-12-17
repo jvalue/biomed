@@ -1,4 +1,6 @@
+import { RawRule } from '@casl/ability';
 import { beforeEach, describe, expect, it } from 'vitest';
+import { UserEntity } from '../users/entity/user.entity';
 import { AbilityFactory } from './ability-factory';
 import { UserPermission } from './enums/user-permission.enum';
 
@@ -16,7 +18,7 @@ describe('AbilityFactory', () => {
 				UserPermission.TEMPLATE_READ,
 				UserPermission.USER_APPROVE,
 			],
-		} as any;
+		} as UserEntity;
 
 		const ability = factory.defineAbilityFor(user);
 
@@ -32,8 +34,8 @@ describe('AbilityFactory', () => {
 
 	it('ignores unknown or unsupported permissions', () => {
 		const user = {
-			permissions: ['UNKNOWN_PERMISSION'] as any[],
-		} as any;
+			permissions: ['UNKNOWN_PERMISSION'],
+		} as unknown as UserEntity;
 
 		const ability = factory.defineAbilityFor(user);
 
@@ -46,7 +48,7 @@ describe('AbilityFactory', () => {
 	it('serializeAbility returns the underlying rules array', () => {
 		const user = {
 			permissions: [UserPermission.USER_BLOCK, UserPermission.TEMPLATE_UPDATE],
-		} as any;
+		} as unknown as UserEntity;
 
 		const rules = factory.serializeAbility(user);
 
@@ -54,15 +56,9 @@ describe('AbilityFactory', () => {
 		expect(rules.length).toBeGreaterThan(0);
 
 		// At least one rule should correspond to one of the permissions
-		const hasBlockUser = rules.some(
-			(r: any) =>
-				(r.action === 'block' || (Array.isArray(r.actions) && r.actions.includes('block'))) &&
-				(r.subject === 'user' || r.subjectName === 'user'),
-		);
+		const hasBlockUser = rules.some((r: RawRule) => r.action === 'block' && r.subject === 'user');
 		const hasUpdateTemplate = rules.some(
-			(r: any) =>
-				(r.action === 'update' || (Array.isArray(r.actions) && r.actions.includes('update'))) &&
-				(r.subject === 'template' || r.subjectName === 'template'),
+			(r: RawRule) => r.action === 'update' && r.subject === 'template',
 		);
 
 		expect(hasBlockUser || hasUpdateTemplate).toBe(true);

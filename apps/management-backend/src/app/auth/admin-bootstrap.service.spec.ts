@@ -1,5 +1,7 @@
+import { ConfigService } from '@nestjs/config';
 import * as bcrypt from 'bcrypt';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
+import { UsersService } from '../users/users.service';
 import { AdminBootstrapService } from './admin-bootstrap.service';
 import { UserPermission } from './enums/user-permission.enum';
 import { UserStatus } from './enums/user-status.enum';
@@ -17,7 +19,10 @@ describe('AdminBootstrapService', () => {
 		vi.restoreAllMocks();
 		mockConfigService = { get: vi.fn() };
 		mockUsersService = { count: vi.fn(), create: vi.fn() };
-		service = new AdminBootstrapService(mockConfigService as any, mockUsersService as any);
+		service = new AdminBootstrapService(
+			mockConfigService as unknown as ConfigService,
+			mockUsersService as unknown as UsersService,
+		);
 	});
 
 	it('does nothing when users already exist', async () => {
@@ -50,7 +55,7 @@ describe('AdminBootstrapService', () => {
 		});
 
 		// bcrypt.hash is mocked via vi.mock above; cast to any to access mock helpers
-		(bcrypt.hash as any).mockResolvedValue('hashed-s3cr3t');
+		(bcrypt.hash as unknown as ReturnType<typeof vi.fn>).mockResolvedValue('hashed-s3cr3t');
 
 		await service.onModuleInit();
 

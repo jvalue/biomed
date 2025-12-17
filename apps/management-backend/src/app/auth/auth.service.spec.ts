@@ -1,7 +1,10 @@
 import { ConflictException, ForbiddenException, UnauthorizedException } from '@nestjs/common';
+import { JwtService } from '@nestjs/jwt';
 import * as bcrypt from 'bcrypt';
 import type { Response } from 'express';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
+import { UsersService } from '../users/users.service';
+import { AbilityFactory } from './ability-factory';
 import { AuthService } from './auth.service';
 import { UserStatus } from './enums/user-status.enum';
 
@@ -38,9 +41,9 @@ describe('AuthService', () => {
 		};
 
 		service = new AuthService(
-			mockUsersService as any,
-			mockJwtService as any,
-			mockAbilityFactory as any,
+			mockUsersService as unknown as UsersService,
+			mockJwtService as unknown as JwtService,
+			mockAbilityFactory as unknown as AbilityFactory,
 		);
 	});
 
@@ -54,6 +57,7 @@ describe('AuthService', () => {
 
 	it('register hashes password and creates user when username is new', async () => {
 		mockUsersService.findByUsername.mockResolvedValue(null);
+		// biome-ignore lint/suspicious/noExplicitAny: <library function>
 		(bcrypt.hash as any).mockResolvedValue('hashed-pw');
 		mockUsersService.create.mockResolvedValue(undefined);
 
@@ -80,6 +84,7 @@ describe('AuthService', () => {
 	it('login throws UnauthorizedException when password invalid', async () => {
 		const user = { id: '1', username: 'u', passwordHash: 'h', status: UserStatus.ACTIVE };
 		mockUsersService.findByUsername.mockResolvedValue(user);
+		// biome-ignore lint/suspicious/noExplicitAny: <library function>
 		(bcrypt.compare as any).mockResolvedValue(false);
 
 		await expect(
@@ -90,6 +95,7 @@ describe('AuthService', () => {
 	it('login throws ForbiddenException when user is not active', async () => {
 		const user = { id: '1', username: 'u', passwordHash: 'h', status: UserStatus.PENDING };
 		mockUsersService.findByUsername.mockResolvedValue(user);
+		// biome-ignore lint/suspicious/noExplicitAny: <library function>
 		(bcrypt.compare as any).mockResolvedValue(true);
 
 		await expect(
@@ -107,9 +113,10 @@ describe('AuthService', () => {
 			createdAt: '2020-01-01',
 			approvedBy: 'admin',
 			approvedAt: '2020-02-01',
-		} as any;
+		};
 
 		mockUsersService.findByUsername.mockResolvedValue(user);
+		// biome-ignore lint/suspicious/noExplicitAny: <library function>
 		(bcrypt.compare as any).mockResolvedValue(true);
 		mockJwtService.sign.mockReturnValue('access-token');
 		mockAbilityFactory.serializeAbility.mockReturnValue(['rule']);
@@ -124,6 +131,7 @@ describe('AuthService', () => {
 			sameSite: 'strict',
 			maxAge: 30 * 60 * 1000,
 		};
+		// biome-ignore lint/suspicious/noExplicitAny: <library function>
 		expect(mockResponse.cookie as any).toHaveBeenCalledWith(
 			'accessToken',
 			'access-token',
