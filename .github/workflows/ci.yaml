@@ -1,75 +1,75 @@
-  name: CI
+name: CI
 
-  on:
-    push:
-      branches: [ "main" ]
-      paths:
-        - "apps/**"
-        - ".github/workflows/**"
-        - "tsconfig.json"
-        - "tsconfig.base.json"
-        - "package.json"
-        - "vitest.workspace.ts"
-        - "nx.json"
-        - "biome.json"
-        - "components.json"
-        - "docker-compose.yml"
-        - "management-frontend.Dockerfile"
-        - "management-backend.Dockerfile"
-        - "nginx.conf"
-    pull_request:
-      branches: [ "**" ]
-      paths:
-        - "apps/**"
-        - ".github/workflows/**"
-        - "tsconfig.json"
-        - "tsconfig.base.json"
-        - "package.json"
-        - "vitest.workspace.ts"
-        - "nx.json"
-        - "biome.json"
-        - "components.json"
-        - "docker-compose.yml"
-        - "management-frontend.Dockerfile"
-        - "management-backend.Dockerfile"
-        - "nginx.conf"
+on:
+  push:
+    branches: [ "main" ]
+    paths:
+      - "apps/**"
+      - ".github/workflows/**"
+      - "tsconfig.json"
+      - "tsconfig.base.json"
+      - "package.json"
+      - "vitest.workspace.ts"
+      - "nx.json"
+      - "biome.json"
+      - "components.json"
+      - "docker-compose.yml"
+      - "management-frontend.Dockerfile"
+      - "management-backend.Dockerfile"
+      - "nginx.conf"
+  pull_request:
+    branches: [ "**" ]
+    paths:
+      - "apps/**"
+      - ".github/workflows/**"
+      - "tsconfig.json"
+      - "tsconfig.base.json"
+      - "package.json"
+      - "vitest.workspace.ts"
+      - "nx.json"
+      - "biome.json"
+      - "components.json"
+      - "docker-compose.yml"
+      - "management-frontend.Dockerfile"
+      - "management-backend.Dockerfile"
+      - "nginx.conf"
 
-  jobs:
-    detect-changes:
-      name: Detect changes
-      runs-on: ubuntu-latest
-      outputs:
-        management_frontend_changed: ${{ steps.filter.outputs.management_frontend }}
-        management_backend_changed: ${{ steps.filter.outputs.management_backend }}
-        config_changed: ${{ steps.filter.outputs.config }}
-      steps:
-        - name: Checkout
-          uses: actions/checkout@v4
+jobs:
+  detect-changes:
+    name: Detect changes
+    runs-on: ubuntu-latest
+    outputs:
+      management_frontend_changed: ${{ steps.filter.outputs.management_frontend }}
+      management_backend_changed: ${{ steps.filter.outputs.management_backend }}
+      config_changed: ${{ steps.filter.outputs.config }}
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
 
-        - name: Paths filter
-          id: filter
-          uses: dorny/paths-filter@v3
-          with:
-            filters: |
-              management_frontend:
-                - 'apps/management-frontend/**'
-              management_backend:
-                - 'apps/management-backend/**'
-              config:
-                - '.github/workflows/**'
-                - 'tsconfig.json'
-                - 'tsconfig.base.json'
-                - 'package.json'
-                - 'vitest.workspace.ts'
-                - 'nx.json'
-                - 'biome.json'
-                - 'components.json'
-                - 'docker-compose.yml'
-                - 'management-frontend.Dockerfile'
-                - 'management-backend.Dockerfile'
-                - 'nginx.conf'
+      - name: Paths filter
+        id: filter
+        uses: dorny/paths-filter@v3
+        with:
+          filters: |
+            management_frontend:
+              - 'apps/management-frontend/**'
+            management_backend:
+              - 'apps/management-backend/**'
+            config:
+              - '.github/workflows/**'
+              - 'tsconfig.json'
+              - 'tsconfig.base.json'
+              - 'package.json'
+              - 'vitest.workspace.ts'
+              - 'nx.json'
+              - 'biome.json'
+              - 'components.json'
+              - 'docker-compose.yml'
+              - 'management-frontend.Dockerfile'
+              - 'management-backend.Dockerfile'
+              - 'nginx.conf'
 
-    management-frontend:
+  management-frontend:
       name: Management Frontend CI
       needs: detect-changes
       if: needs.detect-changes.outputs.management_frontend_changed == 'true' || needs.detect-changes.outputs.config_changed == 'true'
