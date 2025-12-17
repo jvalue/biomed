@@ -1,10 +1,11 @@
-import {join, resolve} from 'path';
-import {defineConfig} from 'vite';
-import {VitePluginNode} from 'vite-plugin-node';
+import { join, resolve } from 'path';
+import { defineConfig } from 'vite';
+import { VitePluginNode } from 'vite-plugin-node';
 
 export default defineConfig({
 	server: {
 		port: 3002,
+		cors: false
 	},
 	root: __dirname,
 	build: {
@@ -13,7 +14,7 @@ export default defineConfig({
 		emptyOutDir: true
 	},
 	plugins: [
-		...VitePluginNode({
+		... VitePluginNode({
 			adapter: 'nest',
 			appPath: join(__dirname, 'src/main.ts'),
 			tsCompiler: 'swc',

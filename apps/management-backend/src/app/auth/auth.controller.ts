@@ -1,4 +1,4 @@
-import { Body, Controller, Get, Post, UseGuards } from '@nestjs/common';
+import { Body, Controller, Get, Post, Res, UseGuards } from '@nestjs/common';
 import {
 	ApiConflictResponse,
 	ApiCreatedResponse,
@@ -8,6 +8,7 @@ import {
 	ApiOperation,
 	ApiUnauthorizedResponse,
 } from '@nestjs/swagger';
+import type { Response } from 'express';
 import { UserEntity } from '../users/entity/user.entity';
 import { AbilityFactory } from './ability-factory';
 import { AuthService } from './auth.service';
@@ -35,8 +36,15 @@ export class AuthController {
 	@ApiUnauthorizedResponse({ description: 'Invalid credentials' })
 	@ApiForbiddenResponse({ description: 'Account not approved yet' })
 	@Post('login')
-	async login(@Body() loginDto: LoginDataDto) {
-		return this.authService.login(loginDto);
+	async login(@Body() loginDto: LoginDataDto, @Res({ passthrough: true }) response: Response) {
+		return this.authService.login(loginDto, response);
+	}
+
+	@Post('logout')
+	@UseGuards(JwtAuthGuard)
+	async logout(@Res({ passthrough: true }) response: Response) {
+		response.clearCookie('accessToken');
+		return { message: 'Logged out successfully' };
 	}
 
 	@ApiOperation({ summary: 'Get current user profile' })

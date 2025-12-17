@@ -1,6 +1,7 @@
 import { INestApplication, ValidationPipe } from '@nestjs/common';
 import { NestFactory } from '@nestjs/core';
 import { DocumentBuilder, SwaggerModule } from '@nestjs/swagger';
+import cookieParser from 'cookie-parser';
 import { AppModule } from './app/app.module';
 
 async function bootstrap(): Promise<INestApplication> {
@@ -12,6 +13,18 @@ async function bootstrap(): Promise<INestApplication> {
 				: ['fatal', 'error', 'warn', 'log', 'debug'],
 	});
 
+	app.enableCors({
+		origin: 'http://localhost:4201',
+		credentials: true,
+		methods: ['OPTIONS', 'GET', 'POST', 'PUT', 'DELETE', 'PATCH'],
+		allowedHeaders: ['Content-Type', 'Authorization', 'Accept'],
+		exposedHeaders: ['Set-Cookie'],
+		optionsSuccessStatus: 204,
+	});
+
+	// Cookie parser to read cookies from requests
+	app.use(cookieParser());
+
 	// Used to validate data
 	app.useGlobalPipes(
 		new ValidationPipe({
@@ -20,9 +33,7 @@ async function bootstrap(): Promise<INestApplication> {
 	);
 
 	app.setGlobalPrefix('api/v1');
-	app.enableCors({
-		origin: 'http://localhost:4201',
-	});
+
 	// Swagger setup
 	const config = new DocumentBuilder()
 		.setTitle('Crawler Management Backend')

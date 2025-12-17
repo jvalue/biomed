@@ -6,6 +6,7 @@ import {
 } from '@nestjs/common';
 import { JwtService } from '@nestjs/jwt';
 import * as bcrypt from 'bcrypt';
+import type { Response } from 'express';
 import { UsersService } from '../users/users.service';
 import { AbilityFactory } from './ability-factory';
 import { AuthResponseDto } from './dto/auth-response.dto';
@@ -39,7 +40,7 @@ export class AuthService {
 		};
 	}
 
-	async login(loginDto: LoginDataDto): Promise<AuthResponseDto> {
+	async login(loginDto: LoginDataDto, response: Response): Promise<AuthResponseDto> {
 		const user = await this.usersService.findByUsername(loginDto.username);
 
 		if (!user) {
@@ -60,10 +61,17 @@ export class AuthService {
 			username: user.username,
 		});
 
+		// Set HTTP-only cookie
+		response.cookie('accessToken', accessToken, {
+			httpOnly: true,
+			secure: process.env.NODE_ENV === 'production', // HTTPS only in production
+			sameSite: 'strict',
+			maxAge: 30 * 60 * 1000, // 30 min
+		});
+
 		const abilityRules = this.abilityFactory.serializeAbility(user);
 
 		return {
-			accessToken,
 			user: {
 				id: user.id,
 				username: user.username,
