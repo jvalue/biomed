@@ -43,7 +43,7 @@ export function LoginFormComponent() {
 				<FieldSet>
 					<FieldLegend>Login</FieldLegend>
 					<FieldDescription>
-						Log in with you username and password. If you don't have an account yet switch to the
+						Log in with your username and password. If you don't have an account yet switch to the
 						"Register" tab
 					</FieldDescription>
 					<FieldGroup>
