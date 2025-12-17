@@ -68,7 +68,7 @@ Generate a secret key for JWT token signing with the following command:
 openssl rand -hex 32
 ```
 
-Add this key to your environment variables as `JWT_SECRET_KEY`.
+Add this key to your environment variables as `JWT_SECRET`.
 
 ## Authorization and Permission Management with CASL and Passport
 

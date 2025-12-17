@@ -28,7 +28,7 @@ export default function PendingUsersTableComponent() {
 		);
 	}
 
-	if (error) return <div>An error occured: {error.message}</div>;
+	if (error) return <div>An error occurred: {error.message}</div>;
 
 	return (
 		<Table className="m-4 mt-6">
