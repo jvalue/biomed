@@ -9,6 +9,16 @@ services:
     ports:
       - "5435:5435"
 
+  crawler-general:
+    build:
+      context: .
+      dockerfile: apps/crawler/Dockerfile
+    working_dir: /app
+    command: python crawler_general/hello.py
+    volumes:
+      - ./apps/crawler:/app
+      - ./libs/crawler-common:/app/libs/crawler-common
+
   management-backend:
     image: management-backend
     build:
