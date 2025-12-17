@@ -96,30 +96,30 @@ jobs:
 
       - name: Test (Nx)
         run: npx nx run management-frontend:test
-    management-backend:
-      name: Management Backend CI
-      needs: detect-changes
-      if: needs.detect-changes.outputs.management_backend_changed == 'true' || needs.detect-changes.outputs.config_changed == 'true'
-      runs-on: ubuntu-latest
-      steps:
-        - name: Checkout
-          uses: actions/checkout@v4
+  management-backend:
+    name: Management Backend CI
+    needs: detect-changes
+    if: needs.detect-changes.outputs.management_backend_changed == 'true' || needs.detect-changes.outputs.config_changed == 'true'
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
 
-        - name: Setup Node.js
-          uses: actions/setup-node@v4
-          with:
-            node-version: '20'
-            cache: 'npm'
-            cache-dependency-path: package.json
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: 'npm'
+          cache-dependency-path: package.json
 
-        - name: Install root dependencies
-          run: npm ci
+      - name: Install root dependencies
+        run: npm ci
 
-        - name: Lint (Nx)
-          run: npx nx run management-backend:lint
+      - name: Lint (Nx)
+        run: npx nx run management-backend:lint
 
-        - name: Build (Nx)
-          run: npx nx run management-backend:build
+      - name: Build (Nx)
+        run: npx nx run management-backend:build
 
-        - name: Test (Nx)
-          run: npx nx run management-backend:test
+      - name: Test (Nx)
+        run: npx nx run management-backend:test
