@@ -1,7 +1,6 @@
 import { ForbiddenException, Injectable, Logger } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
-import { AbilityFactory } from '../auth/ability-factory';
 import { UserPermission } from '../auth/enums/user-permission.enum';
 import { UserStatus } from '../auth/enums/user-status.enum';
 import { UserDto } from './dto/user.dto';
@@ -15,7 +14,6 @@ export class UsersService {
 	constructor(
 		@InjectRepository(UserEntity)
 		private readonly usersRepository: Repository<UserEntity>,
-		private readonly abilityFactory: AbilityFactory,
 	) {}
 
 	async create(userData: Partial<UserEntity>): Promise<UserEntity> {
@@ -35,14 +33,7 @@ export class UsersService {
 		return this.usersRepository.count();
 	}
 
-	async getUserById(userId: string, requestingUser: UserEntity): Promise<UserDto> {
-		// Check if user has rights to read users
-		const ability = this.abilityFactory.defineAbilityFor(requestingUser);
-		if (!ability.can('read', 'user')) {
-			this.logger.warn(`User ${requestingUser.id} attempted to read a user without permission`);
-			throw new ForbiddenException('You do not have permission to read users');
-		}
-
+	async getUserById(userId: string): Promise<UserDto> {
 		const user = await this.findById(userId);
 		if (!user) {
 			this.logger.warn(`User with id ${userId} not found`);
@@ -51,14 +42,7 @@ export class UsersService {
 		return mapUserEntityToUserDto(user);
 	}
 
-	async findUsers(requestingUser: UserEntity, status?: UserStatus): Promise<UserDto[]> {
-		// Check if user has rights to read users
-		const ability = this.abilityFactory.defineAbilityFor(requestingUser);
-		if (!ability.can('read', 'user')) {
-			this.logger.warn(`User ${requestingUser.id} attempted to read users without permission`);
-			throw new ForbiddenException('You do not have permission to read users');
-		}
-
+	async findUsers(status?: UserStatus): Promise<UserDto[]> {
 		const whereClause = status ? { status } : {};
 		const users = await this.usersRepository.find({
 			where: whereClause,
@@ -68,13 +52,6 @@ export class UsersService {
 	}
 
 	async approveUser(userId: string, requestingUser: UserEntity): Promise<void> {
-		// Check if user has rights to approve users
-		const ability = this.abilityFactory.defineAbilityFor(requestingUser);
-		if (!ability.can('approve', 'user')) {
-			this.logger.warn(`User ${requestingUser.id} attempted to approve a user without permission`);
-			throw new ForbiddenException('You do not have permission to approve users');
-		}
-
 		await this.findUserByIdOrFail(userId);
 
 		// Give user basic default permissions upon approval (read workflows)
@@ -87,14 +64,7 @@ export class UsersService {
 		});
 	}
 
-	async blockUser(userId: string, requestingUser: UserEntity): Promise<void> {
-		// Check if user has rights to block users
-		const ability = this.abilityFactory.defineAbilityFor(requestingUser);
-		if (!ability.can('block', 'user')) {
-			this.logger.warn(`User ${requestingUser.id} attempted to block a user without permission`);
-			throw new ForbiddenException('You do not have permission to block users');
-		}
-
+	async blockUser(userId: string): Promise<void> {
 		await this.findUserByIdOrFail(userId);
 
 		await this.usersRepository.update(userId, {
@@ -109,14 +79,7 @@ export class UsersService {
 		permissions: UserPermission[],
 		requestingUser: UserEntity,
 	): Promise<void> {
-		// Check if user has rights to update user permissions
-		const ability = this.abilityFactory.defineAbilityFor(requestingUser);
-		if (!ability.can('update', 'user')) {
-			this.logger.warn(
-				`User ${requestingUser.id} attempted to update user permissions without permission`,
-			);
-			throw new ForbiddenException('You do not have permission to update user permissions');
-		}
+		// Prevent users from updating their own permissions
 		if (userId === requestingUser.id) {
 			this.logger.warn(`User ${requestingUser.id} attempted to update their own permissions`);
 			throw new ForbiddenException('You cannot update your own permissions');
