@@ -4,9 +4,6 @@ import { Type } from 'class-transformer';
 import { UserDto } from '../../users/dto/user.dto';
 
 export class AuthResponseDto {
-	@ApiProperty({ type: String, description: 'The JWT access token for authentication' })
-	accessToken!: string;
-
 	@ApiProperty({ type: UserDto, description: 'The authenticated user details' })
 	@Type(() => UserDto)
 	user!: UserDto;

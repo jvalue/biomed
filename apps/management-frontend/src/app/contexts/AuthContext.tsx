@@ -25,45 +25,54 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 	const [isLoading, setIsLoading] = useState<boolean>(true);
 
 	useEffect(() => {
-		const token = localStorage.getItem('accessToken');
-		if (token) {
-			fetchUserProfile(token);
-		} else {
-			setIsLoading(false);
-		}
+		fetchUserProfile();
 	}, []);
 
-	const fetchUserProfile = async (token: string) => {
+	const fetchUserProfile = async () => {
 		try {
 			const response = await managementBackendClient.get('/auth/me');
 			const data = response.data;
 			setUser(data.user);
 			setAbility(new PureAbility(data.abilityRules));
-		} catch (error) {
-			console.error('Failed to fetch user profile:', error);
-			localStorage.removeItem('accessToken');
+		} catch (error: any) {
+			if (error.response?.status === 401) {
+				// Silent fail - User isn't logged in
+				setUser(null);
+				setAbility(createAppAbility());
+			} else {
+				console.error('Failed to fetch user profile:', error);
+			}
 		} finally {
 			setIsLoading(false);
 		}
 	};
 
+	/*
+	 * Logs in a user with the given username and password.
+	 */
 	const login = async (username: string, password: string) => {
 		const response = await managementBackendClient.post('/auth/login', { username, password });
 		const data = response.data;
-		localStorage.setItem('accessToken', data.accessToken);
+		// Token is set via Cookie HttpOnly, so no need to store it in localStorage
 		setUser(data.user);
 		setAbility(new PureAbility(data.abilityRules));
 	};
 
+	/*
+	 * Logs out the current user.
+	 */
+	const logout = async () => {
+		await managementBackendClient.post('/auth/logout');
+		setUser(null);
+		setAbility(createAppAbility());
+	};
+
+	/*
+	 * Registers a new user with the given username and password.
+	 */
 	const register = async (username: string, password: string) => {
 		// There is nothing more to do here since registration does not log in the user
 		await managementBackendClient.post('/auth/register', { username, password });
-	};
-
-	const logout = () => {
-		localStorage.removeItem('accessToken');
-		setUser(null);
-		setAbility(createAppAbility());
 	};
 
 	return (
