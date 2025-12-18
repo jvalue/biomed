@@ -5,6 +5,8 @@ import { DataSourceOptions } from 'typeorm';
 import { DemoEntity } from './demo/entity/demo.entity';
 import { EnvironmentVariables } from './env.validation';
 import { Demo1763983398209 } from './migrations/1763983398209-Demo';
+import { User1765788929734 } from './migrations/1765788929734-User';
+import { UserEntity } from './users/entity/user.entity';
 
 @Injectable()
 export class DbConfigService implements TypeOrmOptionsFactory {
@@ -22,12 +24,12 @@ export class DbConfigService implements TypeOrmOptionsFactory {
 			username: this.configService.get('DATABASE_USER'),
 			password: this.configService.get('DATABASE_PASSWORD'),
 			database: this.configService.get('DATABASE_DATABASE'),
-			entities: [DemoEntity],
+			entities: [DemoEntity, UserEntity],
 			metadataTableName: 'typeorm_metadata_biomed',
 
 			migrationsTableName: 'migrations_biomed',
 			migrationsRun: true,
-			migrations: [Demo1763983398209],
+			migrations: [Demo1763983398209, User1765788929734],
 			logging: true,
 			logger: 'debug',
 		};

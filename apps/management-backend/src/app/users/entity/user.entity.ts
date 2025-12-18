@@ -1,0 +1,56 @@
+import {
+	Column,
+	CreateDateColumn,
+	Entity,
+	PrimaryGeneratedColumn,
+	UpdateDateColumn,
+} from 'typeorm';
+import { UserPermission } from '../../auth/enums/user-permission.enum';
+import { UserStatus } from '../../auth/enums/user-status.enum';
+
+@Entity('users')
+export class UserEntity {
+	@PrimaryGeneratedColumn('uuid')
+	id: string;
+
+	@Column({
+		type: 'varchar',
+		unique: true,
+	})
+	username: string;
+
+	@Column({
+		type: 'varchar',
+	})
+	passwordHash: string;
+
+	@Column({
+		type: 'enum',
+		enum: UserPermission,
+		array: true,
+		default: [],
+	})
+	permissions: UserPermission[];
+
+	@Column({
+		type: 'enum',
+		enum: UserStatus,
+		default: UserStatus.PENDING,
+	})
+	status: UserStatus;
+
+	@Column({
+		type: 'varchar',
+		nullable: true,
+	})
+	approvedBy?: string;
+
+	@Column({ type: 'timestamp', nullable: true })
+	approvedAt?: Date;
+
+	@CreateDateColumn()
+	createdAt: Date;
+
+	@UpdateDateColumn()
+	updatedAt: Date;
+}

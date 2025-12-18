@@ -28,6 +28,7 @@ function RootComponent() {
 	);
 }
 
+// biome-ignore lint/correctness/noUnusedFunctionParameters: <default config>
 function RootDocument({ children }: Readonly<{ children: ReactNode }>) {
 	return <App />;
 }
