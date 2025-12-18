@@ -35,7 +35,7 @@ export class UsersController {
 	@ApiQuery({
 		name: 'status',
 		required: false,
-		enum: ['PENDING', 'ACTIVE', 'BLOCKED'],
+		enum: Object.values(UserStatus),
 		enumName: 'UserStatus',
 		description: 'Filter users by status',
 	})
