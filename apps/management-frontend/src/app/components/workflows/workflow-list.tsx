@@ -2,8 +2,8 @@ import { Spinner } from '@/src/app/components/design-components/spinner';
 import WorkflowRunsTable from '@/src/app/components/workflows/workflow-runs-table';
 import { useWorkflowRuns } from '../../api/hooks/useWorkflowRuns';
 
-export default function WorkflowListComponent() {
-	const { data, isLoading, error, refetch } = useWorkflowRuns();
+export default function WorkflowList() {
+	const { data, isLoading, error } = useWorkflowRuns();
 
 	if (isLoading)
 		return (
@@ -12,7 +12,7 @@ export default function WorkflowListComponent() {
 			</div>
 		);
 
-	if (error) return <div>An error occured: {error.message}</div>;
+	if (error) return <div>An error occurred: {error.message}</div>;
 
 	return (
 		<div>

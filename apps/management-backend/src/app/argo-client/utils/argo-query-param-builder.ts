@@ -1,6 +1,7 @@
 /**
  * Utility class to build query parameters for Argo API requests following the builder design pattern.
  */
+/** biome-ignore-all lint/style/useTemplate: <it inserts unicode> */
 export class ArgoQueryParamBuilder {
 	private readonly params = new Map<string, string[]>();
 

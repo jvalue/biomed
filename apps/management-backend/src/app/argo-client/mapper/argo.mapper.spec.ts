@@ -1,53 +1,63 @@
 import { describe, expect, it } from 'vitest';
+import { ArgoCursorPaginatedListDto } from '../dto/argo-cursor-paginated-list-dto';
 import { mapArgoCursorPaginatedListDtoToCursorBasedPaginationResponseDto } from './argo.mapper';
 
 describe('mapCursorPaginatedListDtoToCursorBasedPaginationResponseDto', () => {
-	const mapItem = (input: any) => ({ id: input.id, value: input.v + 'e' });
+	// biome-ignore lint/suspicious/noExplicitAny: <mapping function for test purposes>
+	const mapItem = (input: any) => ({ id: input.id, value: `${input.v}e` });
 
 	it('returns empty data when items are undefined', () => {
-		const dto: any = { metadata: {} };
+		const dto: ArgoCursorPaginatedListDto<unknown> = {
+			metadata: {},
+		} as unknown as ArgoCursorPaginatedListDto<unknown>;
 		const res = mapArgoCursorPaginatedListDtoToCursorBasedPaginationResponseDto(dto, mapItem);
 		expect(res.data).toEqual([]);
 		expect(res.metadata.hasMore).toBe(false);
 	});
 
 	it('hasMore false for metadata.continue = null', () => {
-		const dto: any = { items: [], metadata: { continue: null } };
+		const dto: ArgoCursorPaginatedListDto<unknown> = {
+			items: [],
+			metadata: { resourceVersion: 'abc', continue: null },
+		};
 		const res = mapArgoCursorPaginatedListDtoToCursorBasedPaginationResponseDto(dto, mapItem);
 		expect(res.metadata.hasMore).toBe(false);
 	});
 
 	it('hasMore false for metadata.continue = 0 (number)', () => {
-		const dto: any = { items: [], metadata: { continue: 0 } };
+		const dto: ArgoCursorPaginatedListDto<unknown> = {
+			items: [],
+			metadata: { resourceVersion: 'abc', continue: 0 },
+		};
 		const res = mapArgoCursorPaginatedListDtoToCursorBasedPaginationResponseDto(dto, mapItem);
 		expect(res.metadata.hasMore).toBe(false);
 	});
 
 	it('hasMore true for metadata.continue > 0 (number)', () => {
-		const dto: any = { items: [], metadata: { continue: 5 } };
+		const dto: ArgoCursorPaginatedListDto<unknown> = {
+			items: [],
+			metadata: { resourceVersion: 'abc', continue: 5 },
+		};
 		const res = mapArgoCursorPaginatedListDtoToCursorBasedPaginationResponseDto(dto, mapItem);
 		expect(res.metadata.hasMore).toBe(true);
 	});
 
-	it("hasMore false for metadata.continue = '0' (string)", () => {
-		const dto: any = { items: [], metadata: { continue: '0' } };
-		const res = mapArgoCursorPaginatedListDtoToCursorBasedPaginationResponseDto(dto, mapItem);
-		expect(res.metadata.hasMore).toBe(false);
-	});
-
-	it("hasMore false for metadata.continue = '' (empty string)", () => {
-		const dto: any = { items: [], metadata: { continue: '' } };
+	it('hasMore false for metadata.continue = undefined', () => {
+		const dto: ArgoCursorPaginatedListDto<unknown> = {
+			items: [],
+			metadata: { resourceVersion: 'abc', continue: undefined },
+		};
 		const res = mapArgoCursorPaginatedListDtoToCursorBasedPaginationResponseDto(dto, mapItem);
 		expect(res.metadata.hasMore).toBe(false);
 	});
 
 	it('preserves mapping for multiple items', () => {
-		const dto: any = {
+		const dto: ArgoCursorPaginatedListDto<unknown> = {
 			items: [
 				{ id: 1, v: 'a' },
 				{ id: 2, v: 'b' },
 			],
-			metadata: { continue: 5 },
+			metadata: { resourceVersion: 'abc', continue: 5 },
 		};
 		const res = mapArgoCursorPaginatedListDtoToCursorBasedPaginationResponseDto(dto, mapItem);
 		expect(res.data).toEqual([

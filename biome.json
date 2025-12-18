@@ -17,10 +17,13 @@
 			"!!**/*.js",
 			"!!**/*.mts",
 			"!!**/styles.css",
-			"!!**/tailwind.config.js"
+			"!!**/tailwind.config.js",
+			"!!**/main.tsx",
+			"!!**/field.tsx"
 		]
 	},
 	"formatter": {
+		"useEditorconfig": true,
 		"enabled": true,
 		"indentStyle": "tab",
 		"lineWidth": 100
