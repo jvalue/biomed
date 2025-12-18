@@ -4,8 +4,10 @@
 
 import { CursorBasedPaginationResponseDto } from '../../pagination/dto/cursor-based-pagination-response.dto';
 import { WorkflowRunDto } from '../../workflow-runs/dto/workflow-run.dto';
+import { WorkflowTemplateDto } from '../../workflow-templates/dto/workflow-template.dto';
 import { ArgoCursorPaginatedListDto } from '../dto/argo-cursor-paginated-list-dto';
 import { ArgoWorkflowRunDto } from '../dto/workflow-runs/argo-workflow-run.dto';
+import { ArgoWorkflowTemplateDto } from '../dto/workflow-templates/argo-workflow-template.dto';
 
 /**
  * Maps ArgoWorkflowRunDto to WorkflowRunDto
@@ -20,6 +22,20 @@ export function mapArgoWorkflowRunDtoToWorkflowRunDto(run: ArgoWorkflowRunDto): 
 	workflowRun.startedAt = run.status.startedAt;
 	workflowRun.finishedAt = run.status.finishedAt;
 	return workflowRun;
+}
+
+/**
+ * Maps ArgoWorkflowTemplateDto to WorkflowTemplateDto
+ * @param template
+ */
+export function mapArgoWorkflowTemplateDtoToWorkflowTemplateDto(
+	template: ArgoWorkflowTemplateDto,
+): WorkflowTemplateDto {
+	const workflowTemplate = new WorkflowTemplateDto();
+	workflowTemplate.name = template.metadata.name;
+	workflowTemplate.namespace = template.metadata.namespace;
+	workflowTemplate.createdAt = template.metadata.creationTimestamp;
+	return workflowTemplate;
 }
 
 /**
