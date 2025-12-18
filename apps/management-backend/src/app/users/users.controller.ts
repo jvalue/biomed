@@ -51,7 +51,7 @@ export class UsersController {
 	@ApiForbiddenResponse({
 		description: 'You do not have permission to approve users',
 	})
-	@RequirePermission('update', 'user')
+	@RequirePermission('approve', 'user')
 	@Patch(':id/approve')
 	async approveUser(@Param('id') userId: string, @CurrentUser() requestingUser: UserEntity) {
 		this.logger.warn(`approve user called on userId: ${userId}`);
@@ -64,7 +64,7 @@ export class UsersController {
 	@ApiForbiddenResponse({
 		description: 'You do not have permission to block users',
 	})
-	@RequirePermission('update', 'user')
+	@RequirePermission('block', 'user')
 	@Patch(':id/block')
 	async blockUser(@Param('id') userId: string) {
 		this.logger.warn(`block user called on userId: ${userId}`);
