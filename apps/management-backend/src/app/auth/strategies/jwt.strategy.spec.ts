@@ -45,7 +45,7 @@ describe('JwtStrategy', () => {
 		const inactiveUser = {
 			id: '123',
 			username: 'john',
-			status: 'INACTIVE',
+			status: 'BLOCKED',
 		} as unknown as UserEntity;
 		mockUsersService.findById.mockResolvedValue(inactiveUser);
 
