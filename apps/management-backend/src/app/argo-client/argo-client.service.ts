@@ -102,6 +102,10 @@ export class ArgoClientService {
 		);
 	}
 
+	/*
+	 * List all workflow templates
+	 * @param filterOptions Filtering options
+	 */
 	async listWorkflowTemplates(
 		filterOptions?: WorkflowTemplatesFilterDto,
 	): Promise<WorkflowTemplateDto[]> {
@@ -131,4 +135,8 @@ export class ArgoClientService {
 		// Map ArgoWorkflowTemplateDto[] to WorkflowTemplateDto[] as we do not offer pagination here
 		return templatesResponse?.map(mapArgoWorkflowTemplateDtoToWorkflowTemplateDto) ?? [];
 	}
+
+	/*
+	 *
+	 */
 }
