@@ -24,11 +24,11 @@ This creates a shared `.venv/` at the workspace root containing:
 
 ```bash
 # From repository root, using the shared venv:
-uv run apps/crawler/crawler_general/hello.py
+uv run apps/crawler/crawler_general/main.py
 
 # Or activate the venv and run directly:
 source .venv/bin/activate
-python apps/crawler/crawler_general/hello.py
+python apps/crawler/crawler_general/main.py
 ```
 
 **Run in Docker (build & run)**
@@ -47,7 +47,7 @@ The `Dockerfile` installs `uv`, the shared `crawler-common` library and the app,
 # Dockerfile uses:
 # RUN uv pip install --system ./libs/crawler-common \
 #     && uv pip install --system .
-# CMD ["uv", "run", "crawler_general/hello.py"]
+# CMD ["uv", "run", "crawler_general/main.py"]
 ```
 
 **Run Tests**
@@ -65,7 +65,7 @@ uv run pytest apps/crawler/tests --cov
 ```
 
 **Notes & Tips**
-- The app package is `crawler_general` and the sample script lives at `apps/crawler/crawler_general/hello.py`.
+- The app package is `crawler_general` and the sample script lives at `apps/crawler/crawler_general/main.py`.
 - This project uses a **uv workspace** with a single shared `.venv/` at the repository root containing all Python projects.
 - Root `pyproject.toml` defines workspace members and pins Python version to 3.13. When you run `uv sync`, it automatically creates a venv with Python 3.13.
 - Run `uv sync` from the root whenever dependencies change in any `pyproject.toml`.
