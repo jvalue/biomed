@@ -37,7 +37,9 @@ export class WorkflowTemplateDto {
 	@ApiProperty({
 		type: [WorkflowTemplateParameterDto],
 		description: 'The parameters defined for the workflow template',
+		required: false,
 	})
+	@IsOptional()
 	@IsArray()
-	parameters: WorkflowTemplateParameterDto[];
+	parameters?: WorkflowTemplateParameterDto[];
 }
