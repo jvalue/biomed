@@ -84,22 +84,20 @@ export default function WorkflowTemplateRunDialog({
 				</DialogHeader>
 
 				<div className="grid gap-4 py-4">
-					{template.parameters?.length &&
-						template.parameters.length > 0 &&
-						template.parameters?.map((param) => (
-							<div key={param.name} className="grid grid-cols-4 items-center gap-4">
-								<Label htmlFor={param.name} className="text-right">
-									{param.name}
-								</Label>
-								<Input
-									id={param.name}
-									value={parameters[param.name] || ''}
-									onChange={(e) => handleParameterChange(param.name, e.target.value)}
-									placeholder={param.defaultValue || ''}
-									className="col-span-3"
-								/>
-							</div>
-						))}
+					{template.parameters?.map((param) => (
+						<div key={param.name} className="grid grid-cols-4 items-center gap-4">
+							<Label htmlFor={param.name} className="text-right">
+								{param.name}
+							</Label>
+							<Input
+								id={param.name}
+								value={parameters[param.name] || ''}
+								onChange={(e) => handleParameterChange(param.name, e.target.value)}
+								placeholder={param.defaultValue || ''}
+								className="col-span-3"
+							/>
+						</div>
+					))}
 				</div>
 
 				<DialogFooter>
