@@ -17,11 +17,11 @@ export class WorkflowTemplatesService {
 		return this.argoClientService.listWorkflowTemplates(filter);
 	}
 
-	/*
-	 * Submit a run for a given Workflow Template.
-	 * @param templateName The name of the Workflow Template
-	 * @param namespace The Kubernetes Namespace where the Workflow Template is located
-	 * @param parameters Optional parameters to pass to the Workflow Template
+	/**
+	 * Submits a new Workflow Run from a Workflow Template.
+	 * @param templateName
+	 * @param namespace
+	 * @param parameters
 	 */
 	async submitWorkflowTemplateRun(
 		templateName: string,

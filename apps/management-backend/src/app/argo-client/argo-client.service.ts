@@ -103,9 +103,9 @@ export class ArgoClientService {
 		);
 	}
 
-	/*
+	/**
 	 * List all workflow templates
-	 * @param filterOptions Filtering options
+	 * @param filterOptions
 	 */
 	async listWorkflowTemplates(
 		filterOptions?: WorkflowTemplatesFilterDto,
@@ -137,7 +137,7 @@ export class ArgoClientService {
 		return templatesResponse?.map(mapArgoWorkflowTemplateDtoToWorkflowTemplateDto) ?? [];
 	}
 
-	/*
+	/**
 	 * Submit a new workflow based on a workflow template
 	 * @param workflowTemplateName Name of the workflow template to use
 	 * @param workflowTemplateNamespace Namespace of the workflow template

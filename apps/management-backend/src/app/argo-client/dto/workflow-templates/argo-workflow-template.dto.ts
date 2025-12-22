@@ -24,7 +24,7 @@ class ArgoWorkflowTemplateSpecDtoArgumentsParametersDto {
 
 class ArgoWorkflowTemplateSpecArgumentsDto {
 	@IsArray()
-	parameters!: ArgoWorkflowTemplateSpecDtoArgumentsParametersDto[];
+	parameters?: ArgoWorkflowTemplateSpecDtoArgumentsParametersDto[];
 }
 
 class ArgoWorkflowTemplateSpecDto {
