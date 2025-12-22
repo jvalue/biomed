@@ -29,7 +29,8 @@ class ArgoWorkflowTemplateSpecArgumentsDto {
 
 class ArgoWorkflowTemplateSpecDto {
 	@Type(() => ArgoWorkflowTemplateSpecArgumentsDto)
-	arguments!: ArgoWorkflowTemplateSpecArgumentsDto;
+	@IsOptional()
+	arguments?: ArgoWorkflowTemplateSpecArgumentsDto;
 }
 
 export class ArgoWorkflowTemplateDto {
