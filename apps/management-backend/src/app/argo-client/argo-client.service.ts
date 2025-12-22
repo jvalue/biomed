@@ -160,7 +160,7 @@ export class ArgoClientService {
 			resourceKind: 'WorkflowTemplate',
 			resourceName: workflowTemplateName,
 			submitOptions: {
-				parameters: Object.entries(parameters).map(([_k, param]) => `${param.name}=${param.value}`),
+				parameters: (parameters ?? []).map((param) => `${param.name}=${param.value}`),
 			},
 		};
 		const url = `/workflows/${workflowTemplateNamespace}/submit`;
