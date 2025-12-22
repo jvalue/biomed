@@ -38,20 +38,20 @@ async function bootstrap(): Promise<INestApplication> {
 	const config = new DocumentBuilder()
 		.setTitle('Crawler Management Backend')
 		.setVersion('1.0')
-		.addBearerAuth(
+		.addCookieAuth(
+			'accessToken',
 			{
-				type: 'http',
-				scheme: 'bearer',
-				bearerFormat: 'JWT',
-				in: 'header',
+				type: 'apiKey',
+				in: 'cookie',
+				name: 'accessToken',
 			},
-			'bearer',
+			'cookieAuth',
 		)
 		.build();
 	const documentFactory = () => {
 		const doc = SwaggerModule.createDocument(app, config);
 		// Add global security requirement
-		doc.security = [{ bearer: [] }];
+		doc.security = [{ cookieAuth: [] }];
 		return doc;
 	};
 
