@@ -1,3 +1,4 @@
+import { Can } from '@casl/react';
 import { Plus } from 'lucide-react';
 import { useState } from 'react';
 import { WorkflowTemplateDto } from '@/src/app/api/dto/workflow-template/workflow-template.dto';
@@ -12,12 +13,14 @@ import {
 	TableRow,
 } from '@/src/app/components/design-components/table';
 import WorkflowTemplateRunDialog from '@/src/app/components/workflow-templates/workflow-template-run-dialog';
+import { useAuth } from '../../contexts/AuthContext';
 
 export interface WorkflowTemplatesTableProps {
 	templates?: WorkflowTemplateDto[];
 }
 
 export default function WorkflowTemplatesTable({ templates = [] }: WorkflowTemplatesTableProps) {
+	const { ability } = useAuth();
 	const [selectedTemplate, setSelectedTemplate] = useState<WorkflowTemplateDto | null>(null);
 	const [dialogOpen, setDialogOpen] = useState(false);
 
@@ -45,13 +48,15 @@ export default function WorkflowTemplatesTable({ templates = [] }: WorkflowTempl
 							<TableCell>{template.namespace}</TableCell>
 							<TableCell>{new Date(template.createdAt).toLocaleString()}</TableCell>
 							<TableCell>
-								<Button
-									size="icon"
-									className="bg-green-500 text-white hover:bg-green-700"
-									onClick={() => openDialog(template)}
-								>
-									<Plus />
-								</Button>
+								<Can ability={ability} I="create" a="workflow">
+									<Button
+										size="icon"
+										className="bg-green-500 text-white hover:bg-green-700"
+										onClick={() => openDialog(template)}
+									>
+										<Plus />
+									</Button>
+								</Can>
 							</TableCell>
 						</TableRow>
 					))}
