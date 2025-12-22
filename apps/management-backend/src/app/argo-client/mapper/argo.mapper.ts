@@ -35,7 +35,7 @@ export function mapArgoWorkflowTemplateDtoToWorkflowTemplateDto(
 	workflowTemplate.name = template.metadata.name;
 	workflowTemplate.namespace = template.metadata.namespace;
 	workflowTemplate.createdAt = template.metadata.creationTimestamp;
-	workflowTemplate.parameters = template.spec.arguments.parameters?.map((param) => ({
+	workflowTemplate.parameters = template.spec?.arguments?.parameters?.map((param) => ({
 		name: param.name,
 		defaultValue: param.value,
 	}));
