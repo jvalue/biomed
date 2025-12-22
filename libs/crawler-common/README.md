@@ -30,3 +30,13 @@ from crawler_common.models import CrawlRequest
 ```bash
 nx test crawler-common
 ```
+
+**FTP configuration**
+- The FTP helpers live in the shared library `libs/crawler-common` (`crawler_common.ftp_tools` and `crawler_common.ftp_conf`).
+- Place your credentials in `apps/crawler/crawler_general/.env` (loaded automatically):
+	```bash
+	FTP_URL=ftp.example.com
+	FTP_USER=anonymous
+	FTP_PASSWORD=anonymous
+	```
+- `load_env_vars()` accepts an optional path; the app passes the local `.env` so you can override per-environment.

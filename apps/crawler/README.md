@@ -1,9 +1,6 @@
 **Demo Crawler App**
 
-A small example crawler app that demonstrates a runnable Python script under the `crawler_general` package. The included `hello.py` prints a greeting and then writes progress to `progress.txt` while printing progress updates.
-
-**Purpose:**
-- **Crawler:** Simple sample app used by the monorepo to validate packaging, local runs and Docker builds.
+Small crawler that uses FTP logic from the `crawler_general` package. The runnable entrypoint is `main.py`, which loads credentials from `.env` and lists root folders from the configured FTP server.
 
 **Setup on Clean Machine**
 
@@ -19,6 +16,8 @@ This creates a shared `.venv/` at the workspace root containing:
 - `crawler-common` (shared library from `libs/crawler-common`)
 - `crawler-general` (this app)
 - All Python dependencies for both projects
+
+For details on the shared FTP helpers and configuration, see [libs/crawler-common/README.md](libs/crawler-common/README.md).
 
 **Quick Start - Run the App**
 
