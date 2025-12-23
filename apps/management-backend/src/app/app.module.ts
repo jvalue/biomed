@@ -8,6 +8,7 @@ import { AuthModule } from './auth/auth.module';
 import { DbConfigService } from './db-config.service';
 import { DemoModule } from './demo/demo.module';
 import { validate } from './env.validation';
+import { SchedulesModule } from './schedules/schedules.module';
 import { UsersModule } from './users/users.module';
 import { WorkflowRunsModule } from './workflow-runs/workflow-runs.module';
 import { WorkflowTemplatesModule } from './workflow-templates/workflow-templates.module';
@@ -27,6 +28,7 @@ import { WorkflowTemplatesModule } from './workflow-templates/workflow-templates
 		AuthModule,
 		WorkflowRunsModule,
 		WorkflowTemplatesModule,
+		SchedulesModule,
 	],
 	controllers: [AppController],
 	providers: [AppService, AdminBootstrapService],
