@@ -14,7 +14,11 @@ export class WorkflowTemplatesService {
 	 * @param filter Optional filtering options
 	 */
 	async listWorkflowTemplates(filter?: WorkflowTemplatesFilterDto): Promise<WorkflowTemplateDto[]> {
-		return this.argoClientService.listWorkflowTemplates(filter);
+		const templates = await this.argoClientService.listWorkflowTemplates(filter);
+		// Sort by date created descending
+		return templates.sort((a: WorkflowTemplateDto, b: WorkflowTemplateDto) => {
+			return new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime();
+		});
 	}
 
 	/**
