@@ -10,7 +10,7 @@ export class WorkflowTemplatesService {
 	constructor(private readonly argoClientService: ArgoClientService) {}
 
 	/**
-	 * Lists all Argo Workflow Templates.
+	 * Lists all Workflow Templates.
 	 * @param filter Optional filtering options
 	 */
 	async listWorkflowTemplates(filter?: WorkflowTemplatesFilterDto): Promise<WorkflowTemplateDto[]> {

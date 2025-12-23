@@ -4,6 +4,7 @@ import axios, { AxiosInstance } from 'axios';
 import { EnvironmentVariables } from '../env.validation';
 import { CursorBasedPaginationRequestDto } from '../pagination/dto/cursor-based-pagination-request.dto';
 import { CursorBasedPaginationResponseDto } from '../pagination/dto/cursor-based-pagination-response.dto';
+import { ScheduleDto } from '../schedules/dto/schedule.dto';
 import { WorkflowRunDto } from '../workflow-runs/dto/workflow-run.dto';
 import { WorkflowRunFilterDto } from '../workflow-runs/dto/workflow-run-filter.dto';
 import { WorkflowRunParameterDto } from '../workflow-runs/dto/workflow-run-parameter.dto';
@@ -11,9 +12,11 @@ import { WorkflowTemplateDto } from '../workflow-templates/dto/workflow-template
 import { WorkflowTemplatesFilterDto } from '../workflow-templates/dto/workflow-templates-filter.dto';
 import { ArgoAuthService } from './argo-auth/argo-auth.service';
 import { ArgoCursorPaginatedListDto } from './dto/argo-cursor-paginated-list-dto';
+import { ArgoCronWorkflowDto } from './dto/cron-workflows/argo-cron-workflow.dto';
 import { ArgoWorkflowRunDto } from './dto/workflow-runs/argo-workflow-run.dto';
 import { ArgoWorkflowTemplateDto } from './dto/workflow-templates/argo-workflow-template.dto';
 import {
+	mapArgoCronWorkflowDtoToScheduleDto,
 	mapArgoCursorPaginatedListDtoToCursorBasedPaginationResponseDto,
 	mapArgoWorkflowRunDtoToWorkflowRunDto,
 	mapArgoWorkflowTemplateDtoToWorkflowTemplateDto,
@@ -177,5 +180,39 @@ export class ArgoClientService {
 			this.logger.error('Error starting workflow from template:', err);
 			throw err;
 		}
+	}
+
+	/**
+	 * Get all cron workflows and map them to schedules
+	 * @return List of schedules
+	 */
+	async listCronWorkflows(): Promise<ScheduleDto[]> {
+		this.logger.log('Getting cron workflows from Argo Workflows API');
+
+		const url = `/cron-workflows/`;
+
+		const res = await this.http.get(url);
+		const cronWorkflowsResponse: ArgoCronWorkflowDto[] = res.data?.items;
+		this.logger.debug('Argo Workflows API response for cron workflows:', cronWorkflowsResponse);
+
+		// Filter cron workflows that reference workflow templates
+		const filteredCronWorkflows =
+			this.filterCronWorkflowsReferencingWorkflowTemplates(cronWorkflowsResponse);
+
+		// Map ArgoCronWorkflowDto[] to ScheduleDto[]
+		return filteredCronWorkflows?.map(mapArgoCronWorkflowDtoToScheduleDto) ?? [];
+	}
+
+	/**
+	 * Filter cron workflows that reference workflow templates
+	 * @param ArgoCronWorkflows
+	 * @private
+	 */
+	filterCronWorkflowsReferencingWorkflowTemplates(
+		ArgoCronWorkflows: ArgoCronWorkflowDto[],
+	): ArgoCronWorkflowDto[] {
+		return ArgoCronWorkflows.filter(
+			(cronWorkflow) => cronWorkflow.spec.workflowSpec.workflowTemplateRef?.name,
+		);
 	}
 }
