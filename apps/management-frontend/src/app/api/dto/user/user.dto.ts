@@ -26,6 +26,12 @@ export enum UserPermission {
 	TEMPLATE_UPDATE = 'template:update',
 	TEMPLATE_DELETE = 'template:delete',
 
+	// Schedule Permissions
+	SCHEDULE_CREATE = 'schedule:create',
+	SCHEDULE_READ = 'schedule:read',
+	SCHEDULE_UPDATE = 'schedule:update',
+	SCHEDULE_DELETE = 'schedule:delete',
+
 	// User Management Permissions
 	USER_READ = 'user:read',
 	USER_UPDATE = 'user:update',
