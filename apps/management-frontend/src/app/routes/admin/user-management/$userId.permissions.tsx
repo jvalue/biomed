@@ -36,6 +36,12 @@ const permissionGroups = {
 		UserPermission.TEMPLATE_UPDATE,
 		UserPermission.TEMPLATE_DELETE,
 	],
+	schedules: [
+		UserPermission.SCHEDULE_CREATE,
+		UserPermission.SCHEDULE_READ,
+		UserPermission.SCHEDULE_UPDATE,
+		UserPermission.SCHEDULE_DELETE,
+	],
 	users: [
 		UserPermission.USER_READ,
 		UserPermission.USER_UPDATE,
@@ -54,6 +60,10 @@ const permissionLabels: Record<UserPermission, string> = {
 	[UserPermission.TEMPLATE_READ]: 'Read',
 	[UserPermission.TEMPLATE_UPDATE]: 'Edit',
 	[UserPermission.TEMPLATE_DELETE]: 'Delete',
+	[UserPermission.SCHEDULE_CREATE]: 'Create',
+	[UserPermission.SCHEDULE_READ]: 'Read',
+	[UserPermission.SCHEDULE_UPDATE]: 'Edit',
+	[UserPermission.SCHEDULE_DELETE]: 'Delete',
 	[UserPermission.USER_READ]: 'Read',
 	[UserPermission.USER_UPDATE]: 'Edit',
 	[UserPermission.USER_DELETE]: 'Delete',
@@ -64,6 +74,7 @@ const permissionLabels: Record<UserPermission, string> = {
 const groupLabels = {
 	workflows: 'Workflows',
 	templates: 'Templates',
+	schedules: 'Schedules',
 	users: 'Users',
 };
 
@@ -134,7 +145,7 @@ function RouteComponent() {
 						</CardHeader>
 
 						<CardContent className="pt-6">
-							<div className="grid gap-8 md:grid-cols-3">
+							<div className="grid gap-8 md:grid-cols-4">
 								{Object.entries(permissionGroups).map(([groupKey, permissions]) => (
 									<div key={groupKey} className="space-y-4">
 										<h3 className="text-sm font-semibold uppercase tracking-wide text-gray-900 border-b pb-2">
