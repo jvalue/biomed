@@ -1,9 +1,16 @@
 import { ConfigService } from '@nestjs/config';
-import { describe, expect, it } from 'vitest';
+import { afterEach, describe, expect, it, vi } from 'vitest';
 import { EnvironmentVariables } from '../env.validation';
+import { ScheduleDto } from '../schedules/dto/schedule.dto';
+import { WorkflowRunDto } from '../workflow-runs/dto/workflow-run.dto';
 import { ArgoAuthService } from './argo-auth/argo-auth.service';
 import { ArgoClientService } from './argo-client.service';
 import { ArgoCronWorkflowDto } from './dto/cron-workflows/argo-cron-workflow.dto';
+
+afterEach(() => {
+	vi.restoreAllMocks();
+	vi.clearAllMocks();
+});
 
 describe('ArgoClientService.filterCronWorkflowsReferencingWorkflowTemplates', () => {
 	const mockArgoAuthService = { getAuthToken: () => 'fake-token' } as unknown as ArgoAuthService;
@@ -36,5 +43,52 @@ describe('ArgoClientService.filterCronWorkflowsReferencingWorkflowTemplates', ()
 	it('returns an empty array when given an empty list', () => {
 		const result = service.filterCronWorkflowsReferencingWorkflowTemplates([]);
 		expect(result).toEqual([]);
+	});
+});
+
+describe('ArgoClientService.enrichWorkflowRunsWithCronWorkflowTemplateName', () => {
+	const mockArgoAuthService = { getAuthToken: () => 'fake-token' } as unknown as ArgoAuthService;
+	const mockConfigService = {
+		get: (_key: string) => 'http://localhost',
+	} as unknown as ConfigService<EnvironmentVariables, true>;
+	const service = new ArgoClientService(mockArgoAuthService, mockConfigService);
+
+	it('sets workflowTemplateName when run has scheduleName and schedule exists', async () => {
+		const runs = [{ name: 'r1', namespace: 'ns1', scheduleName: 's1' }] as WorkflowRunDto[];
+
+		vi.spyOn(service, 'getCronWorkflowByName').mockResolvedValueOnce({
+			workflowTemplateName: 'awesome-dragon',
+		} as unknown as ScheduleDto);
+
+		const result = await service.enrichWorkflowRunsWithCronWorkflowTemplateName(runs);
+
+		expect(service.getCronWorkflowByName).toHaveBeenCalledWith('s1', 'ns1');
+		expect(result).toHaveLength(1);
+		expect(result[0].workflowTemplateName).toBe('awesome-dragon');
+	});
+
+	it('does not call Argo API for runs without scheduleName and leaves workflowTemplateName undefined', async () => {
+		const runs = [{ name: 'r2', namespace: 'ns2', scheduleName: undefined }] as WorkflowRunDto[];
+
+		const spy = vi.spyOn(service, 'getCronWorkflowByName');
+
+		const result = await service.enrichWorkflowRunsWithCronWorkflowTemplateName(runs);
+
+		expect(spy).not.toHaveBeenCalled();
+		expect(result).toHaveLength(1);
+		expect(result[0].workflowTemplateName).toBeUndefined();
+	});
+
+	it('keeps workflowTemplateName undefined when schedule lookup returns null', async () => {
+		const runs = [
+			{ name: 'r3', namespace: 'ns3', scheduleName: 'missing-schedule' },
+		] as WorkflowRunDto[];
+
+		vi.spyOn(service, 'getCronWorkflowByName').mockResolvedValueOnce(null);
+
+		const result = await service.enrichWorkflowRunsWithCronWorkflowTemplateName(runs);
+
+		expect(service.getCronWorkflowByName).toHaveBeenCalledWith('missing-schedule', 'ns3');
+		expect(result[0].workflowTemplateName).toBeUndefined();
 	});
 });
