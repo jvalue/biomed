@@ -25,20 +25,20 @@ export const Route = createFileRoute('/admin/user-management/$userId/permissions
 
 const permissionGroups = {
 	workflows: [
-		UserPermission.WORKFLOW_CREATE,
 		UserPermission.WORKFLOW_READ,
+		UserPermission.WORKFLOW_CREATE,
 		UserPermission.WORKFLOW_UPDATE,
 		UserPermission.WORKFLOW_DELETE,
 	],
 	templates: [
-		UserPermission.TEMPLATE_CREATE,
 		UserPermission.TEMPLATE_READ,
+		UserPermission.TEMPLATE_CREATE,
 		UserPermission.TEMPLATE_UPDATE,
 		UserPermission.TEMPLATE_DELETE,
 	],
 	schedules: [
-		UserPermission.SCHEDULE_CREATE,
 		UserPermission.SCHEDULE_READ,
+		UserPermission.SCHEDULE_CREATE,
 		UserPermission.SCHEDULE_UPDATE,
 		UserPermission.SCHEDULE_DELETE,
 	],
