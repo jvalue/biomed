@@ -22,6 +22,7 @@ export default function WorkflowRunsTable({ runs = [] }: WorkflowRunsTableProps)
 					<TableHead className="text-primary">Name/ID</TableHead>
 					<TableHead className="text-primary">Namespace</TableHead>
 					<TableHead className="text-primary">Workflow Template</TableHead>
+					<TableHead className="text-primary">Schedule</TableHead>
 					<TableHead className="text-primary">Phase</TableHead>
 					<TableHead className="text-primary">Started at</TableHead>
 					<TableHead className="text-primary">Finished at</TableHead>
@@ -33,6 +34,7 @@ export default function WorkflowRunsTable({ runs = [] }: WorkflowRunsTableProps)
 						<TableCell>{run.name}</TableCell>
 						<TableCell>{run.namespace}</TableCell>
 						<TableCell>{run.workflowTemplateName}</TableCell>
+						<TableCell>{run.scheduleName ?? '-'}</TableCell>
 						<TableCell>{run.phase}</TableCell>
 						<TableCell>
 							{run.startedAt ? new Date(run.startedAt).toLocaleString() : 'not yet started'}
