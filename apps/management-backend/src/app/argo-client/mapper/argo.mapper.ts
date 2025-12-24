@@ -19,7 +19,9 @@ export function mapArgoWorkflowRunDtoToWorkflowRunDto(run: ArgoWorkflowRunDto): 
 	const workflowRun = new WorkflowRunDto();
 	workflowRun.name = run.metadata.name;
 	workflowRun.namespace = run.metadata.namespace;
-	workflowRun.workflowTemplateName = run.metadata.labels['workflows.argoproj.io/workflow-template'];
+	workflowRun.workflowTemplateName =
+		run.metadata.labels['workflows.argoproj.io/workflow-template'] ??
+		run.metadata.labels.customSetWorkflowTemplateName;
 	workflowRun.scheduleName = run.metadata.labels['workflows.argoproj.io/cron-workflow'];
 	workflowRun.phase = run.status.phase;
 	workflowRun.startedAt = run.status.startedAt;
@@ -63,8 +65,7 @@ export function mapArgoCronWorkflowDtoToScheduleDto(
 			name: param.name,
 			value: param.value,
 		})) ?? [];
-	console.log(cronWorkflow.spec.schedules)
-	schedule.schedule = cronWorkflow.spec.schedules;
+	schedule.schedule = cronWorkflow.spec.schedules ? cronWorkflow.spec.schedules[0] : '';
 	schedule.suspended = cronWorkflow.spec.suspend;
 	schedule.createdAt = cronWorkflow.metadata.creationTimestamp;
 

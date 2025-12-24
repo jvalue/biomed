@@ -238,6 +238,10 @@ export class ArgoClientService {
 			// Map ArgoCronWorkflowDto to ScheduleDto
 			return mapArgoCronWorkflowDtoToScheduleDto(cronWorkflowResponse);
 		} catch (err) {
+			if (err.response && err.response.status === 404) {
+				this.logger.log(`Cron workflow ${name} in namespace ${namespace} not found`);
+				return null;
+			}
 			this.logger.error(`Error getting cron workflow ${name} from namespace ${namespace}:`, err);
 			throw err;
 		}
@@ -257,8 +261,9 @@ export class ArgoClientService {
 	}
 
 	/**
-	 * Gets and sets for all workflow runs started by a cron workflow the belonging workflow template name, because
-	 * Argo does not set this label automatically for cron workflow runs.
+	 * Cron Workflows start workflow runs without setting the workflow template name label.
+	 * This method enriches the workflow runs with the correct workflow template name by looking up the cron
+	 * workflow for all of those cron workflow runs which haven't added the workflow template name by custom label.
 	 * @param runs Workflow runs to enrich
 	 */
 	async enrichWorkflowRunsWithCronWorkflowTemplateName(
@@ -267,7 +272,7 @@ export class ArgoClientService {
 		const enrichedRuns: WorkflowRunDto[] = [];
 
 		for (const run of runs) {
-			if (run.scheduleName) {
+			if (!run.workflowTemplateName) {
 				const schedule = await this.getCronWorkflowByName(run.scheduleName, run.namespace);
 				if (schedule) {
 					run.workflowTemplateName = schedule.workflowTemplateName;
