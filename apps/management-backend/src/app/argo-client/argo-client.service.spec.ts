@@ -53,13 +53,13 @@ describe('ArgoClientService.enrichWorkflowRunsWithCronWorkflowTemplateName', () 
 		async () => {
 			const runs = [{ name: 'r1', namespace: 'ns1', scheduleName: 's1' }] as WorkflowRunDto[];
 
-			vi.spyOn(service, 'getCronWorkflowByName').mockResolvedValueOnce({
+			vi.spyOn(service, 'getCronWorkflowByNameAndNamespace').mockResolvedValueOnce({
 				workflowTemplateName: 'awesome-dragon',
 			} as unknown as ScheduleDto);
 
 			const result = await service.enrichWorkflowRunsWithCronWorkflowTemplateName(runs);
 
-			expect(service.getCronWorkflowByName).toHaveBeenCalledWith('s1', 'ns1');
+			expect(service.getCronWorkflowByNameAndNamespace).toHaveBeenCalledWith('s1', 'ns1');
 			expect(result).toHaveLength(1);
 			expect(result[0].workflowTemplateName).toBe('awesome-dragon');
 		},
@@ -68,7 +68,7 @@ describe('ArgoClientService.enrichWorkflowRunsWithCronWorkflowTemplateName', () 
 	it('doesnt call the lookup when schedule name is undefined', async () => {
 		const runs = [{ name: 'r2', namespace: 'ns2', scheduleName: undefined }] as WorkflowRunDto[];
 
-		const spy = vi.spyOn(service, 'getCronWorkflowByName').mockResolvedValueOnce(null);
+		const spy = vi.spyOn(service, 'getCronWorkflowByNameAndNamespace').mockResolvedValueOnce(null);
 
 		const result = await service.enrichWorkflowRunsWithCronWorkflowTemplateName(runs);
 
@@ -82,11 +82,14 @@ describe('ArgoClientService.enrichWorkflowRunsWithCronWorkflowTemplateName', () 
 			{ name: 'r3', namespace: 'ns3', scheduleName: 'missing-schedule' },
 		] as WorkflowRunDto[];
 
-		vi.spyOn(service, 'getCronWorkflowByName').mockResolvedValueOnce(null);
+		vi.spyOn(service, 'getCronWorkflowByNameAndNamespace').mockResolvedValueOnce(null);
 
 		const result = await service.enrichWorkflowRunsWithCronWorkflowTemplateName(runs);
 
-		expect(service.getCronWorkflowByName).toHaveBeenCalledWith('missing-schedule', 'ns3');
+		expect(service.getCronWorkflowByNameAndNamespace).toHaveBeenCalledWith(
+			'missing-schedule',
+			'ns3',
+		);
 		expect(result[0].workflowTemplateName).toBeUndefined();
 	});
 
@@ -100,7 +103,7 @@ describe('ArgoClientService.enrichWorkflowRunsWithCronWorkflowTemplateName', () 
 			},
 		] as WorkflowRunDto[];
 
-		const spy = vi.spyOn(service, 'getCronWorkflowByName');
+		const spy = vi.spyOn(service, 'getCronWorkflowByNameAndNamespace');
 
 		const result = await service.enrichWorkflowRunsWithCronWorkflowTemplateName(runs);
 

@@ -1,5 +1,6 @@
 import { ApiProperty } from '@nestjs/swagger';
-import { IsArray, IsString } from 'class-validator';
+import { Type } from 'class-transformer';
+import { IsArray, IsNumber, IsString } from 'class-validator';
 
 class ScheduleParameterDto {
 	@ApiProperty({
@@ -15,6 +16,22 @@ class ScheduleParameterDto {
 	})
 	@IsString()
 	value!: string;
+}
+
+class ScheduleStatisticsDto {
+	@ApiProperty({
+		type: Number,
+		description: 'The number of successful runs triggered by the schedule',
+	})
+	@IsNumber()
+	successfulRuns!: number;
+
+	@ApiProperty({
+		type: Number,
+		description: 'The number of failed runs triggered by the schedule',
+	})
+	@IsNumber()
+	failedRuns!: number;
 }
 
 export class ScheduleDto {
@@ -55,4 +72,11 @@ export class ScheduleDto {
 	})
 	@IsString()
 	createdAt!: Date;
+
+	@ApiProperty({
+		type: ScheduleStatisticsDto,
+		description: 'Statistics about the schedule',
+	})
+	@Type(() => ScheduleStatisticsDto)
+	statistics!: ScheduleStatisticsDto;
 }
