@@ -1,9 +1,17 @@
+export enum WorkflowPhaseEnum {
+	PENDING = 'Pending',
+	RUNNING = 'Running',
+	SUCCEEDED = 'Succeeded',
+	FAILED = 'Failed',
+	ERROR = 'Error',
+}
+
 export class WorkflowRunDto {
 	name!: string;
 	namespace!: string;
 	workflowTemplateName!: string;
 	scheduleName?: string;
-	phase!: string;
+	phase!: WorkflowPhaseEnum;
 	startedAt?: Date;
 	finishedAt?: Date;
 }

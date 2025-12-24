@@ -47,7 +47,9 @@ export default function WorkflowTemplatesTable({ templates = [] }: WorkflowTempl
 						<TableRow key={template.name}>
 							<TableCell>{template.name}</TableCell>
 							<TableCell>{template.namespace}</TableCell>
-							<TableCell>{template.templateVersion || '-'}</TableCell>
+							<TableCell className={!template.templateVersion ? 'text-muted-foreground' : ''}>
+								{template.templateVersion || '-'}
+							</TableCell>
 							<TableCell>{new Date(template.createdAt).toLocaleString()}</TableCell>
 							<TableCell>
 								<Can ability={ability} I="create" a="workflow">
