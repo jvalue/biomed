@@ -100,10 +100,16 @@ export class ArgoClientService {
 		this.logger.debug('Argo Workflows API response:', workflowsResponse);
 
 		// Map ArgoCursorPaginatedListDto<ArgoWorkflowRunDto> to CursorBasedPaginationResponseDto<WorkflowRunDto>
-		return mapArgoCursorPaginatedListDtoToCursorBasedPaginationResponseDto(
+		const mappedResponse = mapArgoCursorPaginatedListDtoToCursorBasedPaginationResponseDto(
 			workflowsResponse,
 			mapArgoWorkflowRunDtoToWorkflowRunDto,
 		);
+
+		// Enrich workflow runs started by cron workflows with the workflow template name
+		mappedResponse.data = await this.enrichWorkflowRunsWithCronWorkflowTemplateName(
+			mappedResponse.data,
+		);
+		return mappedResponse;
 	}
 
 	/**
@@ -204,6 +210,40 @@ export class ArgoClientService {
 	}
 
 	/**
+	 * Get a cron workflow by name and namespace
+	 * @param name Name of the cron workflow
+	 * @param namespace Namespace of the cron workflow
+	 * @return The cron workflow as ScheduleDto
+	 */
+	async getCronWorkflowByName(name: string, namespace: string): Promise<ScheduleDto | null> {
+		this.logger.log(
+			`Getting cron workflow ${name} from namespace ${namespace} from Argo Workflows API`,
+		);
+
+		const url = `/cron-workflows/${namespace}/${name}`;
+
+		try {
+			const res = await this.http.get(url);
+			const cronWorkflowResponse: ArgoCronWorkflowDto = res.data;
+			this.logger.debug('Argo Workflows API response for cron workflow:', cronWorkflowResponse);
+
+			// Check if the cron workflow references a workflow template
+			if (!cronWorkflowResponse.spec.workflowSpec.workflowTemplateRef?.name) {
+				this.logger.warn(
+					`Cron workflow ${name} in namespace ${namespace} does not reference a workflow template`,
+				);
+				return null;
+			}
+
+			// Map ArgoCronWorkflowDto to ScheduleDto
+			return mapArgoCronWorkflowDtoToScheduleDto(cronWorkflowResponse);
+		} catch (err) {
+			this.logger.error(`Error getting cron workflow ${name} from namespace ${namespace}:`, err);
+			throw err;
+		}
+	}
+
+	/**
 	 * Filter cron workflows that reference workflow templates
 	 * @param ArgoCronWorkflows
 	 * @private
@@ -214,5 +254,28 @@ export class ArgoClientService {
 		return ArgoCronWorkflows.filter(
 			(cronWorkflow) => cronWorkflow.spec.workflowSpec.workflowTemplateRef?.name,
 		);
+	}
+
+	/**
+	 * Gets and sets for all workflow runs started by a cron workflow the belonging workflow template name, because
+	 * Argo does not set this label automatically for cron workflow runs.
+	 * @param runs Workflow runs to enrich
+	 */
+	async enrichWorkflowRunsWithCronWorkflowTemplateName(
+		runs: WorkflowRunDto[],
+	): Promise<WorkflowRunDto[]> {
+		const enrichedRuns: WorkflowRunDto[] = [];
+
+		for (const run of runs) {
+			if (run.scheduleName) {
+				const schedule = await this.getCronWorkflowByName(run.scheduleName, run.namespace);
+				if (schedule) {
+					run.workflowTemplateName = schedule.workflowTemplateName;
+				}
+			}
+			enrichedRuns.push(run);
+		}
+
+		return enrichedRuns;
 	}
 }
