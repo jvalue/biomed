@@ -272,7 +272,7 @@ export class ArgoClientService {
 		const enrichedRuns: WorkflowRunDto[] = [];
 
 		for (const run of runs) {
-			if (!run.workflowTemplateName) {
+			if (!run.workflowTemplateName && run.scheduleName) {
 				const schedule = await this.getCronWorkflowByName(run.scheduleName, run.namespace);
 				if (schedule) {
 					run.workflowTemplateName = schedule.workflowTemplateName;
