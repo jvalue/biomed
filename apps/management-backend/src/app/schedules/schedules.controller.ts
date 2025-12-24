@@ -13,8 +13,12 @@ export class SchedulesController {
 
 	@ApiOperation({ summary: 'List all Schedules' })
 	@ApiOkResponse({ type: [ScheduleDto], description: 'List of Schedules' })
-	@ApiResponse({ status: 403, description: 'You do not have permission to access schedules' })
+	@ApiResponse({
+		status: 403,
+		description: 'You do not have permission to access schedules or templates',
+	})
 	@RequirePermission('read', 'schedule')
+	@RequirePermission('read', 'template')
 	@Get()
 	async listSchedules(): Promise<ScheduleDto[]> {
 		return this.schedulesService.listSchedules();

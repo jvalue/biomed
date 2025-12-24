@@ -1,7 +1,7 @@
 import { ApiProperty } from '@nestjs/swagger';
 import { IsArray, IsString } from 'class-validator';
 
-class CronWorkflowParameterDto {
+class ScheduleParameterDto {
 	@ApiProperty({
 		type: String,
 		description: 'The name of the parameter which the schedule passes to the workflow template',
@@ -34,11 +34,11 @@ export class ScheduleDto {
 	namespace!: string;
 
 	@ApiProperty({
-		type: [CronWorkflowParameterDto],
+		type: [ScheduleParameterDto],
 		description: 'The parameters which the schedule passes to the workflow template',
 	})
 	@IsArray()
-	parameters!: CronWorkflowParameterDto[];
+	parameters!: ScheduleParameterDto[];
 
 	@ApiProperty({ type: String, description: 'The cron schedule expression' })
 	@IsString()
