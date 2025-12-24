@@ -12,4 +12,14 @@ export class SchedulesService {
 	async listSchedules(): Promise<ScheduleDto[]> {
 		return this.argoClientService.listCronWorkflows();
 	}
+
+	/**
+	 * Gets a Schedule by name and namespace
+	 * @param name The name of the Schedule
+	 * @param namespace The namespace of the Schedule
+	 * @returns The Schedule
+	 */
+	async getScheduleByNameAndNamespace(name: string, namespace: string): Promise<ScheduleDto> {
+		return this.argoClientService.getCronWorkflowByNameAndNamespace(name, namespace);
+	}
 }

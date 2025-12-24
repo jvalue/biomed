@@ -1,5 +1,5 @@
 import { Type } from 'class-transformer';
-import { IsArray, IsBoolean, IsDate, IsOptional, IsString } from 'class-validator';
+import { IsArray, IsBoolean, IsDate, IsNumber, IsOptional, IsString } from 'class-validator';
 
 class ArgoCronWorkflowMetadataDto {
 	@IsString()
@@ -54,10 +54,21 @@ class ArgoCronWorkflowSpecDto {
 	suspend!: boolean;
 }
 
+class ArgoCronWorkflowStatusDto {
+	@IsNumber()
+	succeeded!: number;
+
+	@IsNumber()
+	failed!: number;
+}
+
 export class ArgoCronWorkflowDto {
 	@Type(() => ArgoCronWorkflowMetadataDto)
 	metadata!: ArgoCronWorkflowMetadataDto;
 
 	@Type(() => ArgoCronWorkflowSpecDto)
 	spec!: ArgoCronWorkflowSpecDto;
+
+	@Type(() => ArgoCronWorkflowStatusDto)
+	status!: ArgoCronWorkflowStatusDto;
 }

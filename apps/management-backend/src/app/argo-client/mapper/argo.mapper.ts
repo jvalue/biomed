@@ -68,6 +68,10 @@ export function mapArgoCronWorkflowDtoToScheduleDto(
 	schedule.schedule = cronWorkflow.spec.schedules ? cronWorkflow.spec.schedules[0] : '';
 	schedule.suspended = cronWorkflow.spec.suspend;
 	schedule.createdAt = cronWorkflow.metadata.creationTimestamp;
+	schedule.statistics = {
+		successfulRuns: cronWorkflow.status.succeeded,
+		failedRuns: cronWorkflow.status.failed,
+	};
 
 	return schedule;
 }

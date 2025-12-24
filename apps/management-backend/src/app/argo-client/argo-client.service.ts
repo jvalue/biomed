@@ -219,7 +219,10 @@ export class ArgoClientService {
 	 * @param namespace Namespace of the cron workflow
 	 * @return The cron workflow as ScheduleDto
 	 */
-	async getCronWorkflowByName(name: string, namespace: string): Promise<ScheduleDto | null> {
+	async getCronWorkflowByNameAndNamespace(
+		name: string,
+		namespace: string,
+	): Promise<ScheduleDto | null> {
 		this.logger.log(
 			`Getting cron workflow ${name} from namespace ${namespace} from Argo Workflows API`,
 		);
@@ -277,7 +280,10 @@ export class ArgoClientService {
 
 		for (const run of runs) {
 			if (!run.workflowTemplateName && run.scheduleName) {
-				const schedule = await this.getCronWorkflowByName(run.scheduleName, run.namespace);
+				const schedule = await this.getCronWorkflowByNameAndNamespace(
+					run.scheduleName,
+					run.namespace,
+				);
 				if (schedule) {
 					run.workflowTemplateName = schedule.workflowTemplateName;
 				}
