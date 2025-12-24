@@ -6,7 +6,6 @@ import cronstrue from 'cronstrue';
  * Returns fallback messages for empty/invalid expressions.
  */
 export function formatCronReadable(cronExpr?: string, locale = 'en'): string {
-	console.log(cronExpr);
 	if (!cronExpr) return '-';
 	// simple handling for @every token if used
 	if (cronExpr.startsWith('@every')) {
