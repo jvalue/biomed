@@ -23,6 +23,15 @@ export class WorkflowRunDto {
 	workflowTemplateName!: string;
 
 	@ApiProperty({
+		type: String,
+		required: false,
+		description: 'The name of the schedule that triggered this workflow run, if applicable',
+	})
+	@IsOptional()
+	@IsString()
+	scheduleName?: string;
+
+	@ApiProperty({
 		enum: WorkflowPhaseEnum,
 		enumName: 'WorkflowPhaseEnum',
 		description: 'The current phase/status of the workflow run',

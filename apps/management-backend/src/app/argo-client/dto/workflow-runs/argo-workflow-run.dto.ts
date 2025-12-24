@@ -1,5 +1,5 @@
 import { Expose, Type } from 'class-transformer';
-import { IsDate, IsEnum, IsString } from 'class-validator';
+import { IsDate, IsEnum, IsOptional, IsString } from 'class-validator';
 import { WorkflowPhaseEnum } from '../../enums/workflow-phase.enum';
 
 export class ArgoWorkflowRunDto {
@@ -24,7 +24,13 @@ class ArgoWorkflowRunMetadataDto {
 class ArgoWorkflowRunMetadataLabelsDto {
 	@IsString()
 	@Expose({ name: 'workflows.argoproj.io/workflow-template' })
-	workflowTemplate!: string;
+	@IsOptional()
+	workflowTemplate?: string;
+
+	@IsString()
+	@Expose({ name: 'workflows.argoproj.io/cron-workflow' })
+	@IsOptional()
+	cronWorkflow?: string;
 }
 
 class ArgoWorkflowRunStatusDto {

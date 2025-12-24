@@ -20,6 +20,7 @@ export function mapArgoWorkflowRunDtoToWorkflowRunDto(run: ArgoWorkflowRunDto): 
 	workflowRun.name = run.metadata.name;
 	workflowRun.namespace = run.metadata.namespace;
 	workflowRun.workflowTemplateName = run.metadata.labels['workflows.argoproj.io/workflow-template'];
+	workflowRun.scheduleName = run.metadata.labels['workflows.argoproj.io/cron-workflow'];
 	workflowRun.phase = run.status.phase;
 	workflowRun.startedAt = run.status.startedAt;
 	workflowRun.finishedAt = run.status.finishedAt;
