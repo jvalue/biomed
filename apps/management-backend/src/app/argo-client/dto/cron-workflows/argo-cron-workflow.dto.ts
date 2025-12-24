@@ -1,4 +1,4 @@
-import { Type } from 'class-transformer';
+import { Transform, Type } from 'class-transformer';
 import { IsBoolean, IsDate, IsOptional, IsString } from 'class-validator';
 
 class ArgoCronWorkflowMetadataDto {
@@ -45,8 +45,10 @@ class ArgoCronWorkflowSpecDto {
 	@Type(() => ArgoCronWorkflowSpecWorkflowSpecDto)
 	workflowSpec!: ArgoCronWorkflowSpecWorkflowSpecDto;
 
+	// Argo returns schedules as an array, but we only need the first value as we only support single schedules
+	@Transform(({ value }) => Array.isArray(value) ? value[0] : value, { toClassOnly: true })
 	@IsString()
-	schedule!: string;
+	schedules!: string;
 
 	@IsBoolean()
 	suspend!: boolean;

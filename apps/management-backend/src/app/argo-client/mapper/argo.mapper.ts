@@ -63,7 +63,8 @@ export function mapArgoCronWorkflowDtoToScheduleDto(
 			name: param.name,
 			value: param.value,
 		})) ?? [];
-	schedule.schedule = cronWorkflow.spec.schedule;
+	console.log(cronWorkflow.spec.schedules)
+	schedule.schedule = cronWorkflow.spec.schedules;
 	schedule.suspended = cronWorkflow.spec.suspend;
 	schedule.createdAt = cronWorkflow.metadata.creationTimestamp;
 
