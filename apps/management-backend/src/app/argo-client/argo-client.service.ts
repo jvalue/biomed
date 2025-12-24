@@ -73,6 +73,10 @@ export class ArgoClientService {
 			'workflows.argoproj.io/workflow-template',
 			filterOptions?.workflowTemplateName,
 		);
+		argoQueryParamBuilder.addLabelSelector(
+			'workflows.argoproj.io/cron-workflow',
+			filterOptions?.scheduleName,
+		);
 		argoQueryParamBuilder.addLabelSelector('workflows.argoproj.io/phase', filterOptions?.phases);
 
 		// Normal query parameters
