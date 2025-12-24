@@ -29,19 +29,19 @@ export default function SchedulesTable({ schedules = [] }: ScheduleTableProps) {
 				</TableRow>
 			</TableHeader>
 			<TableBody>
-				{schedules.map((template) => (
-					<TableRow key={template.name}>
-						<TableCell>{template.name}</TableCell>
-						<TableCell>{template.workflowTemplateName}</TableCell>
-						<TableCell>{template.namespace}</TableCell>
-						<TableCell>{formatCronReadable(template.schedule)}</TableCell>
-						<TableCell>
-							{template.suspended
+				{schedules.map((schedule) => (
+					<TableRow key={schedule.name}>
+						<TableCell>{schedule.name}</TableCell>
+						<TableCell>{schedule.workflowTemplateName}</TableCell>
+						<TableCell>{schedule.namespace}</TableCell>
+						<TableCell>{formatCronReadable(schedule.schedule)}</TableCell>
+						<TableCell className={schedule.suspended ? 'text-muted-foreground' : ''}>
+							{schedule.suspended
 								? 'Suspended'
-								: (getNextRunDate(template.schedule)?.toLocaleString() ??
+								: (getNextRunDate(schedule.schedule)?.toLocaleString() ??
 									'invalid cron expression')}
 						</TableCell>
-						<TableCell>{new Date(template.createdAt).toLocaleString()}</TableCell>
+						<TableCell>{new Date(schedule.createdAt).toLocaleString()}</TableCell>
 					</TableRow>
 				))}
 			</TableBody>
