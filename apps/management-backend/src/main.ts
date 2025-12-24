@@ -10,7 +10,7 @@ async function bootstrap(): Promise<INestApplication> {
 		logger:
 			process.env.NODE_ENV === 'production'
 				? ['fatal', 'error', 'warn', 'log']
-				: ['fatal', 'error', 'warn', 'log', 'debug'],
+				: ['fatal', 'error', 'warn', 'log'],
 	});
 
 	app.enableCors({
