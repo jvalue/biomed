@@ -9,3 +9,14 @@ export const useSchedules = (): UseQueryResult<ScheduleDto[]> => {
 		refetchInterval: 30000, // Auto-refresh
 	});
 };
+
+export const useScheduleByNameAndNamespace = (
+	name: string,
+	namespace: string,
+): UseQueryResult<ScheduleDto> => {
+	return useQuery({
+		queryKey: ['schedule', name, namespace],
+		queryFn: () => scheduleService.getScheduleByNameAndNamespace(name, namespace),
+		refetchInterval: 30000, // Auto-refresh
+	});
+};

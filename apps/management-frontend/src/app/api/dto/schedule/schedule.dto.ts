@@ -4,6 +4,12 @@ class ScheduleParameterDto {
 	value!: string;
 }
 
+class ScheduleStatisticsDto {
+	successfulRuns!: number;
+
+	failedRuns!: number;
+}
+
 export class ScheduleDto {
 	name!: string;
 
@@ -18,4 +24,6 @@ export class ScheduleDto {
 	suspended!: boolean;
 
 	createdAt!: Date;
+
+	statistics!: ScheduleStatisticsDto;
 }

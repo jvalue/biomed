@@ -6,4 +6,10 @@ export const scheduleService = {
 		const { data } = await managementBackendClient.get('schedules');
 		return data;
 	},
+
+	getScheduleByNameAndNamespace: async (name: string, namespace: string): Promise<ScheduleDto> => {
+		const path = `schedules/${encodeURIComponent(namespace)}/${encodeURIComponent(name)}`;
+		const { data } = await managementBackendClient.get(path);
+		return data;
+	},
 };

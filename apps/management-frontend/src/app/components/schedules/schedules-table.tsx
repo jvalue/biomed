@@ -1,3 +1,4 @@
+import { useRouter } from '@tanstack/react-router';
 import { ScheduleDto } from '@/src/app/api/dto/schedule/schedule.dto';
 import {
 	Table,
@@ -15,13 +16,15 @@ export interface ScheduleTableProps {
 }
 
 export default function SchedulesTable({ schedules = [] }: ScheduleTableProps) {
+	const router = useRouter();
+
 	return (
 		<Table className="m-4 mt-6">
 			<TableCaption>Schedules</TableCaption>
 			<TableHeader>
 				<TableRow>
 					<TableHead className="text-primary">Name</TableHead>
-					<TableHead className="text-primary">Workflow Template Name</TableHead>
+					<TableHead className="text-primary">Crawler Name</TableHead>
 					<TableHead className="text-primary">Namespace</TableHead>
 					<TableHead className="text-primary">Schedule</TableHead>
 					<TableHead className="text-primary">Next Run</TableHead>
@@ -30,7 +33,13 @@ export default function SchedulesTable({ schedules = [] }: ScheduleTableProps) {
 			</TableHeader>
 			<TableBody>
 				{schedules.map((schedule) => (
-					<TableRow key={schedule.name}>
+					<TableRow
+						key={schedule.name}
+						className="cursor-pointer hover:bg-gray-100"
+						onClick={() =>
+							router.navigate({ to: `/schedules/${schedule.namespace}/${schedule.name}` })
+						}
+					>
 						<TableCell>{schedule.name}</TableCell>
 						<TableCell>{schedule.workflowTemplateName}</TableCell>
 						<TableCell>{schedule.namespace}</TableCell>

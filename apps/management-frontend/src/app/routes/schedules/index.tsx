@@ -1,10 +1,10 @@
 import { createFileRoute } from '@tanstack/react-router';
 import SchedulesList from '@/src/app/components/schedules/schedules-list';
 import { useAuth } from '@/src/app/contexts/AuthContext';
-import { AuthGuard } from '../components/guards/auth-guard';
-import { PermissionGuard } from '../components/guards/permission-guard';
+import { AuthGuard } from '../../components/guards/auth-guard';
+import { PermissionGuard } from '../../components/guards/permission-guard';
 
-export const Route = createFileRoute('/schedules')({
+export const Route = createFileRoute('/schedules/')({
 	component: RouteComponent,
 });
 
