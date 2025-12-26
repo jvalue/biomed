@@ -3,12 +3,12 @@ import { CursorBasedPaginationResponseDto } from '@/src/app/api/dto/pagination/c
 import { WorkflowRunDto } from '@/src/app/api/dto/workflow/workflow-run.dto';
 import { workflowService } from '../services/workflow-service';
 
-export const useWorkflowRuns = (): UseQueryResult<
-	CursorBasedPaginationResponseDto<WorkflowRunDto>
-> => {
+export const useWorkflowRuns = (
+	scheduleName?: string,
+): UseQueryResult<CursorBasedPaginationResponseDto<WorkflowRunDto>> => {
 	return useQuery({
 		queryKey: ['workflowRuns'],
-		queryFn: workflowService.getWorkflowRuns,
+		queryFn: () => workflowService.getWorkflowRuns(scheduleName),
 		refetchInterval: 5000, // Auto-refresh
 	});
 };
