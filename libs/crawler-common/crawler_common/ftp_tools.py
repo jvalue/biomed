@@ -8,6 +8,7 @@ import logging
 from crawler_common.ftp_node import FTPNode
 
 logger = logging.getLogger(__name__)
+_truncated_due_to_depth = False
 
 
 def get_root_folders(ftp_url: str, ftp_user: str, ftp_password: str) -> list[str]:
@@ -49,6 +50,9 @@ def get_ftp_structure(
 
     try:
         logger.info(f"Connecting to FTP server: {ftp_url}")
+        logger.info(f"Starting traversal with max_depth={max_depth}")
+        global _truncated_due_to_depth
+        _truncated_due_to_depth = False
         ftp = ftplib.FTP(ftp_url)
         ftp.login(ftp_user, ftp_password)
 
@@ -56,6 +60,10 @@ def get_ftp_structure(
         _traverse_ftp(ftp, root, "/", depth=0, max_depth=max_depth)
 
         ftp.quit()
+        if _truncated_due_to_depth:
+            logger.warning(
+                "Traversal reached max_depth; deeper paths were not explored."
+            )
         logger.info("FTP traversal completed")
         return root
     except ftplib.all_errors as exc:  # pragma: no cover - network dependent
@@ -93,6 +101,11 @@ def _traverse_ftp(
 
             if is_dir and depth < max_depth - 1:
                 _traverse_ftp(ftp, node, path, depth + 1, max_depth)
+            elif is_dir and depth >= max_depth - 1:
+                # We found a directory at the boundary; deeper content won't be crawled
+                global _truncated_due_to_depth
+                _truncated_due_to_depth = True
+                logger.debug(f"Max depth reached at {path}; not descending further")
     except ftplib.error_perm:
         # Skip directories without permission
         logger.warning(f"Permission denied: {current_path}")
