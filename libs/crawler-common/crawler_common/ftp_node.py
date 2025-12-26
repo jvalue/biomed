@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 from dataclasses import dataclass, field
+from datetime import datetime
 
 
 @dataclass
@@ -12,6 +13,8 @@ class FTPNode:
     name: str
     is_dir: bool
     path: str
+    size: int | None = None
+    modified: datetime | None = None
     children: list[FTPNode] = field(default_factory=list)
 
     def __repr__(self) -> str:  # pragma: no cover - for debugging only
