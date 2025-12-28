@@ -1,8 +1,17 @@
-import { Controller, Get, Param, UseGuards } from '@nestjs/common';
-import { ApiOkResponse, ApiOperation, ApiParam, ApiResponse } from '@nestjs/swagger';
+import { Body, Controller, Get, Param, Post, UseGuards } from '@nestjs/common';
+import {
+	ApiCreatedResponse,
+	ApiOkResponse,
+	ApiOperation,
+	ApiParam,
+	ApiResponse,
+} from '@nestjs/swagger';
+import { CurrentUser } from '../auth/decorators/current-user.decorator';
 import { RequirePermission } from '../auth/decorators/require-permission.decorator';
 import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
 import { PermissionsGuard } from '../auth/guards/permissions.guard';
+import { UserEntity } from '../users/entity/user.entity';
+import { CreateScheduleDto } from './dto/create-schedule.dto';
 import { ScheduleDto } from './dto/schedule.dto';
 import { SchedulesService } from './schedules.service';
 
@@ -40,5 +49,20 @@ export class SchedulesController {
 		@Param('name') name: string,
 	): Promise<ScheduleDto> {
 		return this.schedulesService.getScheduleByNameAndNamespace(name, namespace);
+	}
+
+	@ApiOperation({ summary: 'Create a new Schedule' })
+	@ApiCreatedResponse({ type: String, description: 'The link to the created PR of the schedule' })
+	@ApiResponse({
+		status: 403,
+		description: 'You do not have permission to create schedules',
+	})
+	@RequirePermission('create', 'schedule')
+	@Post()
+	async createSchedule(
+		@CurrentUser() user: UserEntity,
+		@Body() body: CreateScheduleDto,
+	): Promise<string> {
+		return this.schedulesService.createSchedule(body, user);
 	}
 }

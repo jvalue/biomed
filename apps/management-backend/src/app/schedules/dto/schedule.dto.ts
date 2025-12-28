@@ -2,7 +2,7 @@ import { ApiProperty } from '@nestjs/swagger';
 import { Type } from 'class-transformer';
 import { IsArray, IsBoolean, IsDate, IsNumber, IsString } from 'class-validator';
 
-class ScheduleParameterDto {
+export class ScheduleParameterDto {
 	@ApiProperty({
 		type: String,
 		description: 'The name of the parameter which the schedule passes to the workflow template',
