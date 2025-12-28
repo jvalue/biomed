@@ -6,6 +6,7 @@ import { CursorBasedPaginationRequestDto } from '../pagination/dto/cursor-based-
 import { CursorBasedPaginationResponseDto } from '../pagination/dto/cursor-based-pagination-response.dto';
 import { WorkflowRunDto } from '../workflow-runs/dto/workflow-run.dto';
 import { WorkflowRunFilterDto } from '../workflow-runs/dto/workflow-run-filter.dto';
+import { WorkflowRunParameterDto } from '../workflow-runs/dto/workflow-run-parameter.dto';
 import { WorkflowTemplateDto } from '../workflow-templates/dto/workflow-template.dto';
 import { WorkflowTemplatesFilterDto } from '../workflow-templates/dto/workflow-templates-filter.dto';
 import { ArgoAuthService } from './argo-auth/argo-auth.service';
@@ -102,6 +103,10 @@ export class ArgoClientService {
 		);
 	}
 
+	/**
+	 * List all workflow templates
+	 * @param filterOptions
+	 */
 	async listWorkflowTemplates(
 		filterOptions?: WorkflowTemplatesFilterDto,
 	): Promise<WorkflowTemplateDto[]> {
@@ -130,5 +135,47 @@ export class ArgoClientService {
 
 		// Map ArgoWorkflowTemplateDto[] to WorkflowTemplateDto[] as we do not offer pagination here
 		return templatesResponse?.map(mapArgoWorkflowTemplateDtoToWorkflowTemplateDto) ?? [];
+	}
+
+	/**
+	 * Submit a new workflow based on a workflow template
+	 * @param workflowTemplateName Name of the workflow template to use
+	 * @param workflowTemplateNamespace Namespace of the workflow template
+	 * @param parameters Parameters to pass to the workflow
+	 */
+	async submitWorkflowFromTemplate(
+		workflowTemplateName: string,
+		workflowTemplateNamespace: string,
+		parameters?: WorkflowRunParameterDto[],
+	): Promise<WorkflowRunDto> {
+		this.logger.log(
+			`Starting new workflow from template ${workflowTemplateName} in namespace ${workflowTemplateNamespace}`,
+		);
+		if (parameters) {
+			this.logger.debug(`With parameters: ${JSON.stringify(parameters)}`);
+		}
+
+		const body = {
+			namespace: workflowTemplateNamespace,
+			resourceKind: 'WorkflowTemplate',
+			resourceName: workflowTemplateName,
+			submitOptions: {
+				parameters: (parameters ?? []).map((param) => `${param.name}=${param.value}`),
+			},
+		};
+		const url = `/workflows/${workflowTemplateNamespace}/submit`;
+
+		try {
+			const res = await this.http.post(url, body);
+			const workflowResponse: ArgoWorkflowRunDto = res.data;
+
+			this.logger.debug('Argo Workflows API response for started workflow:', workflowResponse);
+
+			// Map ArgoWorkflowRunDto to WorkflowRunDto
+			return mapArgoWorkflowRunDtoToWorkflowRunDto(workflowResponse);
+		} catch (err) {
+			this.logger.error('Error starting workflow from template:', err);
+			throw err;
+		}
 	}
 }

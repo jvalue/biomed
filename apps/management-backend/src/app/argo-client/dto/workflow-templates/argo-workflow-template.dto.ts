@@ -1,10 +1,5 @@
 import { Type } from 'class-transformer';
-import { IsDate, IsString } from 'class-validator';
-
-export class ArgoWorkflowTemplateDto {
-	@Type(() => ArgoWorkflowTemplateMetadataDto)
-	metadata!: ArgoWorkflowTemplateMetadataDto;
-}
+import { IsArray, IsDate, IsOptional, IsString } from 'class-validator';
 
 class ArgoWorkflowTemplateMetadataDto {
 	@IsString()
@@ -16,4 +11,32 @@ class ArgoWorkflowTemplateMetadataDto {
 	@Type(() => Date)
 	@IsDate()
 	creationTimestamp!: Date;
+}
+
+class ArgoWorkflowTemplateSpecDtoArgumentsParametersDto {
+	@IsString()
+	name!: string;
+
+	@IsString()
+	@IsOptional()
+	value?: string;
+}
+
+class ArgoWorkflowTemplateSpecArgumentsDto {
+	@IsArray()
+	parameters?: ArgoWorkflowTemplateSpecDtoArgumentsParametersDto[];
+}
+
+class ArgoWorkflowTemplateSpecDto {
+	@Type(() => ArgoWorkflowTemplateSpecArgumentsDto)
+	@IsOptional()
+	arguments?: ArgoWorkflowTemplateSpecArgumentsDto;
+}
+
+export class ArgoWorkflowTemplateDto {
+	@Type(() => ArgoWorkflowTemplateMetadataDto)
+	metadata!: ArgoWorkflowTemplateMetadataDto;
+
+	@Type(() => ArgoWorkflowTemplateSpecDto)
+	spec!: ArgoWorkflowTemplateSpecDto;
 }
