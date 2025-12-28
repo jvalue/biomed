@@ -1,6 +1,6 @@
 import { ApiProperty } from '@nestjs/swagger';
 import { Type } from 'class-transformer';
-import { IsArray, IsNumber, IsString } from 'class-validator';
+import { IsArray, IsBoolean, IsDate, IsNumber, IsString } from 'class-validator';
 
 class ScheduleParameterDto {
 	@ApiProperty({
@@ -62,7 +62,7 @@ export class ScheduleDto {
 	schedule!: string;
 
 	@ApiProperty({ type: Boolean, description: 'Indicates whether the schedule is suspended' })
-	@IsString()
+	@IsBoolean()
 	suspended!: boolean;
 
 	@ApiProperty({
@@ -70,7 +70,7 @@ export class ScheduleDto {
 		format: 'date-time',
 		description: 'The time when the schedule was created',
 	})
-	@IsString()
+	@IsDate()
 	createdAt!: Date;
 
 	@ApiProperty({

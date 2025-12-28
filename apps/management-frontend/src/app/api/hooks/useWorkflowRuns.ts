@@ -7,7 +7,7 @@ export const useWorkflowRuns = (
 	scheduleName?: string,
 ): UseQueryResult<CursorBasedPaginationResponseDto<WorkflowRunDto>> => {
 	return useQuery({
-		queryKey: ['workflowRuns'],
+		queryKey: ['workflowRuns', scheduleName],
 		queryFn: () => workflowService.getWorkflowRuns(scheduleName),
 		refetchInterval: 5000, // Auto-refresh
 	});
