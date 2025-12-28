@@ -1,6 +1,17 @@
 import { ApiProperty } from '@nestjs/swagger';
 import { Type } from 'class-transformer';
-import { IsDate, IsString } from 'class-validator';
+import { IsArray, IsDate, IsOptional, IsString } from 'class-validator';
+
+class WorkflowTemplateParameterDto {
+	@ApiProperty({ type: String, description: 'The name of the parameter' })
+	@IsString()
+	name!: string;
+
+	@ApiProperty({ type: String, description: 'The default value of the parameter', required: false })
+	@IsString()
+	@IsOptional()
+	defaultValue?: string;
+}
 
 export class WorkflowTemplateDto {
 	@ApiProperty({ type: String, description: 'The name/id of the workflow template' })
@@ -22,4 +33,13 @@ export class WorkflowTemplateDto {
 	@Type(() => Date)
 	@IsDate()
 	createdAt!: Date;
+
+	@ApiProperty({
+		type: [WorkflowTemplateParameterDto],
+		description: 'The parameters defined for the workflow template',
+		required: false,
+	})
+	@IsOptional()
+	@IsArray()
+	parameters?: WorkflowTemplateParameterDto[];
 }

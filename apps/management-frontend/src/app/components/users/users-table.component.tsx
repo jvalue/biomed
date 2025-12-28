@@ -59,7 +59,7 @@ export default function UsersTableComponent() {
 											aria-busy={approveUserMutation.isPending}
 											variant={'secondary'}
 											size="sm"
-											className="bg-green-500 text-white w-16"
+											className="bg-green-500 hover:bg-green-700 text-white w-16"
 										>
 											Approve
 										</Button>
