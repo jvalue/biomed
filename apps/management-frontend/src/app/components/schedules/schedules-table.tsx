@@ -34,7 +34,7 @@ export default function SchedulesTable({ schedules = [] }: ScheduleTableProps) {
 			<TableBody>
 				{schedules.map((schedule) => (
 					<TableRow
-						key={schedule.name}
+						key={`${schedule.namespace}-${schedule.name}`}
 						className="cursor-pointer hover:bg-gray-100"
 						onClick={() =>
 							router.navigate({ to: `/schedules/${schedule.namespace}/${schedule.name}` })

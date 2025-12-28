@@ -44,7 +44,7 @@ export default function WorkflowTemplatesTable({ templates = [] }: WorkflowTempl
 				</TableHeader>
 				<TableBody>
 					{templates.map((template) => (
-						<TableRow key={template.name}>
+						<TableRow key={`${template.namespace}-${template.name}`}>
 							<TableCell>{template.name}</TableCell>
 							<TableCell>{template.namespace}</TableCell>
 							<TableCell className={!template.templateVersion ? 'text-muted-foreground' : ''}>
