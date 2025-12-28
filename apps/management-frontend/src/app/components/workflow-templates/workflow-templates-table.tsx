@@ -55,6 +55,7 @@ export default function WorkflowTemplatesTable({ templates = [] }: WorkflowTempl
 										size="icon"
 										className="bg-green-500 text-white hover:bg-green-700"
 										onClick={() => openDialog(template)}
+										aria-label="Start crawler run"
 									>
 										<Plus />
 									</Button>
