@@ -22,7 +22,7 @@ class ArgoWorkflowTemplateMetadataDto {
 	labels!: ArgoWorkflowTemplateMetadataLabelsDto;
 }
 
-class ArgoWorkflowTemplateSpecDtoArgumentsParametersDto {
+class ArgoWorkflowTemplateSpecArgumentsParametersDto {
 	@IsString()
 	name!: string;
 
@@ -33,7 +33,7 @@ class ArgoWorkflowTemplateSpecDtoArgumentsParametersDto {
 
 class ArgoWorkflowTemplateSpecArgumentsDto {
 	@IsArray()
-	parameters?: ArgoWorkflowTemplateSpecDtoArgumentsParametersDto[];
+	parameters?: ArgoWorkflowTemplateSpecArgumentsParametersDto[];
 }
 
 class ArgoWorkflowTemplateSpecDto {

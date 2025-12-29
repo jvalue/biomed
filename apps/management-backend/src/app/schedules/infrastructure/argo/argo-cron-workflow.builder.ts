@@ -70,7 +70,7 @@ export class ArgoCronWorkflowBuilder {
 		if (!this.workflow.spec.workflowSpec.workflowMetadata.labels) {
 			this.workflow.spec.workflowSpec.workflowMetadata.labels = {};
 		}
-		this.workflow.spec.workflowSpec.workflowMetadata.labels['workflow-template-name'] =
+		this.workflow.spec.workflowSpec.workflowMetadata.labels['customSetWorkflowTemplateName'] =
 			templateName;
 
 		return this;
@@ -117,7 +117,9 @@ export class ArgoCronWorkflowBuilder {
 		if (!this.workflow.spec.workflowSpec.workflowTemplateRef.name) {
 			throw new Error('Workflow template reference name is required');
 		}
-		if (!this.workflow.spec.workflowSpec.workflowMetadata?.labels['workflow-template-name']) {
+		if (
+			!this.workflow.spec.workflowSpec.workflowMetadata?.labels['customSetWorkflowTemplateName']
+		) {
 			throw new Error('Workflow metadata label for workflow-template-name is required');
 		}
 

@@ -1,3 +1,4 @@
+import { CreateScheduleDto } from '@/src/app/api/dto/schedule/create-schedule.dto';
 import { ScheduleDto } from '@/src/app/api/dto/schedule/schedule.dto';
 import { managementBackendClient } from '../management-backend-client';
 
@@ -10,6 +11,16 @@ export const scheduleService = {
 	getScheduleByNameAndNamespace: async (name: string, namespace: string): Promise<ScheduleDto> => {
 		const path = `schedules/${encodeURIComponent(namespace)}/${encodeURIComponent(name)}`;
 		const { data } = await managementBackendClient.get(path);
+		return data;
+	},
+
+	/**
+	 * Create a new schedule
+	 * @param createScheduleDto
+	 * @returns The link to the created PR of the schedule
+	 */
+	createSchedule: async (createScheduleDto: CreateScheduleDto): Promise<string> => {
+		const { data } = await managementBackendClient.post('schedules', createScheduleDto);
 		return data;
 	},
 };
