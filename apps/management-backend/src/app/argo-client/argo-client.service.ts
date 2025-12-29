@@ -103,7 +103,7 @@ export class ArgoClientService {
 
 		this.logger.debug('Argo Workflows API response:', workflowsResponse);
 
-		// Map ArgoCursorPaginatedListDto<ArgoWorkflowRunDto> to CursorBasedPaginationResponseDto<WorkflowRunDto>
+		// Map ArgoCursorPaginatedListDto<ArgoWorkflowRunDto> to CursorBasedPaginationResponseDto<CrawlerRunDto>
 		const mappedResponse = mapArgoCursorPaginatedListDtoToCursorBasedPaginationResponseDto(
 			workflowsResponse,
 			mapArgoWorkflowRunDtoToWorkflowRunDto,
@@ -146,7 +146,7 @@ export class ArgoClientService {
 
 		this.logger.debug('Argo Workflows API response for templates:', templatesResponse);
 
-		// Map ArgoWorkflowTemplateDto[] to WorkflowTemplateDto[] as we do not offer pagination here
+		// Map ArgoWorkflowTemplateDto[] to CrawlerTemplateDto[] as we do not offer pagination here
 		return templatesResponse?.map(mapArgoWorkflowTemplateDtoToWorkflowTemplateDto) ?? [];
 	}
 
@@ -184,7 +184,7 @@ export class ArgoClientService {
 
 			this.logger.debug('Argo Workflows API response for started workflow:', workflowResponse);
 
-			// Map ArgoWorkflowRunDto to WorkflowRunDto
+			// Map ArgoWorkflowRunDto to CrawlerRunDto
 			return mapArgoWorkflowRunDtoToWorkflowRunDto(workflowResponse);
 		} catch (err) {
 			this.logger.error('Error starting workflow from template:', err);

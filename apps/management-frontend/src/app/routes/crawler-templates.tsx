@@ -1,10 +1,10 @@
 import { createFileRoute } from '@tanstack/react-router';
+import CrawlerTemplatesList from '@/src/app/components/crawler-templates/crawler-templates-list';
 import { AuthGuard } from '@/src/app/components/guards/auth-guard';
 import { PermissionGuard } from '@/src/app/components/guards/permission-guard';
-import WorkflowList from '@/src/app/components/workflows/workflow-list';
 import { useAuth } from '../contexts/AuthContext';
 
-export const Route = createFileRoute('/workflow-list')({
+export const Route = createFileRoute('/crawler-templates')({
 	component: RouteComponent,
 });
 
@@ -14,10 +14,10 @@ function RouteComponent() {
 		<AuthGuard>
 			<PermissionGuard
 				ability={ability}
-				required={[{ action: 'read', subject: 'workflow', label: 'read workflows' }]}
+				required={[{ action: 'read', subject: 'template', label: 'read templates' }]}
 			>
-				<h1>Workflow List</h1>
-				<WorkflowList />
+				<h1>Crawler Templates</h1>
+				<CrawlerTemplatesList />
 			</PermissionGuard>
 		</AuthGuard>
 	);

@@ -1,14 +1,14 @@
 import { UseQueryResult, useQuery } from '@tanstack/react-query';
 import { CursorBasedPaginationResponseDto } from '@/src/app/api/dto/pagination/cursor-based-pagination-response.dto';
-import { WorkflowRunDto } from '@/src/app/api/dto/workflow/workflow-run.dto';
-import { workflowService } from '../services/workflow-service';
+import { CrawlerRunDto } from '@/src/app/api/dto/workflow/crawler-run.dto';
+import { crawlerRunService } from '../services/crawler-run-service';
 
-export const useWorkflowRuns = (
+export const useCrawlerRuns = (
 	scheduleName?: string,
-): UseQueryResult<CursorBasedPaginationResponseDto<WorkflowRunDto>> => {
+): UseQueryResult<CursorBasedPaginationResponseDto<CrawlerRunDto>> => {
 	return useQuery({
 		queryKey: ['workflowRuns', scheduleName],
-		queryFn: () => workflowService.getWorkflowRuns(scheduleName),
+		queryFn: () => crawlerRunService.getWorkflowRuns(scheduleName),
 		refetchInterval: 5000, // Auto-refresh
 	});
 };

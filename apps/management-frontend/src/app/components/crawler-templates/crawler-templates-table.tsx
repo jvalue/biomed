@@ -1,7 +1,8 @@
 import { Can } from '@casl/react';
 import { Plus } from 'lucide-react';
 import { useState } from 'react';
-import { WorkflowTemplateDto } from '@/src/app/api/dto/workflow-template/workflow-template.dto';
+import { CrawlerTemplateDto } from '@/src/app/api/dto/workflow-template/crawler-template.dto';
+import CrawlerTemplateRunDialog from '@/src/app/components/crawler-templates/crawler-template-run-dialog';
 import { Button } from '@/src/app/components/design-components/button';
 import {
 	Table,
@@ -12,19 +13,18 @@ import {
 	TableHeader,
 	TableRow,
 } from '@/src/app/components/design-components/table';
-import WorkflowTemplateRunDialog from '@/src/app/components/workflow-templates/workflow-template-run-dialog';
 import { useAuth } from '../../contexts/AuthContext';
 
 export interface WorkflowTemplatesTableProps {
-	templates?: WorkflowTemplateDto[];
+	templates?: CrawlerTemplateDto[];
 }
 
-export default function WorkflowTemplatesTable({ templates = [] }: WorkflowTemplatesTableProps) {
+export default function CrawlerTemplatesTable({ templates = [] }: WorkflowTemplatesTableProps) {
 	const { ability } = useAuth();
-	const [selectedTemplate, setSelectedTemplate] = useState<WorkflowTemplateDto | null>(null);
+	const [selectedTemplate, setSelectedTemplate] = useState<CrawlerTemplateDto | null>(null);
 	const [dialogOpen, setDialogOpen] = useState(false);
 
-	const openDialog = (template: WorkflowTemplateDto) => {
+	const openDialog = (template: CrawlerTemplateDto) => {
 		setSelectedTemplate(template);
 		setDialogOpen(true);
 	};
@@ -32,7 +32,7 @@ export default function WorkflowTemplatesTable({ templates = [] }: WorkflowTempl
 	return (
 		<>
 			<Table className="m-4 mt-6">
-				<TableCaption>Workflow Templates</TableCaption>
+				<TableCaption>Crawler Templates</TableCaption>
 				<TableHeader>
 					<TableRow>
 						<TableHead className="text-primary">Name/ID</TableHead>
@@ -66,7 +66,7 @@ export default function WorkflowTemplatesTable({ templates = [] }: WorkflowTempl
 					))}
 				</TableBody>
 			</Table>
-			<WorkflowTemplateRunDialog
+			<CrawlerTemplateRunDialog
 				template={selectedTemplate}
 				open={dialogOpen}
 				onOpenChange={setDialogOpen}

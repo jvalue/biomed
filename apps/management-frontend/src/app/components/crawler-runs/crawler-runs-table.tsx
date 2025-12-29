@@ -1,4 +1,4 @@
-import { WorkflowPhaseEnum, WorkflowRunDto } from '@/src/app/api/dto/workflow/workflow-run.dto';
+import { CrawlerRunDto, WorkflowPhaseEnum } from '@/src/app/api/dto/workflow/crawler-run.dto';
 import {
 	Table,
 	TableBody,
@@ -10,7 +10,7 @@ import {
 } from '@/src/app/components/design-components/table';
 
 export interface WorkflowRunsTableProps {
-	runs?: WorkflowRunDto[];
+	runs?: CrawlerRunDto[];
 }
 
 function getPhaseClass(phase?: WorkflowPhaseEnum | string) {
@@ -30,15 +30,15 @@ function getPhaseClass(phase?: WorkflowPhaseEnum | string) {
 	}
 }
 
-export default function WorkflowRunsTable({ runs = [] }: WorkflowRunsTableProps) {
+export default function CrawlerRunsTable({ runs = [] }: WorkflowRunsTableProps) {
 	return (
 		<Table className="m-4 mt-6">
-			<TableCaption>Currently running workflow runs.</TableCaption>
+			<TableCaption>Currently running crawler runs.</TableCaption>
 			<TableHeader>
 				<TableRow>
 					<TableHead className="text-primary">Name/ID</TableHead>
 					<TableHead className="text-primary">Namespace</TableHead>
-					<TableHead className="text-primary">Workflow Template</TableHead>
+					<TableHead className="text-primary">Crawler Template</TableHead>
 					<TableHead className="text-primary">Schedule</TableHead>
 					<TableHead className="text-primary">Phase</TableHead>
 					<TableHead className="text-primary">Started at</TableHead>
