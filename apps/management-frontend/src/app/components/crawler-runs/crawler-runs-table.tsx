@@ -1,4 +1,4 @@
-import { CrawlerRunDto, WorkflowPhaseEnum } from '@/src/app/api/dto/workflow/crawler-run.dto';
+import { CrawlerRunDto, CrawlerRunPhaseEnum } from '@/src/app/api/dto/crawler-runs/crawler-run.dto';
 import {
 	Table,
 	TableBody,
@@ -9,28 +9,28 @@ import {
 	TableRow,
 } from '@/src/app/components/design-components/table';
 
-export interface WorkflowRunsTableProps {
+export interface CrawlerRunsTableProps {
 	runs?: CrawlerRunDto[];
 }
 
-function getPhaseClass(phase?: WorkflowPhaseEnum | string) {
+function getPhaseClass(phase?: CrawlerRunPhaseEnum | string) {
 	switch (phase) {
-		case WorkflowPhaseEnum.PENDING:
+		case CrawlerRunPhaseEnum.PENDING:
 			return 'bg-yellow-100 text-yellow-800';
-		case WorkflowPhaseEnum.RUNNING:
+		case CrawlerRunPhaseEnum.RUNNING:
 			return 'bg-blue-100 text-blue-800';
-		case WorkflowPhaseEnum.SUCCEEDED:
+		case CrawlerRunPhaseEnum.SUCCEEDED:
 			return 'bg-green-100 text-green-800';
-		case WorkflowPhaseEnum.FAILED:
+		case CrawlerRunPhaseEnum.FAILED:
 			return 'bg-red-100 text-red-800';
-		case WorkflowPhaseEnum.ERROR:
+		case CrawlerRunPhaseEnum.ERROR:
 			return 'bg-rose-100 text-rose-800';
 		default:
 			return '';
 	}
 }
 
-export default function CrawlerRunsTable({ runs = [] }: WorkflowRunsTableProps) {
+export default function CrawlerRunsTable({ runs = [] }: CrawlerRunsTableProps) {
 	return (
 		<Table className="m-4 mt-6">
 			<TableCaption>Currently running crawler runs.</TableCaption>
@@ -50,7 +50,7 @@ export default function CrawlerRunsTable({ runs = [] }: WorkflowRunsTableProps) 
 					<TableRow key={run.name}>
 						<TableCell>{run.name}</TableCell>
 						<TableCell>{run.namespace}</TableCell>
-						<TableCell>{run.workflowTemplateName}</TableCell>
+						<TableCell>{run.crawlerTemplateName}</TableCell>
 						<TableCell className={!run.scheduleName ? 'text-muted-foreground' : ''}>
 							{run.scheduleName ?? '-'}
 						</TableCell>

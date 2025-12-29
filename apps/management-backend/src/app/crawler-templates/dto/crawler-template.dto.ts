@@ -2,7 +2,7 @@ import { ApiProperty } from '@nestjs/swagger';
 import { Type } from 'class-transformer';
 import { IsArray, IsDate, IsOptional, IsString } from 'class-validator';
 
-class WorkflowTemplateParameterDto {
+class CrawlerTemplateParameterDto {
 	@ApiProperty({ type: String, description: 'The name of the parameter' })
 	@IsString()
 	name!: string;
@@ -13,14 +13,14 @@ class WorkflowTemplateParameterDto {
 	defaultValue?: string;
 }
 
-export class WorkflowTemplateDto {
-	@ApiProperty({ type: String, description: 'The name/id of the workflow template' })
+export class CrawlerTemplateDto {
+	@ApiProperty({ type: String, description: 'The name/id of the crawler template' })
 	@IsString()
 	name!: string;
 
 	@ApiProperty({
 		type: String,
-		description: 'The Kubernetes Namespace, the workflow template belongs to',
+		description: 'The Kubernetes Namespace, the crawler template belongs to',
 	})
 	@IsString()
 	namespace!: string;
@@ -28,24 +28,24 @@ export class WorkflowTemplateDto {
 	@ApiProperty({
 		type: String,
 		format: 'date-time',
-		description: 'The time when the workflow template was created',
+		description: 'The time when the crawler template was created',
 	})
 	@Type(() => Date)
 	@IsDate()
 	createdAt!: Date;
 
 	@ApiProperty({
-		type: [WorkflowTemplateParameterDto],
-		description: 'The parameters defined for the workflow template',
+		type: [CrawlerTemplateParameterDto],
+		description: 'The parameters defined for the crawler template',
 		required: false,
 	})
 	@IsOptional()
 	@IsArray()
-	parameters?: WorkflowTemplateParameterDto[];
+	parameters?: CrawlerTemplateParameterDto[];
 
 	@ApiProperty({
 		type: String,
-		description: 'The version of the workflow template',
+		description: 'The version of the crawler template',
 		required: false,
 	})
 	@IsString()

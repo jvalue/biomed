@@ -1,7 +1,7 @@
 import { ApiProperty } from '@nestjs/swagger';
 import { IsOptional, IsString } from 'class-validator';
 
-export class WorkflowTemplatesFilterDto {
+export class CrawlerTemplatesFilterDto {
 	@ApiProperty({ type: String, required: false, description: 'Kubernetes Namespace' })
 	@IsOptional()
 	@IsString()
@@ -10,7 +10,7 @@ export class WorkflowTemplatesFilterDto {
 	@ApiProperty({
 		type: String,
 		required: false,
-		description: 'Workflow template name search string',
+		description: 'Crawler template name search string',
 	})
 	@IsOptional()
 	@IsString()

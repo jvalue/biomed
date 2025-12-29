@@ -3,32 +3,32 @@ import { crawlerTemplateService } from '@/src/app/api/services/crawler-template-
 
 export const useCrawlerTemplates = () => {
 	return useQuery({
-		queryKey: ['workflowTemplates'],
-		queryFn: crawlerTemplateService.getWorkflowTemplates,
+		queryKey: ['crawlerTemplates'],
+		queryFn: crawlerTemplateService.getCrawlerTemplates,
 		refetchInterval: 10000, // Auto-refresh
 	});
 };
 
-type SubmitWorkflowVariables = {
+type SubmitCrawlerRunVariables = {
 	// The namespace of the crawler template
-	workflowTemplateNamespace: string;
+	crawlerTemplateNamespace: string;
 	// The name of the crawler template (unique within the namespace)
-	workflowTemplateName: string;
+	crawlerTemplateName: string;
 	parameters: { name: string; value: string }[];
 };
 
-export const useSubmitWorkflowTemplateRun = () => {
+export const useSubmitCrawlerTemplateRun = () => {
 	const queryClient = useQueryClient();
 
 	return useMutation({
-		mutationFn: (params: SubmitWorkflowVariables) =>
-			crawlerTemplateService.submitWorkflowTemplateRun(
-				params.workflowTemplateNamespace,
-				params.workflowTemplateName,
+		mutationFn: (params: SubmitCrawlerRunVariables) =>
+			crawlerTemplateService.submitCrawlerTemplateRun(
+				params.crawlerTemplateNamespace,
+				params.crawlerTemplateName,
 				params.parameters,
 			),
 		onSuccess: () => {
-			queryClient.invalidateQueries({ queryKey: ['workflowRuns'] });
+			queryClient.invalidateQueries({ queryKey: ['crawlerRuns'] });
 		},
 	});
 };

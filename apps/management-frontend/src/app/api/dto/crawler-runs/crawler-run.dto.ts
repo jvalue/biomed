@@ -1,4 +1,4 @@
-export enum WorkflowPhaseEnum {
+export enum CrawlerRunPhaseEnum {
 	PENDING = 'Pending',
 	RUNNING = 'Running',
 	SUCCEEDED = 'Succeeded',
@@ -9,9 +9,9 @@ export enum WorkflowPhaseEnum {
 export class CrawlerRunDto {
 	name!: string;
 	namespace!: string;
-	workflowTemplateName!: string;
+	crawlerTemplateName!: string;
 	scheduleName?: string;
-	phase!: WorkflowPhaseEnum;
+	phase!: CrawlerRunPhaseEnum;
 	startedAt?: Date;
 	finishedAt?: Date;
 }

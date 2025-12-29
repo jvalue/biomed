@@ -99,7 +99,7 @@ function RouteComponent() {
 									Crawler:
 								</CardDescription>
 								<CardTitle className="text-primary text-xl">
-									{schedule?.workflowTemplateName ?? '-'}
+									{schedule?.crawlerTemplateName ?? '-'}
 								</CardTitle>
 							</CardHeader>
 						</Card>

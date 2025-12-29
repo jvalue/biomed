@@ -1,15 +1,15 @@
 import { Injectable, Logger } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import axios, { AxiosInstance } from 'axios';
+import { CrawlerRunDto } from '../crawler-runs/dto/crawler-run.dto';
+import { CrawlerRunFilterDto } from '../crawler-runs/dto/crawler-run-filter.dto';
+import { CrawlerRunParameterDto } from '../crawler-runs/dto/crawler-run-parameter.dto';
+import { CrawlerTemplateDto } from '../crawler-templates/dto/crawler-template.dto';
+import { CrawlerTemplatesFilterDto } from '../crawler-templates/dto/crawler-templates-filter.dto';
 import { EnvironmentVariables } from '../env.validation';
 import { CursorBasedPaginationRequestDto } from '../pagination/dto/cursor-based-pagination-request.dto';
 import { CursorBasedPaginationResponseDto } from '../pagination/dto/cursor-based-pagination-response.dto';
 import { ScheduleDto } from '../schedules/dto/schedule.dto';
-import { WorkflowRunDto } from '../workflow-runs/dto/workflow-run.dto';
-import { WorkflowRunFilterDto } from '../workflow-runs/dto/workflow-run-filter.dto';
-import { WorkflowRunParameterDto } from '../workflow-runs/dto/workflow-run-parameter.dto';
-import { WorkflowTemplateDto } from '../workflow-templates/dto/workflow-template.dto';
-import { WorkflowTemplatesFilterDto } from '../workflow-templates/dto/workflow-templates-filter.dto';
 import { ArgoAuthService } from './argo-auth/argo-auth.service';
 import { ArgoCursorPaginatedListDto } from './dto/argo-cursor-paginated-list-dto';
 import { ArgoCronWorkflowDto } from './dto/cron-workflows/argo-cron-workflow.dto';
@@ -53,9 +53,9 @@ export class ArgoClientService {
 	 * @param paginationOptions Options for cursor-based pagination
 	 */
 	async listWorkflows(
-		filterOptions?: WorkflowRunFilterDto,
+		filterOptions?: CrawlerRunFilterDto,
 		paginationOptions?: CursorBasedPaginationRequestDto,
-	): Promise<CursorBasedPaginationResponseDto<WorkflowRunDto>> {
+	): Promise<CursorBasedPaginationResponseDto<CrawlerRunDto>> {
 		this.logger.log('Listing workflows from Argo Workflows API');
 		const requestedFields = [
 			'metadata.continue',
@@ -71,7 +71,7 @@ export class ArgoClientService {
 		// Label selectors
 		argoQueryParamBuilder.addLabelSelector(
 			'workflows.argoproj.io/workflow-template',
-			filterOptions?.workflowTemplateName,
+			filterOptions?.crawlerTemplateName,
 		);
 		argoQueryParamBuilder.addLabelSelector(
 			'workflows.argoproj.io/cron-workflow',
@@ -121,8 +121,8 @@ export class ArgoClientService {
 	 * @param filterOptions
 	 */
 	async listWorkflowTemplates(
-		filterOptions?: WorkflowTemplatesFilterDto,
-	): Promise<WorkflowTemplateDto[]> {
+		filterOptions?: CrawlerTemplatesFilterDto,
+	): Promise<CrawlerTemplateDto[]> {
 		this.logger.log('Listing workflow templates from Argo Workflows API');
 
 		const argoQueryParamBuilder = new ArgoQueryParamBuilder();
@@ -159,8 +159,8 @@ export class ArgoClientService {
 	async submitWorkflowFromTemplate(
 		workflowTemplateName: string,
 		workflowTemplateNamespace: string,
-		parameters?: WorkflowRunParameterDto[],
-	): Promise<WorkflowRunDto> {
+		parameters?: CrawlerRunParameterDto[],
+	): Promise<CrawlerRunDto> {
 		this.logger.log(
 			`Starting new workflow from template ${workflowTemplateName} in namespace ${workflowTemplateNamespace}`,
 		);
@@ -274,18 +274,18 @@ export class ArgoClientService {
 	 * @param runs Workflow runs to enrich
 	 */
 	async enrichWorkflowRunsWithCronWorkflowTemplateName(
-		runs: WorkflowRunDto[],
-	): Promise<WorkflowRunDto[]> {
-		const enrichedRuns: WorkflowRunDto[] = [];
+		runs: CrawlerRunDto[],
+	): Promise<CrawlerRunDto[]> {
+		const enrichedRuns: CrawlerRunDto[] = [];
 
 		for (const run of runs) {
-			if (!run.workflowTemplateName && run.scheduleName) {
+			if (!run.crawlerTemplateName && run.scheduleName) {
 				const schedule = await this.getCronWorkflowByNameAndNamespace(
 					run.scheduleName,
 					run.namespace,
 				);
 				if (schedule) {
-					run.workflowTemplateName = schedule.workflowTemplateName;
+					run.crawlerTemplateName = schedule.crawlerTemplateName;
 				}
 			}
 			enrichedRuns.push(run);

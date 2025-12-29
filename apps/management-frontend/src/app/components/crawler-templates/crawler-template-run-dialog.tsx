@@ -1,7 +1,7 @@
 import { useRouter } from '@tanstack/react-router';
 import React, { useState } from 'react';
-import { CrawlerTemplateDto } from '@/src/app/api/dto/workflow-template/crawler-template.dto';
-import { useSubmitWorkflowTemplateRun } from '@/src/app/api/hooks/useCrawlerTemplates';
+import { CrawlerTemplateDto } from '@/src/app/api/dto/crawler-templates/crawler-template.dto';
+import { useSubmitCrawlerTemplateRun } from '@/src/app/api/hooks/useCrawlerTemplates';
 import { Button } from '@/src/app/components/design-components/button';
 import {
 	Dialog,
@@ -14,7 +14,7 @@ import {
 import { Input } from '@/src/app/components/design-components/input';
 import { Label } from '@/src/app/components/design-components/label';
 
-export interface WorkflowTemplateRunDialogProps {
+export interface CrawlerTemplateRunDialogProps {
 	template: CrawlerTemplateDto | null;
 	open: boolean;
 	onOpenChange: (open: boolean) => void;
@@ -24,9 +24,9 @@ export default function CrawlerTemplateRunDialog({
 	template,
 	open,
 	onOpenChange,
-}: WorkflowTemplateRunDialogProps) {
+}: CrawlerTemplateRunDialogProps) {
 	const router = useRouter();
-	const submit = useSubmitWorkflowTemplateRun();
+	const submit = useSubmitCrawlerTemplateRun();
 	const [parameters, setParameters] = useState<Record<string, string>>({});
 
 	React.useEffect(() => {
@@ -49,8 +49,8 @@ export default function CrawlerTemplateRunDialog({
 
 		submit.mutate(
 			{
-				workflowTemplateNamespace: template.namespace,
-				workflowTemplateName: template.name,
+				crawlerTemplateNamespace: template.namespace,
+				crawlerTemplateName: template.name,
 				parameters: paramArray,
 			},
 			{
