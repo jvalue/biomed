@@ -12,7 +12,7 @@ import { ArgoWorkflowRunDto } from '../dto/workflow-runs/argo-workflow-run.dto';
 import { ArgoWorkflowTemplateDto } from '../dto/workflow-templates/argo-workflow-template.dto';
 
 /**
- * Maps ArgoWorkflowRunDto to WorkflowRunDto
+ * Maps ArgoWorkflowRunDto to CrawlerRunDto
  * @param run
  */
 export function mapArgoWorkflowRunDtoToWorkflowRunDto(run: ArgoWorkflowRunDto): WorkflowRunDto {
@@ -30,7 +30,7 @@ export function mapArgoWorkflowRunDtoToWorkflowRunDto(run: ArgoWorkflowRunDto): 
 }
 
 /**
- * Maps ArgoWorkflowTemplateDto to WorkflowTemplateDto
+ * Maps ArgoWorkflowTemplateDto to CrawlerTemplateDto
  * @param template
  */
 export function mapArgoWorkflowTemplateDtoToWorkflowTemplateDto(

@@ -1,9 +1,9 @@
+import CrawlerRunsTable from '@/src/app/components/crawler-runs/crawler-runs-table';
 import { Spinner } from '@/src/app/components/design-components/spinner';
-import WorkflowRunsTable from '@/src/app/components/workflows/workflow-runs-table';
-import { useWorkflowRuns } from '../../api/hooks/useWorkflowRuns';
+import { useCrawlerRuns } from '../../api/hooks/useCrawlerRuns';
 
-export default function WorkflowList() {
-	const { data, isLoading, error } = useWorkflowRuns();
+export default function CrawlerRunList() {
+	const { data, isLoading, error } = useCrawlerRuns();
 
 	if (isLoading)
 		return (
@@ -20,7 +20,7 @@ export default function WorkflowList() {
 				In the following table you can see all runs (finished and still running) sorted by starting
 				date.
 			</p>
-			<WorkflowRunsTable runs={data?.data}></WorkflowRunsTable>
+			<CrawlerRunsTable runs={data?.data}></CrawlerRunsTable>
 		</div>
 	);
 }

@@ -1,7 +1,7 @@
 import { useRouter } from '@tanstack/react-router';
 import React, { useState } from 'react';
-import { WorkflowTemplateDto } from '@/src/app/api/dto/workflow-template/workflow-template.dto';
-import { useSubmitWorkflowTemplateRun } from '@/src/app/api/hooks/useWorkflowTemplates';
+import { CrawlerTemplateDto } from '@/src/app/api/dto/workflow-template/crawler-template.dto';
+import { useSubmitWorkflowTemplateRun } from '@/src/app/api/hooks/useCrawlerTemplates';
 import { Button } from '@/src/app/components/design-components/button';
 import {
 	Dialog,
@@ -15,12 +15,12 @@ import { Input } from '@/src/app/components/design-components/input';
 import { Label } from '@/src/app/components/design-components/label';
 
 export interface WorkflowTemplateRunDialogProps {
-	template: WorkflowTemplateDto | null;
+	template: CrawlerTemplateDto | null;
 	open: boolean;
 	onOpenChange: (open: boolean) => void;
 }
 
-export default function WorkflowTemplateRunDialog({
+export default function CrawlerTemplateRunDialog({
 	template,
 	open,
 	onOpenChange,
@@ -57,8 +57,8 @@ export default function WorkflowTemplateRunDialog({
 				onSuccess: () => {
 					onOpenChange(false);
 					setParameters({});
-					// Redirect to workflow list page
-					router.navigate({ to: '/workflow-list' });
+					// Redirect to crawler-runs page
+					router.navigate({ to: '/crawler-runs' });
 				},
 			},
 		);
@@ -77,9 +77,9 @@ export default function WorkflowTemplateRunDialog({
 		<Dialog open={open} onOpenChange={onOpenChange}>
 			<DialogContent className="sm:max-w-[500px]">
 				<DialogHeader>
-					<DialogTitle>Submit workflow run</DialogTitle>
+					<DialogTitle>Submit crawler run</DialogTitle>
 					<DialogDescription>
-						Submit a new workflow run for template: <strong>{template.name}</strong>
+						Submit a new run for crawler template: <strong>{template.name}</strong>
 					</DialogDescription>
 				</DialogHeader>
 

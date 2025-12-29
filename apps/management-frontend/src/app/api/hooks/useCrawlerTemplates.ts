@@ -1,18 +1,18 @@
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
-import { workflowTemplateService } from '@/src/app/api/services/workflow-template-service';
+import { crawlerTemplateService } from '@/src/app/api/services/crawler-template-service';
 
-export const useWorkflowTemplates = () => {
+export const useCrawlerTemplates = () => {
 	return useQuery({
 		queryKey: ['workflowTemplates'],
-		queryFn: workflowTemplateService.getWorkflowTemplates,
+		queryFn: crawlerTemplateService.getWorkflowTemplates,
 		refetchInterval: 10000, // Auto-refresh
 	});
 };
 
 type SubmitWorkflowVariables = {
-	// The namespace of the workflow template
+	// The namespace of the crawler template
 	workflowTemplateNamespace: string;
-	// The name of the workflow template (unique within the namespace)
+	// The name of the crawler template (unique within the namespace)
 	workflowTemplateName: string;
 	parameters: { name: string; value: string }[];
 };
@@ -22,7 +22,7 @@ export const useSubmitWorkflowTemplateRun = () => {
 
 	return useMutation({
 		mutationFn: (params: SubmitWorkflowVariables) =>
-			workflowTemplateService.submitWorkflowTemplateRun(
+			crawlerTemplateService.submitWorkflowTemplateRun(
 				params.workflowTemplateNamespace,
 				params.workflowTemplateName,
 				params.parameters,

@@ -6,7 +6,7 @@ export enum WorkflowPhaseEnum {
 	ERROR = 'Error',
 }
 
-export class WorkflowRunDto {
+export class CrawlerRunDto {
 	name!: string;
 	namespace!: string;
 	workflowTemplateName!: string;

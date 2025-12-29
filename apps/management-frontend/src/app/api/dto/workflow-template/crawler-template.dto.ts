@@ -3,7 +3,7 @@ class WorkflowTemplateParameterDto {
 	defaultValue?: string;
 }
 
-export class WorkflowTemplateDto {
+export class CrawlerTemplateDto {
 	name!: string;
 
 	namespace!: string;
