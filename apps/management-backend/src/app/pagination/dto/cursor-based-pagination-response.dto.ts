@@ -5,7 +5,7 @@ import { IsBoolean } from 'class-validator';
 class CursorBasedPaginationMetadata {
 	@ApiProperty({
 		type: Boolean,
-		description: 'Indicates if there is a next page of workflow runs available',
+		description: 'Indicates if there is a next page of items available',
 	})
 	@IsBoolean()
 	hasMore!: boolean;

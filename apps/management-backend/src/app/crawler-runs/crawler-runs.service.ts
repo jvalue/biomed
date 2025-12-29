@@ -2,22 +2,23 @@ import { Injectable } from '@nestjs/common';
 import { ArgoClientService } from '../argo-client/argo-client.service';
 import { CursorBasedPaginationRequestDto } from '../pagination/dto/cursor-based-pagination-request.dto';
 import { CursorBasedPaginationResponseDto } from '../pagination/dto/cursor-based-pagination-response.dto';
-import { WorkflowRunDto } from './dto/workflow-run.dto';
-import { WorkflowRunFilterDto } from './dto/workflow-run-filter.dto';
+import { CrawlerRunDto } from './dto/crawler-run.dto';
+import { CrawlerRunFilterDto } from './dto/crawler-run-filter.dto';
 
 @Injectable()
-export class WorkflowRunsService {
+export class CrawlerRunsService {
 	constructor(private readonly argoClientService: ArgoClientService) {}
 
 	/**
-	 * Lists all Argo Workflows.
+	 * Lists all Crawler Runs.
 	 * @param filter Optional filtering options
 	 * @param pagination Optional pagination options
 	 */
-	async listWorkflows(
-		filter?: WorkflowRunFilterDto,
+	async listCrawlerRuns(
+		filter?: CrawlerRunFilterDto,
 		pagination?: CursorBasedPaginationRequestDto,
-	): Promise<CursorBasedPaginationResponseDto<WorkflowRunDto>> {
+	): Promise<CursorBasedPaginationResponseDto<CrawlerRunDto>> {
+		// TODO: Add Interface between ArgoClientService and CrawlerRunsService
 		return this.argoClientService.listWorkflows(filter, pagination);
 	}
 }

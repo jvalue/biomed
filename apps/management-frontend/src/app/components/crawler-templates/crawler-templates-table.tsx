@@ -1,7 +1,7 @@
 import { Can } from '@casl/react';
 import { Plus } from 'lucide-react';
 import { useState } from 'react';
-import { CrawlerTemplateDto } from '@/src/app/api/dto/workflow-template/crawler-template.dto';
+import { CrawlerTemplateDto } from '@/src/app/api/dto/crawler-templates/crawler-template.dto';
 import CrawlerTemplateRunDialog from '@/src/app/components/crawler-templates/crawler-template-run-dialog';
 import { Button } from '@/src/app/components/design-components/button';
 import {
@@ -15,11 +15,11 @@ import {
 } from '@/src/app/components/design-components/table';
 import { useAuth } from '../../contexts/AuthContext';
 
-export interface WorkflowTemplatesTableProps {
+export interface CrawlerTemplatesTableProps {
 	templates?: CrawlerTemplateDto[];
 }
 
-export default function CrawlerTemplatesTable({ templates = [] }: WorkflowTemplatesTableProps) {
+export default function CrawlerTemplatesTable({ templates = [] }: CrawlerTemplatesTableProps) {
 	const { ability } = useAuth();
 	const [selectedTemplate, setSelectedTemplate] = useState<CrawlerTemplateDto | null>(null);
 	const [dialogOpen, setDialogOpen] = useState(false);

@@ -1,19 +1,19 @@
-import { CrawlerTemplateDto } from '@/src/app/api/dto/workflow-template/crawler-template.dto';
+import { CrawlerTemplateDto } from '@/src/app/api/dto/crawler-templates/crawler-template.dto';
 import { managementBackendClient } from '../management-backend-client';
 
 export const crawlerTemplateService = {
-	getWorkflowTemplates: async (): Promise<CrawlerTemplateDto[]> => {
-		const { data } = await managementBackendClient.get('workflow-templates');
+	getCrawlerTemplates: async (): Promise<CrawlerTemplateDto[]> => {
+		const { data } = await managementBackendClient.get('crawler-templates');
 		return data;
 	},
 
-	submitWorkflowTemplateRun: async (
+	submitCrawlerTemplateRun: async (
 		namespace: string,
 		templateName: string,
 		parameters?: { name: string; value: string }[],
 	): Promise<void> => {
 		await managementBackendClient.post(
-			`workflow-templates/${namespace}/${templateName}/submit`,
+			`crawler-templates/${namespace}/${templateName}/submit`,
 			parameters,
 		);
 	},

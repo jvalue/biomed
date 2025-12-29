@@ -1,4 +1,4 @@
-class WorkflowTemplateParameterDto {
+class CrawlerTemplateParameterDto {
 	name!: string;
 	defaultValue?: string;
 }
@@ -10,7 +10,7 @@ export class CrawlerTemplateDto {
 
 	createdAt!: Date;
 
-	parameters?: WorkflowTemplateParameterDto[];
+	parameters?: CrawlerTemplateParameterDto[];
 
 	templateVersion?: string;
 }

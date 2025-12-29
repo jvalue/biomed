@@ -3,16 +3,16 @@ import { Transform, Type } from 'class-transformer';
 import { IsArray, IsDate, IsEnum, IsOptional, IsString } from 'class-validator';
 import { WorkflowPhaseEnum } from '../../argo-client/enums/workflow-phase.enum';
 
-export class WorkflowRunFilterDto {
+export class CrawlerRunFilterDto {
 	@ApiProperty({ type: String, required: false, description: 'Kubernetes Namespace' })
 	@IsOptional()
 	@IsString()
 	namespace?: string;
 
-	@ApiProperty({ type: String, required: false, description: 'Workflow template name' })
+	@ApiProperty({ type: String, required: false, description: 'crawler template name' })
 	@IsOptional()
 	@IsString()
-	workflowTemplateName?: string;
+	crawlerTemplateName?: string;
 
 	@ApiProperty({ type: String, required: false, description: 'Schedule name' })
 	@IsOptional()
@@ -24,7 +24,7 @@ export class WorkflowRunFilterDto {
 		enumName: 'WorkflowPhaseEnum',
 		isArray: true,
 		required: false,
-		description: 'Filter by workflow phases',
+		description: 'Filter by crawler run phases',
 	})
 	@IsOptional()
 	@IsArray()
