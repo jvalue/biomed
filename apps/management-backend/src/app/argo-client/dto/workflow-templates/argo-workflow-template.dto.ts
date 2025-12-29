@@ -1,6 +1,12 @@
 import { Type } from 'class-transformer';
 import { IsArray, IsDate, IsOptional, IsString } from 'class-validator';
 
+class ArgoWorkflowTemplateMetadataLabelsDto {
+	@IsString()
+	@IsOptional()
+	'template-version'?: string;
+}
+
 class ArgoWorkflowTemplateMetadataDto {
 	@IsString()
 	name!: string;
@@ -11,6 +17,10 @@ class ArgoWorkflowTemplateMetadataDto {
 	@Type(() => Date)
 	@IsDate()
 	creationTimestamp!: Date;
+
+	@Type(() => ArgoWorkflowTemplateMetadataLabelsDto)
+	@IsOptional()
+	labels?: ArgoWorkflowTemplateMetadataLabelsDto;
 }
 
 class ArgoWorkflowTemplateSpecDtoArgumentsParametersDto {
@@ -24,6 +34,7 @@ class ArgoWorkflowTemplateSpecDtoArgumentsParametersDto {
 
 class ArgoWorkflowTemplateSpecArgumentsDto {
 	@IsArray()
+	@IsOptional()
 	parameters?: ArgoWorkflowTemplateSpecDtoArgumentsParametersDto[];
 }
 
@@ -38,5 +49,6 @@ export class ArgoWorkflowTemplateDto {
 	metadata!: ArgoWorkflowTemplateMetadataDto;
 
 	@Type(() => ArgoWorkflowTemplateSpecDto)
-	spec!: ArgoWorkflowTemplateSpecDto;
+	@IsOptional()
+	spec?: ArgoWorkflowTemplateSpecDto;
 }

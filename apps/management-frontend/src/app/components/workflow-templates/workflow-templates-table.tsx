@@ -37,6 +37,7 @@ export default function WorkflowTemplatesTable({ templates = [] }: WorkflowTempl
 					<TableRow>
 						<TableHead className="text-primary">Name/ID</TableHead>
 						<TableHead className="text-primary">Namespace</TableHead>
+						<TableHead className="text-primary">Template Version</TableHead>
 						<TableHead className="text-primary">Created at</TableHead>
 						<TableHead className="text-primary">Start run</TableHead>
 					</TableRow>
@@ -46,6 +47,7 @@ export default function WorkflowTemplatesTable({ templates = [] }: WorkflowTempl
 						<TableRow key={template.name}>
 							<TableCell>{template.name}</TableCell>
 							<TableCell>{template.namespace}</TableCell>
+							<TableCell>{template.templateVersion || '-'}</TableCell>
 							<TableCell>{new Date(template.createdAt).toLocaleString()}</TableCell>
 							<TableCell>
 								<Can ability={ability} I="create" a="workflow">
@@ -53,6 +55,7 @@ export default function WorkflowTemplatesTable({ templates = [] }: WorkflowTempl
 										size="icon"
 										className="bg-green-500 text-white hover:bg-green-700"
 										onClick={() => openDialog(template)}
+										aria-label="Start crawler run"
 									>
 										<Plus />
 									</Button>

@@ -42,4 +42,13 @@ export class WorkflowTemplateDto {
 	@IsOptional()
 	@IsArray()
 	parameters?: WorkflowTemplateParameterDto[];
+
+	@ApiProperty({
+		type: String,
+		description: 'The version of the workflow template',
+		required: false,
+	})
+	@IsString()
+	@IsOptional()
+	templateVersion?: string;
 }

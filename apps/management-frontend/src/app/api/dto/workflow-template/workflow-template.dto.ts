@@ -11,4 +11,6 @@ export class WorkflowTemplateDto {
 	createdAt!: Date;
 
 	parameters?: WorkflowTemplateParameterDto[];
+
+	templateVersion?: string;
 }
