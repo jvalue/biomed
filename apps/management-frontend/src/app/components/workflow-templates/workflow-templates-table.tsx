@@ -1,5 +1,5 @@
 import { Can } from '@casl/react';
-import { Plus } from 'lucide-react';
+import { Calendar, Plus } from 'lucide-react';
 import { useState } from 'react';
 import { WorkflowTemplateDto } from '@/src/app/api/dto/workflow-template/workflow-template.dto';
 import { Button } from '@/src/app/components/design-components/button';
@@ -13,6 +13,7 @@ import {
 	TableRow,
 } from '@/src/app/components/design-components/table';
 import WorkflowTemplateRunDialog from '@/src/app/components/workflow-templates/workflow-template-run-dialog';
+import WorkflowTemplateScheduleDialog from '@/src/app/components/workflow-templates/workflow-template-schedule-dialog';
 import { useAuth } from '../../contexts/AuthContext';
 
 export interface WorkflowTemplatesTableProps {
@@ -23,10 +24,16 @@ export default function WorkflowTemplatesTable({ templates = [] }: WorkflowTempl
 	const { ability } = useAuth();
 	const [selectedTemplate, setSelectedTemplate] = useState<WorkflowTemplateDto | null>(null);
 	const [dialogOpen, setDialogOpen] = useState(false);
+	const [scheduleDialogOpen, setScheduleDialogOpen] = useState(false);
 
 	const openDialog = (template: WorkflowTemplateDto) => {
 		setSelectedTemplate(template);
 		setDialogOpen(true);
+	};
+
+	const openScheduleDialog = (template: WorkflowTemplateDto) => {
+		setSelectedTemplate(template);
+		setScheduleDialogOpen(true);
 	};
 
 	return (
@@ -39,7 +46,8 @@ export default function WorkflowTemplatesTable({ templates = [] }: WorkflowTempl
 						<TableHead className="text-primary">Namespace</TableHead>
 						<TableHead className="text-primary">Template Version</TableHead>
 						<TableHead className="text-primary">Created at</TableHead>
-						<TableHead className="text-primary">Start run</TableHead>
+						<TableHead className="text-primary">Start Run</TableHead>
+						<TableHead className="text-primary">Add Schedule</TableHead>
 					</TableRow>
 				</TableHeader>
 				<TableBody>
@@ -62,6 +70,17 @@ export default function WorkflowTemplatesTable({ templates = [] }: WorkflowTempl
 									</Button>
 								</Can>
 							</TableCell>
+							<TableCell>
+								<Can ability={ability} I="create" a="schedule">
+									<Button
+										size="icon"
+										className="bg-blue-500 text-white hover:bg-blue-700"
+										onClick={() => openScheduleDialog(template)}
+									>
+										<Calendar />
+									</Button>
+								</Can>
+							</TableCell>
 						</TableRow>
 					))}
 				</TableBody>
@@ -70,6 +89,11 @@ export default function WorkflowTemplatesTable({ templates = [] }: WorkflowTempl
 				template={selectedTemplate}
 				open={dialogOpen}
 				onOpenChange={setDialogOpen}
+			/>
+			<WorkflowTemplateScheduleDialog
+				template={selectedTemplate}
+				open={scheduleDialogOpen}
+				onOpenChange={setScheduleDialogOpen}
 			/>
 		</>
 	);

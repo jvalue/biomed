@@ -1,4 +1,4 @@
-class ScheduleParameterDto {
+export class ScheduleParameterDto {
 	name!: string;
 
 	value!: string;
