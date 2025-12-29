@@ -39,6 +39,7 @@ export function mapArgoWorkflowTemplateDtoToWorkflowTemplateDto(
 		name: param.name,
 		defaultValue: param.value,
 	}));
+	workflowTemplate.templateVersion = template.metadata.labels['template-version'];
 	return workflowTemplate;
 }
 

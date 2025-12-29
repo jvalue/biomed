@@ -174,7 +174,12 @@ export class ArgoClientService {
 			// Map ArgoWorkflowRunDto to WorkflowRunDto
 			return mapArgoWorkflowRunDtoToWorkflowRunDto(workflowResponse);
 		} catch (err) {
-			this.logger.error('Error starting workflow from template:', err);
+			this.logger.error(
+				`Error starting workflow from template "${workflowTemplateName}" in namespace "${workflowTemplateNamespace}". ` +
+					`Parameters: ${JSON.stringify(parameters ?? [])}. URL: ${url}. Body: ${JSON.stringify(body)}.`,
+				err instanceof Error ? err.stack : undefined,
+				'ArgoClientService',
+			);
 			throw err;
 		}
 	}
