@@ -3,9 +3,11 @@
  */
 
 import { CursorBasedPaginationResponseDto } from '../../pagination/dto/cursor-based-pagination-response.dto';
+import { ScheduleDto } from '../../schedules/dto/schedule.dto';
 import { WorkflowRunDto } from '../../workflow-runs/dto/workflow-run.dto';
 import { WorkflowTemplateDto } from '../../workflow-templates/dto/workflow-template.dto';
 import { ArgoCursorPaginatedListDto } from '../dto/argo-cursor-paginated-list-dto';
+import { ArgoCronWorkflowDto } from '../dto/cron-workflows/argo-cron-workflow.dto';
 import { ArgoWorkflowRunDto } from '../dto/workflow-runs/argo-workflow-run.dto';
 import { ArgoWorkflowTemplateDto } from '../dto/workflow-templates/argo-workflow-template.dto';
 
@@ -17,7 +19,10 @@ export function mapArgoWorkflowRunDtoToWorkflowRunDto(run: ArgoWorkflowRunDto): 
 	const workflowRun = new WorkflowRunDto();
 	workflowRun.name = run.metadata.name;
 	workflowRun.namespace = run.metadata.namespace;
-	workflowRun.workflowTemplateName = run.metadata.labels['workflows.argoproj.io/workflow-template'];
+	workflowRun.workflowTemplateName =
+		run.metadata.labels['workflows.argoproj.io/workflow-template'] ??
+		run.metadata.labels.customSetWorkflowTemplateName;
+	workflowRun.scheduleName = run.metadata.labels['workflows.argoproj.io/cron-workflow'];
 	workflowRun.phase = run.status.phase;
 	workflowRun.startedAt = run.status.startedAt;
 	workflowRun.finishedAt = run.status.finishedAt;
@@ -41,6 +46,34 @@ export function mapArgoWorkflowTemplateDtoToWorkflowTemplateDto(
 	}));
 	workflowTemplate.templateVersion = template.metadata.labels['template-version'];
 	return workflowTemplate;
+}
+
+/**
+ * Maps ArgoCronWorkflowDto to ScheduleDto
+ * @param cronWorkflow
+ */
+export function mapArgoCronWorkflowDtoToScheduleDto(
+	cronWorkflow: ArgoCronWorkflowDto,
+): ScheduleDto {
+	const schedule = new ScheduleDto();
+	schedule.name = cronWorkflow.metadata.name;
+	schedule.namespace = cronWorkflow.metadata.namespace;
+	// We filter for cron workflows that reference a workflow template, so this should always be defined
+	schedule.workflowTemplateName = cronWorkflow.spec.workflowSpec.workflowTemplateRef?.name ?? '';
+	schedule.parameters =
+		cronWorkflow.spec.workflowSpec.arguments?.parameters?.map((param) => ({
+			name: param.name,
+			value: param.value,
+		})) ?? [];
+	schedule.schedule = cronWorkflow.spec.schedules ? cronWorkflow.spec.schedules[0] : '';
+	schedule.suspended = cronWorkflow.spec.suspend;
+	schedule.createdAt = cronWorkflow.metadata.creationTimestamp;
+	schedule.statistics = {
+		successfulRuns: cronWorkflow.status.succeeded,
+		failedRuns: cronWorkflow.status.failed,
+	};
+
+	return schedule;
 }
 
 /**

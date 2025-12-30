@@ -3,8 +3,11 @@ import { WorkflowRunDto } from '@/src/app/api/dto/workflow/workflow-run.dto';
 import { managementBackendClient } from '../management-backend-client';
 
 export const workflowService = {
-	getWorkflowRuns: async (): Promise<CursorBasedPaginationResponseDto<WorkflowRunDto>> => {
-		const { data } = await managementBackendClient.get('workflow-runs');
+	getWorkflowRuns: async (
+		scheduleName?: string,
+	): Promise<CursorBasedPaginationResponseDto<WorkflowRunDto>> => {
+		const path = `workflow-runs${scheduleName ? `?scheduleName=${encodeURIComponent(scheduleName)}` : ''}`;
+		const { data } = await managementBackendClient.get(path);
 		return data;
 	},
 };
