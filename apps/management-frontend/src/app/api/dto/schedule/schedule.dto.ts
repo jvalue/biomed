@@ -13,7 +13,7 @@ class ScheduleStatisticsDto {
 export class ScheduleDto {
 	name!: string;
 
-	workflowTemplateName!: string;
+	crawlerTemplateName!: string;
 
 	namespace!: string;
 

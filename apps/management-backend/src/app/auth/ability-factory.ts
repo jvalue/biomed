@@ -15,17 +15,17 @@ export class AbilityFactory {
 
 		//  Fine-grained permission mapping
 		const permissionMap: Record<UserPermission, () => void> = {
-			// Workflow Permissions
-			[UserPermission.WORKFLOW_CREATE]: () => can('create', 'workflow'),
-			[UserPermission.WORKFLOW_READ]: () => can('read', 'workflow'),
-			[UserPermission.WORKFLOW_UPDATE]: () => can('update', 'workflow'),
-			[UserPermission.WORKFLOW_DELETE]: () => can('delete', 'workflow'),
+			// Crawler Run Permissions
+			[UserPermission.CRAWLER_RUN_CREATE]: () => can('create', 'crawler-run'),
+			[UserPermission.CRAWLER_RUN_READ]: () => can('read', 'crawler-run'),
+			[UserPermission.CRAWLER_RUN_UPDATE]: () => can('update', 'crawler-run'),
+			[UserPermission.CRAWLER_RUN_DELETE]: () => can('delete', 'crawler-run'),
 
-			// Template Permissions
-			[UserPermission.TEMPLATE_CREATE]: () => can('create', 'template'),
-			[UserPermission.TEMPLATE_READ]: () => can('read', 'template'),
-			[UserPermission.TEMPLATE_UPDATE]: () => can('update', 'template'),
-			[UserPermission.TEMPLATE_DELETE]: () => can('delete', 'template'),
+			// Crawler Template Permissions
+			[UserPermission.CRAWLER_TEMPLATE_CREATE]: () => can('create', 'crawler-template'),
+			[UserPermission.CRAWLER_TEMPLATE_READ]: () => can('read', 'crawler-template'),
+			[UserPermission.CRAWLER_TEMPLATE_UPDATE]: () => can('update', 'crawler-template'),
+			[UserPermission.CRAWLER_TEMPLATE_DELETE]: () => can('delete', 'crawler-template'),
 
 			// Schedule Permissions
 			[UserPermission.SCHEDULE_CREATE]: () => can('create', 'schedule'),

@@ -5,14 +5,14 @@ import { IsArray, IsBoolean, IsDate, IsNumber, IsString } from 'class-validator'
 export class ScheduleParameterDto {
 	@ApiProperty({
 		type: String,
-		description: 'The name of the parameter which the schedule passes to the workflow template',
+		description: 'The name of the parameter which the schedule passes to the crawler template',
 	})
 	@IsString()
 	name!: string;
 
 	@ApiProperty({
 		type: String,
-		description: 'The value of the parameter which the schedule passes to the workflow template',
+		description: 'The value of the parameter which the schedule passes to the crawler template',
 	})
 	@IsString()
 	value!: string;
@@ -41,10 +41,10 @@ export class ScheduleDto {
 
 	@ApiProperty({
 		type: String,
-		description: 'The name of the workflow template which the schedule triggers',
+		description: 'The name of the crawler template which the schedule triggers',
 	})
 	@IsString()
-	workflowTemplateName!: string;
+	crawlerTemplateName!: string;
 
 	@ApiProperty({ type: String, description: 'The Kubernetes Namespace, the schedule belongs to' })
 	@IsString()
@@ -52,7 +52,7 @@ export class ScheduleDto {
 
 	@ApiProperty({
 		type: [ScheduleParameterDto],
-		description: 'The parameters which the schedule passes to the workflow template',
+		description: 'The parameters which the schedule passes to the crawler template',
 	})
 	@IsArray()
 	parameters!: ScheduleParameterDto[];

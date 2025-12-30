@@ -5,13 +5,13 @@ import { AppController } from './app.controller';
 import { AppService } from './app.service';
 import { AdminBootstrapService } from './auth/admin-bootstrap.service';
 import { AuthModule } from './auth/auth.module';
+import { CrawlerRunsModule } from './crawler-runs/crawler-runs.module';
+import { CrawlerTemplatesModule } from './crawler-templates/crawler-templates.module';
 import { DbConfigService } from './db-config.service';
 import { DemoModule } from './demo/demo.module';
 import { validate } from './env.validation';
 import { SchedulesModule } from './schedules/schedules.module';
 import { UsersModule } from './users/users.module';
-import { WorkflowRunsModule } from './workflow-runs/workflow-runs.module';
-import { WorkflowTemplatesModule } from './workflow-templates/workflow-templates.module';
 
 @Module({
 	imports: [
@@ -26,8 +26,8 @@ import { WorkflowTemplatesModule } from './workflow-templates/workflow-templates
 		DemoModule,
 		UsersModule,
 		AuthModule,
-		WorkflowRunsModule,
-		WorkflowTemplatesModule,
+		CrawlerRunsModule,
+		CrawlerTemplatesModule,
 		SchedulesModule,
 	],
 	controllers: [AppController],

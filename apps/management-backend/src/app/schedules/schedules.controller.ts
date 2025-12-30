@@ -27,7 +27,7 @@ export class SchedulesController {
 		description: 'You do not have permission to access schedules or templates',
 	})
 	@RequirePermission('read', 'schedule')
-	@RequirePermission('read', 'template')
+	@RequirePermission('read', 'crawler-template')
 	@Get()
 	async listSchedules(): Promise<ScheduleDto[]> {
 		return this.schedulesService.listSchedules();
@@ -40,7 +40,7 @@ export class SchedulesController {
 		description: 'You do not have permission to access schedules or templates',
 	})
 	@RequirePermission('read', 'schedule')
-	@RequirePermission('read', 'template')
+	@RequirePermission('read', 'crawler-template')
 	@ApiParam({ name: 'namespace', description: 'The namespace of the Schedule' })
 	@ApiParam({ name: 'name', description: 'The name of the Schedule' })
 	@Get(':namespace/:name')

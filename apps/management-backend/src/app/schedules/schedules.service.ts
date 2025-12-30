@@ -17,7 +17,7 @@ export class SchedulesService {
 	 * Lists all Schedules
 	 */
 	async listSchedules(): Promise<ScheduleDto[]> {
-		return this.argoClientService.listCronWorkflows();
+		return this.argoClientService.listSchedules();
 	}
 
 	/**
@@ -27,7 +27,7 @@ export class SchedulesService {
 	 * @returns The Schedule
 	 */
 	async getScheduleByNameAndNamespace(name: string, namespace: string): Promise<ScheduleDto> {
-		return this.argoClientService.getCronWorkflowByNameAndNamespace(name, namespace);
+		return this.argoClientService.getScheduleByNameAndNamespace(name, namespace);
 	}
 
 	/**
