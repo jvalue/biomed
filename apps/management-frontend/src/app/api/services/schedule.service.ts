@@ -23,4 +23,24 @@ export const scheduleService = {
 		const { data } = await managementBackendClient.post('schedules', createScheduleDto);
 		return data;
 	},
+
+	/**
+	 * Suspend a schedule
+	 * @param name
+	 * @param namespace
+	 */
+	suspendSchedule: async (name: string, namespace: string): Promise<void> => {
+		const path = `schedules/${encodeURIComponent(namespace)}/${encodeURIComponent(name)}/suspend`;
+		await managementBackendClient.patch(path);
+	},
+
+	/**
+	 * Resume a schedule
+	 * @param name
+	 * @param namespace
+	 */
+	resumeSchedule: async (name: string, namespace: string): Promise<void> => {
+		const path = `schedules/${encodeURIComponent(namespace)}/${encodeURIComponent(name)}/resume`;
+		await managementBackendClient.patch(path);
+	},
 };

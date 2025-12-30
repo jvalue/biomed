@@ -3,7 +3,11 @@ import { createFileRoute } from '@tanstack/react-router';
 // biome-ignore lint/correctness/noUnusedImports: <is used>
 import React from 'react';
 import { useCrawlerRuns } from '@/src/app/api/hooks/useCrawlerRuns';
-import { useScheduleByNameAndNamespace } from '@/src/app/api/hooks/useSchedules';
+import {
+	useResumeSchedule,
+	useScheduleByNameAndNamespace,
+	useSuspendSchedule,
+} from '@/src/app/api/hooks/useSchedules';
 import CrawlerRunsTable from '@/src/app/components/crawler-runs/crawler-runs-table';
 import {
 	Card,
@@ -17,6 +21,7 @@ import { PermissionGuard } from '@/src/app/components/guards/permission-guard';
 import { useAuth } from '@/src/app/contexts/AuthContext';
 import { formatCronReadable, getNextRunDate } from '@/src/app/utils/cron';
 import { Badge } from '../../components/design-components/badge';
+import { Switch } from '../../components/design-components/switch';
 import { AuthGuard } from '../../components/guards/auth-guard';
 
 export const Route = createFileRoute('/schedules/$scheduleNamespace/$scheduleName')({
@@ -26,6 +31,16 @@ export const Route = createFileRoute('/schedules/$scheduleNamespace/$scheduleNam
 function RouteComponent() {
 	const { ability } = useAuth();
 	const { scheduleNamespace, scheduleName } = Route.useParams();
+	const suspendSchedule = useSuspendSchedule();
+	const resumeSchedule = useResumeSchedule();
+
+	const handleToggleSuspend = () => {
+		if (suspended) {
+			resumeSchedule.mutate({ name: scheduleName, namespace: scheduleNamespace });
+		} else {
+			suspendSchedule.mutate({ name: scheduleName, namespace: scheduleNamespace });
+		}
+	};
 
 	const {
 		data: schedule,
@@ -90,6 +105,20 @@ function RouteComponent() {
 								</Badge>
 							</div>
 						</div>
+
+						<Can ability={ability} I="update" a="schedule">
+							<div className="flex items-center gap-3">
+								<span className="text-md font-semibold text-muted-foreground">
+									{suspended ? 'Suspended' : 'Active'}
+								</span>
+								<Switch
+									checked={!suspended}
+									onCheckedChange={handleToggleSuspend}
+									disabled={suspendSchedule.isPending || resumeSchedule.isPending}
+									size={'large'}
+								/>
+							</div>
+						</Can>
 					</div>
 
 					<div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
@@ -104,8 +133,8 @@ function RouteComponent() {
 							</CardHeader>
 						</Card>
 
-						<Card className="shadow-sm">
-							<CardHeader className="pb-3">
+						<Card className="shadow-sm min-h-[120px] flex flex-col">
+							<CardHeader className="pb-3 flex-1">
 								<CardDescription className="text-xs uppercase tracking-wide">
 									Cron Schedule
 								</CardDescription>
@@ -113,11 +142,13 @@ function RouteComponent() {
 									{schedule?.schedule ? formatCronReadable(schedule.schedule) : '-'}
 								</CardTitle>
 							</CardHeader>
-							{schedule?.schedule && !suspended && (
-								<CardContent className="text-xs text-muted-foreground">
-									Next Run: {nextRun ? nextRun.toLocaleString() : 'invalid cron expression'}
-								</CardContent>
-							)}
+							<CardContent className="text-xs text-muted-foreground pb-4">
+								{schedule?.schedule && !suspended ? (
+									<>Next Run: {nextRun ? nextRun.toLocaleString() : 'invalid cron expression'}</>
+								) : (
+									<span className="invisible">Placeholder</span>
+								)}
+							</CardContent>
 						</Card>
 
 						<Card className="shadow-sm">
