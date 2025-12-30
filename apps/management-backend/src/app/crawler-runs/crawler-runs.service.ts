@@ -18,7 +18,6 @@ export class CrawlerRunsService {
 		filter?: CrawlerRunFilterDto,
 		pagination?: CursorBasedPaginationRequestDto,
 	): Promise<CursorBasedPaginationResponseDto<CrawlerRunDto>> {
-		// TODO: Add Interface between ArgoClientService and CrawlerRunsService
-		return this.argoClientService.listWorkflows(filter, pagination);
+		return this.argoClientService.listCrawlerRuns(filter, pagination);
 	}
 }

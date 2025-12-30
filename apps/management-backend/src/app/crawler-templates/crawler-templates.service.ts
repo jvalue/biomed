@@ -14,7 +14,7 @@ export class CrawlerTemplatesService {
 	 * @param filter Optional filtering options
 	 */
 	async listCrawlerTemplates(filter?: CrawlerTemplatesFilterDto): Promise<CrawlerTemplateDto[]> {
-		const templates = await this.argoClientService.listWorkflowTemplates(filter);
+		const templates = await this.argoClientService.listCrawlerTemplates(filter);
 		// Sort by date created descending
 		return templates.sort((a: CrawlerTemplateDto, b: CrawlerTemplateDto) => {
 			return new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime();
@@ -32,6 +32,10 @@ export class CrawlerTemplatesService {
 		namespace: string,
 		parameters?: CrawlerRunParameterDto[],
 	): Promise<CrawlerRunDto> {
-		return this.argoClientService.submitWorkflowFromTemplate(templateName, namespace, parameters);
+		return this.argoClientService.submitCrawlerRunFromCrawlerTemplate(
+			templateName,
+			namespace,
+			parameters,
+		);
 	}
 }
