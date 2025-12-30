@@ -2,8 +2,9 @@ import { Can } from '@casl/react';
 import { createFileRoute } from '@tanstack/react-router';
 // biome-ignore lint/correctness/noUnusedImports: <is used>
 import React from 'react';
+import { useCrawlerRuns } from '@/src/app/api/hooks/useCrawlerRuns';
 import { useScheduleByNameAndNamespace } from '@/src/app/api/hooks/useSchedules';
-import { useWorkflowRuns } from '@/src/app/api/hooks/useWorkflowRuns';
+import CrawlerRunsTable from '@/src/app/components/crawler-runs/crawler-runs-table';
 import {
 	Card,
 	CardContent,
@@ -13,7 +14,6 @@ import {
 } from '@/src/app/components/design-components/card';
 import { Spinner } from '@/src/app/components/design-components/spinner';
 import { PermissionGuard } from '@/src/app/components/guards/permission-guard';
-import WorkflowRunsTable from '@/src/app/components/workflows/workflow-runs-table';
 import { useAuth } from '@/src/app/contexts/AuthContext';
 import { formatCronReadable, getNextRunDate } from '@/src/app/utils/cron';
 import { Badge } from '../../components/design-components/badge';
@@ -32,7 +32,7 @@ function RouteComponent() {
 		isLoading: scheduleQueryIsLoading,
 		error: scheduleQueryError,
 	} = useScheduleByNameAndNamespace(scheduleName, scheduleNamespace);
-	const { data: runsQueryData, isLoading: runsQueryIsLoading } = useWorkflowRuns(scheduleName);
+	const { data: runsQueryData, isLoading: runsQueryIsLoading } = useCrawlerRuns(scheduleName);
 
 	const runs = runsQueryData?.data || [];
 
@@ -66,8 +66,8 @@ function RouteComponent() {
 					},
 					{
 						action: 'read',
-						subject: 'template',
-						label: 'read templates',
+						subject: 'crawler-template',
+						label: 'read crawler templates',
 					},
 				]}
 			>
@@ -99,7 +99,7 @@ function RouteComponent() {
 									Crawler:
 								</CardDescription>
 								<CardTitle className="text-primary text-xl">
-									{schedule?.workflowTemplateName ?? '-'}
+									{schedule?.crawlerTemplateName ?? '-'}
 								</CardTitle>
 							</CardHeader>
 						</Card>
@@ -166,7 +166,7 @@ function RouteComponent() {
 						</CardContent>
 					</Card>
 
-					<Can ability={ability} I="read" a="workflow">
+					<Can ability={ability} I="read" a="crawler-run">
 						<Card className="shadow-lg">
 							<CardHeader className="border-b">
 								<CardTitle className="text-xl">Crawler Runs</CardTitle>
@@ -178,7 +178,7 @@ function RouteComponent() {
 										<Spinner className="size-10" />
 									</div>
 								) : runs.length > 0 ? (
-									<WorkflowRunsTable runs={runs}></WorkflowRunsTable>
+									<CrawlerRunsTable runs={runs}></CrawlerRunsTable>
 								) : (
 									<p className="text-sm text-muted-foreground">No runs found for this schedule</p>
 								)}

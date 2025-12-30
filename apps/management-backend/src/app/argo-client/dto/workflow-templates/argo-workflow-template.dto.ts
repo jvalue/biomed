@@ -19,7 +19,8 @@ class ArgoWorkflowTemplateMetadataDto {
 	creationTimestamp!: Date;
 
 	@Type(() => ArgoWorkflowTemplateMetadataLabelsDto)
-	labels!: ArgoWorkflowTemplateMetadataLabelsDto;
+	@IsOptional()
+	labels?: ArgoWorkflowTemplateMetadataLabelsDto;
 }
 
 class ArgoWorkflowTemplateSpecArgumentsParametersDto {
@@ -33,6 +34,7 @@ class ArgoWorkflowTemplateSpecArgumentsParametersDto {
 
 class ArgoWorkflowTemplateSpecArgumentsDto {
 	@IsArray()
+	@IsOptional()
 	parameters?: ArgoWorkflowTemplateSpecArgumentsParametersDto[];
 }
 
@@ -47,5 +49,6 @@ export class ArgoWorkflowTemplateDto {
 	metadata!: ArgoWorkflowTemplateMetadataDto;
 
 	@Type(() => ArgoWorkflowTemplateSpecDto)
-	spec!: ArgoWorkflowTemplateSpecDto;
+	@IsOptional()
+	spec?: ArgoWorkflowTemplateSpecDto;
 }

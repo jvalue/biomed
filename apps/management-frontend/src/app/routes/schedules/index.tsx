@@ -17,8 +17,8 @@ function RouteComponent() {
 				required={[
 					{
 						action: 'read',
-						subject: 'template',
-						label: 'read templates',
+						subject: 'crawler-template',
+						label: 'read crawler templates',
 					},
 					{
 						action: 'read',

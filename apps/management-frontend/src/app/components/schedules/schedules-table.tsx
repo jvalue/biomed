@@ -41,7 +41,7 @@ export default function SchedulesTable({ schedules = [] }: ScheduleTableProps) {
 						}
 					>
 						<TableCell>{schedule.name}</TableCell>
-						<TableCell>{schedule.workflowTemplateName}</TableCell>
+						<TableCell>{schedule.crawlerTemplateName}</TableCell>
 						<TableCell>{schedule.namespace}</TableCell>
 						<TableCell>{formatCronReadable(schedule.schedule)}</TableCell>
 						<TableCell className={schedule.suspended ? 'text-muted-foreground' : ''}>

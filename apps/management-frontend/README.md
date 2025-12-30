@@ -5,12 +5,13 @@ A React + TypeScript frontend using Vite and Tailwind, organized for modular dev
 ## Project Structure
 
 - `'src/app/components/design-components/'`: All reusable design components (atoms/molecules), e.g. `'button.tsx'`, `'table.tsx'`. These are generic and should not include domain logic.
-- `'src/app/components/workflows/'`: Non-reusable domain-specific components for workflows. Create a dedicated folder per domain (e.g. `'workflows'`, `'users'`, `'reports'`), and place components there when they are not reusable across domains.
-- `'src/app/routes/'`: Page-level route components (e.g. `'index.tsx'`, `'workflow-list.tsx'`). These represent pages and integrate domain components and services.
-- `'src/app/api/dto/'`: Data Transfer Objects (DTOs) describing API payloads and responses. Subfolders per domain (e.g. `'workflow/'`, `'pagination/'`).
-- `'src/app/api/services/'`: Service layer that orchestrates API calls and business logic (e.g. `'workflow-service.ts'`).
+- `'src/app/components/crawler-runs/'`: Non-reusable domain-specific components for crawler-runs. Create a dedicated 
+  folder per domain (e.g. `'crawler-runs'`, `'users'`), and place components there when they are not reusable across domains.
+- `'src/app/routes/'`: Page-level route components (e.g. `'index.tsx'`, `'crawler-runs.tsx'`). These represent pages and integrate domain components and services.
+- `'src/app/api/dto/'`: Data Transfer Objects (DTOs) describing API payloads and responses. Subfolders per domain (e.g. `'crawler-runs/'`, `'pagination/'`).
+- `'src/app/api/services/'`: Service layer that orchestrates API calls and business logic (e.g. `'crawler-run-service.ts'`).
 - `'src/app/api/management-backend-client.ts'`: HTTP client configuration and helpers to talk to the backend.
-- `'src/app/hooks/'`: Reusable hooks for data fetching and state (e.g. `'useWorkflowRuns.ts'`).
+- `'src/app/hooks/'`: Reusable hooks for data fetching and state (e.g. `'useCrawlerRuns.ts'`).
 - `'src/app/'`: App shell, router, layout and navigation (e.g. `'app.tsx'`, `'app-nav.tsx'`, `'router.tsx'`).
 - `'src/assets/'`: Static assets.
 - `'public/config.js'`: Runtime configuration injected at load time (see Environment section below).
@@ -24,13 +25,15 @@ Base brand colors and design tokens are defined in `'tailwind.config.js'`. Keep 
 ## Components Guidelines
 
 - Reusable design components: place in `'src/app/components/design-components/'`. Keep them domain-agnostic, well-typed, and documented. Examples: Button, Input, Table, Tooltip, Skeleton, Spinner, Sidebar, Sheet, Avatar, Separator.
-- Domain-specific, non-reusable components: create a folder per domain under `'src/app/components/'` (e.g. `'workflows/'`). These may compose design-components and implement domain logic.
+- Domain-specific, non-reusable components: create a folder per domain under `'src/app/components/'` (e.g. 
+  `'crawler-runs/'`). These may compose design-components and implement domain logic.
 - Pages (routes): implement in `'src/app/routes/'`.
 
 ## DTOs and Services
 
-- DTOs: place in `'src/app/api/dto/'` with subfolders per domain (e.g. `'workflow/workflow-run.dto.ts'`, `'pagination/cursor-based-pagination-response.dto.ts'`). Keep them simple TypeScript types/interfaces.
-- Services: place in `'src/app/api/services/'`. Services encapsulate backend communication, compose the client, and expose typed functions for the UI (e.g. `'workflow-service.ts'`).
+- DTOs: place in `'src/app/api/dto/'` with subfolders per domain (e.g. `'crawler-runs/crawler-run.dto.ts'`, 
+  `'pagination/cursor-based-pagination-response.dto.ts'`). Keep them simple TypeScript types/interfaces.
+- Services: place in `'src/app/api/services/'`. Services encapsulate backend communication, compose the client, and expose typed functions for the UI (e.g. `'crawler-run-service.ts'`).
 
 ## ShadCN Components
 
@@ -89,7 +92,7 @@ How to use it:
 ```tsx
 import {Can} from "@casl/react";
 
-<Can ability={ability} I='read' a='workflow'>
+<Can ability={ability} I='read' a='crawler-run'>
 	<ProtectedComponent/>
 </Can>
 ```
