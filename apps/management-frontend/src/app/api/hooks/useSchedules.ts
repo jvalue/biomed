@@ -16,7 +16,7 @@ export const useScheduleByNameAndNamespace = (
 	namespace: string,
 ): UseQueryResult<ScheduleDto> => {
 	return useQuery({
-		queryKey: ['schedule', name, namespace],
+		queryKey: ['schedules', name, namespace],
 		queryFn: () => scheduleService.getScheduleByNameAndNamespace(name, namespace),
 		refetchInterval: 30000, // Auto-refresh
 	});
@@ -35,6 +35,44 @@ export const useCreateSchedule = () => {
 		onSuccess: () => {
 			// Invalidate and refetch schedules query to reflect changes
 			queryClient.invalidateQueries({ queryKey: ['schedules'] });
+		},
+	});
+};
+
+/**
+ * Suspend a schedule
+ * @param name
+ * @param namespace
+ */
+export const useSuspendSchedule = () => {
+	const queryClient = useQueryClient();
+	return useMutation({
+		mutationFn: ({ name, namespace }: { name: string; namespace: string }) =>
+			scheduleService.suspendSchedule(name, namespace),
+		onSuccess: (_data, variables) => {
+			// Invalidate and refetch schedules query to reflect changes
+			queryClient.invalidateQueries({
+				queryKey: ['schedules', variables.name, variables.namespace],
+			});
+		},
+	});
+};
+
+/**
+ * Resume a schedule
+ * @param name
+ * @param namespace
+ */
+export const useResumeSchedule = () => {
+	const queryClient = useQueryClient();
+	return useMutation({
+		mutationFn: ({ name, namespace }: { name: string; namespace: string }) =>
+			scheduleService.resumeSchedule(name, namespace),
+		onSuccess: (_data, variables) => {
+			// Invalidate and refetch schedules query to reflect changes
+			queryClient.invalidateQueries({
+				queryKey: ['schedules', variables.name, variables.namespace],
+			});
 		},
 	});
 };
