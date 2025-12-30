@@ -261,6 +261,48 @@ export class ArgoClientService implements IOrchestratorClient {
 	}
 
 	/**
+	 * Suspend a cron workflow by name and namespace
+	 * @param name Name of the cron workflow
+	 * @param namespace Namespace of the cron workflow
+	 */
+	async suspendSchedule(name: string, namespace: string): Promise<void> {
+		this.logger.log(
+			`Suspending cron workflow ${name} in namespace ${namespace} via Argo Workflows API`,
+		);
+
+		const url = `/cron-workflows/${namespace}/${name}/suspend`;
+
+		try {
+			await this.http.put(url);
+			this.logger.log(`Cron workflow ${name} in namespace ${namespace} suspended successfully`);
+		} catch (err) {
+			this.logger.error(`Error suspending cron workflow ${name} in namespace ${namespace}:`, err);
+			throw err;
+		}
+	}
+
+	/**
+	 * Resume a cron workflow by name and namespace
+	 * @param name Name of the cron workflow
+	 * @param namespace Namespace of the cron workflow
+	 */
+	async resumeSchedule(name: string, namespace: string): Promise<void> {
+		this.logger.log(
+			`Resuming cron workflow ${name} in namespace ${namespace} via Argo Workflows API`,
+		);
+
+		const url = `/cron-workflows/${namespace}/${name}/resume`;
+
+		try {
+			await this.http.put(url);
+			this.logger.log(`Cron workflow ${name} in namespace ${namespace} resumed successfully`);
+		} catch (err) {
+			this.logger.error(`Error resuming cron workflow ${name} in namespace ${namespace}:`, err);
+			throw err;
+		}
+	}
+
+	/**
 	 * Filter cron workflows that reference workflow templates
 	 * @param ArgoCronWorkflows
 	 * @private
