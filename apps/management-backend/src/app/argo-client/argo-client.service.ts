@@ -7,6 +7,7 @@ import { CrawlerRunParameterDto } from '../crawler-runs/dto/crawler-run-paramete
 import { CrawlerTemplateDto } from '../crawler-templates/dto/crawler-template.dto';
 import { CrawlerTemplatesFilterDto } from '../crawler-templates/dto/crawler-templates-filter.dto';
 import { EnvironmentVariables } from '../env.validation';
+import { IOrchestratorClient } from '../orchestrators/orchestrator-client.interface';
 import { CursorBasedPaginationRequestDto } from '../pagination/dto/cursor-based-pagination-request.dto';
 import { CursorBasedPaginationResponseDto } from '../pagination/dto/cursor-based-pagination-response.dto';
 import { ScheduleDto } from '../schedules/dto/schedule.dto';
@@ -27,7 +28,7 @@ import { ArgoQueryParamBuilder } from './utils/argo-query-param-builder';
  * Service to interact with Argo Workflows API
  */
 @Injectable()
-export class ArgoClientService {
+export class ArgoClientService implements IOrchestratorClient {
 	private readonly logger = new Logger(ArgoClientService.name);
 	private readonly http: AxiosInstance;
 
@@ -52,7 +53,7 @@ export class ArgoClientService {
 	 * @param filterOptions Filtering options
 	 * @param paginationOptions Options for cursor-based pagination
 	 */
-	async listWorkflows(
+	async listCrawlerRuns(
 		filterOptions?: CrawlerRunFilterDto,
 		paginationOptions?: CursorBasedPaginationRequestDto,
 	): Promise<CursorBasedPaginationResponseDto<CrawlerRunDto>> {
@@ -120,7 +121,7 @@ export class ArgoClientService {
 	 * List all workflow templates
 	 * @param filterOptions
 	 */
-	async listWorkflowTemplates(
+	async listCrawlerTemplates(
 		filterOptions?: CrawlerTemplatesFilterDto,
 	): Promise<CrawlerTemplateDto[]> {
 		this.logger.log('Listing workflow templates from Argo Workflows API');
@@ -156,7 +157,7 @@ export class ArgoClientService {
 	 * @param workflowTemplateNamespace Namespace of the workflow template
 	 * @param parameters Parameters to pass to the workflow
 	 */
-	async submitWorkflowFromTemplate(
+	async submitCrawlerRunFromCrawlerTemplate(
 		workflowTemplateName: string,
 		workflowTemplateNamespace: string,
 		parameters?: CrawlerRunParameterDto[],
@@ -196,7 +197,7 @@ export class ArgoClientService {
 	 * Get all cron workflows and map them to schedules
 	 * @return List of schedules
 	 */
-	async listCronWorkflows(): Promise<ScheduleDto[]> {
+	async listSchedules(): Promise<ScheduleDto[]> {
 		this.logger.log('Getting cron workflows from Argo Workflows API');
 
 		const url = `/cron-workflows/`;
@@ -219,7 +220,7 @@ export class ArgoClientService {
 	 * @param namespace Namespace of the cron workflow
 	 * @return The cron workflow as ScheduleDto
 	 */
-	async getCronWorkflowByNameAndNamespace(
+	async getScheduleByNameAndNamespace(
 		name: string,
 		namespace: string,
 	): Promise<ScheduleDto | null> {
@@ -280,10 +281,7 @@ export class ArgoClientService {
 
 		for (const run of runs) {
 			if (!run.crawlerTemplateName && run.scheduleName) {
-				const schedule = await this.getCronWorkflowByNameAndNamespace(
-					run.scheduleName,
-					run.namespace,
-				);
+				const schedule = await this.getScheduleByNameAndNamespace(run.scheduleName, run.namespace);
 				if (schedule) {
 					run.crawlerTemplateName = schedule.crawlerTemplateName;
 				}
