@@ -14,21 +14,21 @@ describe('AbilityFactory', () => {
 	it('grants abilities for given permissions', () => {
 		const user = {
 			permissions: [
-				UserPermission.WORKFLOW_CREATE,
-				UserPermission.TEMPLATE_READ,
+				UserPermission.CRAWLER_RUN_CREATE,
+				UserPermission.CRAWLER_TEMPLATE_READ,
 				UserPermission.USER_APPROVE,
 			],
 		} as UserEntity;
 
 		const ability = factory.defineAbilityFor(user);
 
-		expect(ability.can('create', 'workflow')).toBe(true);
-		expect(ability.can('read', 'template')).toBe(true);
+		expect(ability.can('create', 'crawler-run')).toBe(true);
+		expect(ability.can('read', 'crawler-template')).toBe(true);
 		expect(ability.can('approve', 'user')).toBe(true);
 
 		// ensure unrelated actions are denied
-		expect(ability.can('delete', 'workflow')).toBe(false);
-		expect(ability.can('update', 'template')).toBe(false);
+		expect(ability.can('delete', 'crawler-run')).toBe(false);
+		expect(ability.can('update', 'crawler-template')).toBe(false);
 		expect(ability.can('block', 'user')).toBe(false);
 	});
 
@@ -40,14 +40,14 @@ describe('AbilityFactory', () => {
 		const ability = factory.defineAbilityFor(user);
 
 		// No known rights should be granted
-		expect(ability.can('create', 'workflow')).toBe(false);
-		expect(ability.can('read', 'template')).toBe(false);
+		expect(ability.can('create', 'crawler-run')).toBe(false);
+		expect(ability.can('read', 'crawler-template')).toBe(false);
 		expect(ability.can('approve', 'user')).toBe(false);
 	});
 
 	it('serializeAbility returns the underlying rules array', () => {
 		const user = {
-			permissions: [UserPermission.USER_BLOCK, UserPermission.TEMPLATE_UPDATE],
+			permissions: [UserPermission.USER_BLOCK, UserPermission.CRAWLER_TEMPLATE_UPDATE],
 		} as unknown as UserEntity;
 
 		const rules = factory.serializeAbility(user);
@@ -58,7 +58,7 @@ describe('AbilityFactory', () => {
 		// At least one rule should correspond to one of the permissions
 		const hasBlockUser = rules.some((r: RawRule) => r.action === 'block' && r.subject === 'user');
 		const hasUpdateTemplate = rules.some(
-			(r: RawRule) => r.action === 'update' && r.subject === 'template',
+			(r: RawRule) => r.action === 'update' && r.subject === 'crawler-template',
 		);
 
 		expect(hasBlockUser || hasUpdateTemplate).toBe(true);

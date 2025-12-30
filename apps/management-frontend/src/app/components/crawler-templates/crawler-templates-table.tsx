@@ -52,7 +52,7 @@ export default function CrawlerTemplatesTable({ templates = [] }: CrawlerTemplat
 							</TableCell>
 							<TableCell>{new Date(template.createdAt).toLocaleString()}</TableCell>
 							<TableCell>
-								<Can ability={ability} I="create" a="workflow">
+								<Can ability={ability} I="create" a="crawler-run">
 									<Button
 										size="icon"
 										className="bg-green-500 text-white hover:bg-green-700"

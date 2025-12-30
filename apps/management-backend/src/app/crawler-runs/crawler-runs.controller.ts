@@ -20,7 +20,7 @@ export class CrawlerRunsController {
 		description: 'List of crawler runs with pagination',
 	})
 	@ApiForbiddenResponse({ description: 'You do not have permission to access crawler runs' })
-	@RequirePermission('read', 'workflow')
+	@RequirePermission('read', 'crawler-run')
 	@Get()
 	async listCrawlerRuns(
 		@Query() filterParams?: CrawlerRunFilterDto,

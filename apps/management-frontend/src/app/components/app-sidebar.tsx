@@ -38,7 +38,7 @@ export function AppSidebar() {
 						</SidebarMenu>
 					</SidebarGroupContent>
 				</SidebarGroup>
-				<Can ability={ability} I="read" a="workflow">
+				<Can ability={ability} I="read" a="crawler-run">
 					<SidebarGroup>
 						<SidebarGroupLabel>Statistics and Run Information</SidebarGroupLabel>
 						<SidebarGroupContent>
@@ -58,7 +58,7 @@ export function AppSidebar() {
 						</SidebarGroupContent>
 					</SidebarGroup>
 				</Can>
-				<Can ability={ability} I="read" a="template">
+				<Can ability={ability} I="read" a="crawler-template">
 					<SidebarGroup>
 						<SidebarGroupLabel>Orchestration</SidebarGroupLabel>
 						<SidebarGroupContent>

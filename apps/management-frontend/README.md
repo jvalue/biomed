@@ -92,7 +92,7 @@ How to use it:
 ```tsx
 import {Can} from "@casl/react";
 
-<Can ability={ability} I='read' a='workflow'>
+<Can ability={ability} I='read' a='crawler-run'>
 	<ProtectedComponent/>
 </Can>
 ```
