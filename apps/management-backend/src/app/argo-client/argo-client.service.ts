@@ -4,6 +4,7 @@ import axios, { AxiosInstance } from 'axios';
 import { EnvironmentVariables } from '../env.validation';
 import { CursorBasedPaginationRequestDto } from '../pagination/dto/cursor-based-pagination-request.dto';
 import { CursorBasedPaginationResponseDto } from '../pagination/dto/cursor-based-pagination-response.dto';
+import { ScheduleDto } from '../schedules/dto/schedule.dto';
 import { WorkflowRunDto } from '../workflow-runs/dto/workflow-run.dto';
 import { WorkflowRunFilterDto } from '../workflow-runs/dto/workflow-run-filter.dto';
 import { WorkflowRunParameterDto } from '../workflow-runs/dto/workflow-run-parameter.dto';
@@ -11,9 +12,11 @@ import { WorkflowTemplateDto } from '../workflow-templates/dto/workflow-template
 import { WorkflowTemplatesFilterDto } from '../workflow-templates/dto/workflow-templates-filter.dto';
 import { ArgoAuthService } from './argo-auth/argo-auth.service';
 import { ArgoCursorPaginatedListDto } from './dto/argo-cursor-paginated-list-dto';
+import { ArgoCronWorkflowDto } from './dto/cron-workflows/argo-cron-workflow.dto';
 import { ArgoWorkflowRunDto } from './dto/workflow-runs/argo-workflow-run.dto';
 import { ArgoWorkflowTemplateDto } from './dto/workflow-templates/argo-workflow-template.dto';
 import {
+	mapArgoCronWorkflowDtoToScheduleDto,
 	mapArgoCursorPaginatedListDtoToCursorBasedPaginationResponseDto,
 	mapArgoWorkflowRunDtoToWorkflowRunDto,
 	mapArgoWorkflowTemplateDtoToWorkflowTemplateDto,
@@ -70,6 +73,10 @@ export class ArgoClientService {
 			'workflows.argoproj.io/workflow-template',
 			filterOptions?.workflowTemplateName,
 		);
+		argoQueryParamBuilder.addLabelSelector(
+			'workflows.argoproj.io/cron-workflow',
+			filterOptions?.scheduleName,
+		);
 		argoQueryParamBuilder.addLabelSelector('workflows.argoproj.io/phase', filterOptions?.phases);
 
 		// Normal query parameters
@@ -97,10 +104,16 @@ export class ArgoClientService {
 		this.logger.debug('Argo Workflows API response:', workflowsResponse);
 
 		// Map ArgoCursorPaginatedListDto<ArgoWorkflowRunDto> to CursorBasedPaginationResponseDto<WorkflowRunDto>
-		return mapArgoCursorPaginatedListDtoToCursorBasedPaginationResponseDto(
+		const mappedResponse = mapArgoCursorPaginatedListDtoToCursorBasedPaginationResponseDto(
 			workflowsResponse,
 			mapArgoWorkflowRunDtoToWorkflowRunDto,
 		);
+
+		// Enrich workflow runs started by cron workflows with the workflow template name
+		mappedResponse.data = await this.enrichWorkflowRunsWithCronWorkflowTemplateName(
+			mappedResponse.data,
+		);
+		return mappedResponse;
 	}
 
 	/**
@@ -182,5 +195,107 @@ export class ArgoClientService {
 			);
 			throw err;
 		}
+	}
+
+	/**
+	 * Get all cron workflows and map them to schedules
+	 * @return List of schedules
+	 */
+	async listCronWorkflows(): Promise<ScheduleDto[]> {
+		this.logger.log('Getting cron workflows from Argo Workflows API');
+
+		const url = `/cron-workflows/`;
+
+		const res = await this.http.get(url);
+		const cronWorkflowsResponse: ArgoCronWorkflowDto[] = res.data?.items;
+		this.logger.debug('Argo Workflows API response for cron workflows:', cronWorkflowsResponse);
+
+		// Filter cron workflows that reference workflow templates
+		const filteredCronWorkflows =
+			this.filterCronWorkflowsReferencingWorkflowTemplates(cronWorkflowsResponse);
+
+		// Map ArgoCronWorkflowDto[] to ScheduleDto[]
+		return filteredCronWorkflows?.map(mapArgoCronWorkflowDtoToScheduleDto) ?? [];
+	}
+
+	/**
+	 * Get a cron workflow by name and namespace
+	 * @param name Name of the cron workflow
+	 * @param namespace Namespace of the cron workflow
+	 * @return The cron workflow as ScheduleDto
+	 */
+	async getCronWorkflowByNameAndNamespace(
+		name: string,
+		namespace: string,
+	): Promise<ScheduleDto | null> {
+		this.logger.log(
+			`Getting cron workflow ${name} from namespace ${namespace} from Argo Workflows API`,
+		);
+
+		const url = `/cron-workflows/${namespace}/${name}`;
+
+		try {
+			const res = await this.http.get(url);
+			const cronWorkflowResponse: ArgoCronWorkflowDto = res.data;
+			this.logger.debug('Argo Workflows API response for cron workflow:', cronWorkflowResponse);
+
+			// Check if the cron workflow references a workflow template
+			if (!cronWorkflowResponse.spec.workflowSpec.workflowTemplateRef?.name) {
+				this.logger.warn(
+					`Cron workflow ${name} in namespace ${namespace} does not reference a workflow template`,
+				);
+				return null;
+			}
+
+			// Map ArgoCronWorkflowDto to ScheduleDto
+			return mapArgoCronWorkflowDtoToScheduleDto(cronWorkflowResponse);
+		} catch (err) {
+			if (err.response && err.response.status === 404) {
+				this.logger.log(`Cron workflow ${name} in namespace ${namespace} not found`);
+				return null;
+			}
+			this.logger.error(`Error getting cron workflow ${name} from namespace ${namespace}:`, err);
+			throw err;
+		}
+	}
+
+	/**
+	 * Filter cron workflows that reference workflow templates
+	 * @param ArgoCronWorkflows
+	 * @private
+	 */
+	filterCronWorkflowsReferencingWorkflowTemplates(
+		ArgoCronWorkflows: ArgoCronWorkflowDto[],
+	): ArgoCronWorkflowDto[] {
+		return ArgoCronWorkflows.filter(
+			(cronWorkflow) => cronWorkflow.spec.workflowSpec.workflowTemplateRef?.name,
+		);
+	}
+
+	/**
+	 * Cron Workflows start workflow runs without setting the workflow template name label.
+	 * This method enriches the workflow runs with the correct workflow template name by looking up the cron
+	 * workflow for all of those cron workflow runs which haven't added the workflow template name by custom label.
+	 * @param runs Workflow runs to enrich
+	 */
+	async enrichWorkflowRunsWithCronWorkflowTemplateName(
+		runs: WorkflowRunDto[],
+	): Promise<WorkflowRunDto[]> {
+		const enrichedRuns: WorkflowRunDto[] = [];
+
+		for (const run of runs) {
+			if (!run.workflowTemplateName && run.scheduleName) {
+				const schedule = await this.getCronWorkflowByNameAndNamespace(
+					run.scheduleName,
+					run.namespace,
+				);
+				if (schedule) {
+					run.workflowTemplateName = schedule.workflowTemplateName;
+				}
+			}
+			enrichedRuns.push(run);
+		}
+
+		return enrichedRuns;
 	}
 }

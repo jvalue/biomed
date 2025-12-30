@@ -14,6 +14,11 @@ export class WorkflowRunFilterDto {
 	@IsString()
 	workflowTemplateName?: string;
 
+	@ApiProperty({ type: String, required: false, description: 'Schedule name' })
+	@IsOptional()
+	@IsString()
+	scheduleName?: string;
+
 	@ApiProperty({
 		enum: WorkflowPhaseEnum,
 		enumName: 'WorkflowPhaseEnum',

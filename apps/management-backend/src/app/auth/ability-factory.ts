@@ -27,6 +27,12 @@ export class AbilityFactory {
 			[UserPermission.TEMPLATE_UPDATE]: () => can('update', 'template'),
 			[UserPermission.TEMPLATE_DELETE]: () => can('delete', 'template'),
 
+			// Schedule Permissions
+			[UserPermission.SCHEDULE_CREATE]: () => can('create', 'schedule'),
+			[UserPermission.SCHEDULE_READ]: () => can('read', 'schedule'),
+			[UserPermission.SCHEDULE_UPDATE]: () => can('update', 'schedule'),
+			[UserPermission.SCHEDULE_DELETE]: () => can('delete', 'schedule'),
+
 			// User Management Permissions
 			[UserPermission.USER_READ]: () => can('read', 'user'),
 			[UserPermission.USER_UPDATE]: () => can('update', 'user'),
