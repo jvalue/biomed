@@ -153,31 +153,31 @@ export class ArgoClientService implements IOrchestratorClient {
 
 	/**
 	 * Submit a new workflow based on a workflow template
-	 * @param workflowTemplateName Name of the workflow template to use
-	 * @param workflowTemplateNamespace Namespace of the workflow template
+	 * @param crawlerTemplateName Name of the workflow template to use
+	 * @param crawlerTemplateNamespace Namespace of the workflow template
 	 * @param parameters Parameters to pass to the workflow
 	 */
 	async submitCrawlerRunFromCrawlerTemplate(
-		workflowTemplateName: string,
-		workflowTemplateNamespace: string,
+		crawlerTemplateName: string,
+		crawlerTemplateNamespace: string,
 		parameters?: CrawlerRunParameterDto[],
 	): Promise<CrawlerRunDto> {
 		this.logger.log(
-			`Starting new workflow from template ${workflowTemplateName} in namespace ${workflowTemplateNamespace}`,
+			`Starting new workflow from template ${crawlerTemplateName} in namespace ${crawlerTemplateNamespace}`,
 		);
 		if (parameters) {
 			this.logger.debug(`With parameters: ${JSON.stringify(parameters)}`);
 		}
 
 		const body = {
-			namespace: workflowTemplateNamespace,
+			namespace: crawlerTemplateNamespace,
 			resourceKind: 'WorkflowTemplate',
-			resourceName: workflowTemplateName,
+			resourceName: crawlerTemplateName,
 			submitOptions: {
 				parameters: (parameters ?? []).map((param) => `${param.name}=${param.value}`),
 			},
 		};
-		const url = `/workflows/${workflowTemplateNamespace}/submit`;
+		const url = `/workflows/${crawlerTemplateNamespace}/submit`;
 
 		try {
 			const res = await this.http.post(url, body);
@@ -189,7 +189,7 @@ export class ArgoClientService implements IOrchestratorClient {
 			return mapArgoWorkflowRunDtoToWorkflowRunDto(workflowResponse);
 		} catch (err) {
 			this.logger.error(
-				`Error starting workflow from template "${workflowTemplateName}" in namespace "${workflowTemplateNamespace}". ` +
+				`Error starting workflow from template "${crawlerTemplateName}" in namespace "${crawlerTemplateNamespace}". ` +
 					`Parameters: ${JSON.stringify(parameters ?? [])}. URL: ${url}. Body: ${JSON.stringify(body)}.`,
 				err instanceof Error ? err.stack : undefined,
 				'ArgoClientService',

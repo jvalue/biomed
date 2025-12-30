@@ -36,16 +36,16 @@ export function mapArgoWorkflowRunDtoToWorkflowRunDto(run: ArgoWorkflowRunDto): 
 export function mapArgoWorkflowTemplateDtoToWorkflowTemplateDto(
 	template: ArgoWorkflowTemplateDto,
 ): CrawlerTemplateDto {
-	const workflowTemplate = new CrawlerTemplateDto();
-	workflowTemplate.name = template.metadata.name;
-	workflowTemplate.namespace = template.metadata.namespace;
-	workflowTemplate.createdAt = template.metadata.creationTimestamp;
-	workflowTemplate.parameters = template.spec?.arguments?.parameters?.map((param) => ({
+	const crawlerTemplateDto = new CrawlerTemplateDto();
+	crawlerTemplateDto.name = template.metadata.name;
+	crawlerTemplateDto.namespace = template.metadata.namespace;
+	crawlerTemplateDto.createdAt = template.metadata.creationTimestamp;
+	crawlerTemplateDto.parameters = template.spec?.arguments?.parameters?.map((param) => ({
 		name: param.name,
 		defaultValue: param.value,
 	}));
-	workflowTemplate.templateVersion = template.metadata.labels['template-version'];
-	return workflowTemplate;
+	crawlerTemplateDto.templateVersion = template.metadata.labels['template-version'];
+	return crawlerTemplateDto;
 }
 
 /**

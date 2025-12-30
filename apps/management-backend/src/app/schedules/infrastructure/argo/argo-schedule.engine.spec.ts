@@ -16,8 +16,8 @@ describe('ArgoScheduleEngine', () => {
 		const dto: CreateScheduleDto = {
 			name: 'nightly-sync',
 			cronExpression: '0 2 * * *',
-			workflowTemplateName: 'sync-template',
-			workflowTemplateNamespace: 'argo-managed-crawler',
+			crawlerTemplateName: 'sync-template',
+			crawlerTemplateNamespace: 'argo-managed-crawler',
 			parameters: [{ name: 'inputPath', value: '/data/in' }],
 		};
 
@@ -41,7 +41,7 @@ describe('ArgoScheduleEngine', () => {
 		// Check for important bits in the YAML output
 		expect(yamlContent).toContain(`name: ${dto.name}`);
 		expect(yamlContent).toContain('0 2 * * *'); // schedule present
-		expect(yamlContent).toContain(`workflow-template-name: ${dto.workflowTemplateName}`);
+		expect(yamlContent).toContain(`workflow-template-name: ${dto.crawlerTemplateName}`);
 		expect(yamlContent).toContain(`created-by: ${user.id}`);
 		expect(yamlContent).toContain(`created-by-fallback: ${user.username}`);
 		// parameter included
@@ -54,9 +54,9 @@ describe('ArgoScheduleEngine', () => {
 		const dto: CreateScheduleDto = {
 			name: 'no-template',
 			cronExpression: '0 2 * * *',
-			workflowTemplateName: '', // missing
+			crawlerTemplateName: '', // missing
 			parameters: [],
-			workflowTemplateNamespace: 'argo-managed-crawler',
+			crawlerTemplateNamespace: 'argo-managed-crawler',
 		};
 		const user = { id: 'u', username: 'u' } as UserEntity;
 

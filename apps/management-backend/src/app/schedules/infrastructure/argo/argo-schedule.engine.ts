@@ -20,7 +20,7 @@ export class ArgoScheduleEngine implements IScheduleEngine {
 		const workflowObject = builder
 			.setName(dto.name)
 			.setSchedule(dto.cronExpression)
-			.setTemplateRef(dto.workflowTemplateName)
+			.setTemplateRef(dto.crawlerTemplateName)
 			.addParameters(dto.parameters)
 			.addLabel('created-by', user.id)
 			.addLabel('created-by-fallback', user.username)
@@ -36,7 +36,7 @@ export class ArgoScheduleEngine implements IScheduleEngine {
 	}
 
 	async createPullRequest(filename: string, content: string): Promise<string> {
-		this.logger.debug(content);
+		this.logger.log(content);
 		// TODO: Create a PR in the Git repository with the given filename and content
 		// Create a new branch
 		// Commit the YAML file

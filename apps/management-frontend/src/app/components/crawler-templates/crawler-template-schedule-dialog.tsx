@@ -1,6 +1,9 @@
 import { AlertCircle, ExternalLink } from 'lucide-react';
 import React, { useMemo, useState } from 'react';
-import { WorkflowTemplateDto } from '@/src/app/api/dto/workflow-template/workflow-template.dto';
+import {
+	CrawlerTemplateDto,
+	CrawlerTemplateParameterDto,
+} from '@/src/app/api/dto/crawler-templates/crawler-template.dto';
 import { useCreateSchedule } from '@/src/app/api/hooks/useSchedules';
 import { Button } from '@/src/app/components/design-components/button';
 import {
@@ -15,17 +18,17 @@ import { Input } from '@/src/app/components/design-components/input';
 import { Label } from '@/src/app/components/design-components/label';
 import { formatCronReadable } from '@/src/app/utils/cron';
 
-export interface WorkflowTemplateScheduleDialogProps {
-	template: WorkflowTemplateDto | null;
+export interface CrawlerTemplateScheduleDialogProps {
+	template: CrawlerTemplateDto | null;
 	open: boolean;
 	onOpenChange: (open: boolean) => void;
 }
 
-export default function WorkflowTemplateScheduleDialog({
+export default function CrawlerTemplateScheduleDialog({
 	template,
 	open,
 	onOpenChange,
-}: WorkflowTemplateScheduleDialogProps) {
+}: CrawlerTemplateScheduleDialogProps) {
 	const createSchedule = useCreateSchedule();
 	const [scheduleName, setScheduleName] = useState('');
 	const [cronExpression, setCronExpression] = useState('');
@@ -108,8 +111,8 @@ export default function WorkflowTemplateScheduleDialog({
 			{
 				name: scheduleName,
 				cronExpression: cronExpression,
-				workflowTemplateNamespace: template.namespace,
-				workflowTemplateName: template.name,
+				crawlerTemplateNamespace: template.namespace,
+				crawlerTemplateName: template.name,
 				parameters: paramArray,
 			},
 			{
@@ -136,7 +139,7 @@ export default function WorkflowTemplateScheduleDialog({
 				<DialogHeader>
 					<DialogTitle className="text-2xl font-semibold">Create Schedule</DialogTitle>
 					<DialogDescription className="text-base">
-						Schedule automated runs for workflow template:{' '}
+						Schedule automated runs for crawler template:{' '}
 						<span className="font-semibold text-foreground">{template.name}</span>
 					</DialogDescription>
 				</DialogHeader>
@@ -208,15 +211,15 @@ export default function WorkflowTemplateScheduleDialog({
 						</div>
 					</div>
 
-					{/* Workflow Parameters Section */}
+					{/* Crawler Parameters Section */}
 					{template.parameters && template.parameters.length > 0 && (
 						<div className="space-y-4">
 							<div className="pb-2 border-b border-primary/20">
-								<h3 className="text-lg font-semibold text-primary">Workflow Parameters</h3>
+								<h3 className="text-lg font-semibold text-primary">Crawler Parameters</h3>
 							</div>
 
 							<div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 pl-3">
-								{template.parameters.map((param) => (
+								{template.parameters.map((param: CrawlerTemplateParameterDto) => (
 									<div key={param.name} className="space-y-2">
 										<Label htmlFor={param.name} className="text-sm font-medium">
 											{param.name}

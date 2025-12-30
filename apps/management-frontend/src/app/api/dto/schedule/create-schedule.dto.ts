@@ -5,9 +5,9 @@ export class CreateScheduleDto {
 
 	cronExpression!: string;
 
-	workflowTemplateNamespace!: string;
+	crawlerTemplateNamespace!: string;
 
-	workflowTemplateName!: string;
+	crawlerTemplateName!: string;
 
 	parameters?: ScheduleParameterDto[];
 }

@@ -3,7 +3,7 @@ import { Calendar, Plus } from 'lucide-react';
 import { useState } from 'react';
 import { CrawlerTemplateDto } from '@/src/app/api/dto/crawler-templates/crawler-template.dto';
 import CrawlerTemplateRunDialog from '@/src/app/components/crawler-templates/crawler-template-run-dialog';
-import WorkflowTemplateScheduleDialog from '@/src/app/components/crawler-templates/workflow-template-schedule-dialog';
+import CrawlerTemplateScheduleDialog from '@/src/app/components/crawler-templates/crawler-template-schedule-dialog';
 import { Button } from '@/src/app/components/design-components/button';
 import {
 	Table,
@@ -91,7 +91,7 @@ export default function CrawlerTemplatesTable({ templates = [] }: CrawlerTemplat
 				open={dialogOpen}
 				onOpenChange={setDialogOpen}
 			/>
-			<WorkflowTemplateScheduleDialog
+			<CrawlerTemplateScheduleDialog
 				template={selectedTemplate}
 				open={scheduleDialogOpen}
 				onOpenChange={setScheduleDialogOpen}
