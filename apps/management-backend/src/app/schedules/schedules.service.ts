@@ -39,4 +39,22 @@ export class SchedulesService {
 	async createSchedule(createScheduleDto: CreateScheduleDto, user: UserEntity): Promise<string> {
 		return this.scheduleEngine.createSchedule(createScheduleDto, user);
 	}
+
+	/**
+	 * Suspend a Schedule
+	 * @param name The name of the Schedule
+	 * @param namespace The namespace of the Schedule
+	 */
+	async suspendSchedule(name: string, namespace: string): Promise<void> {
+		return this.argoClientService.suspendSchedule(name, namespace);
+	}
+
+	/**
+	 * Resume a Schedule
+	 * @param name The name of the Schedule
+	 * @param namespace The namespace of the Schedule
+	 */
+	async resumeSchedule(name: string, namespace: string): Promise<void> {
+		return this.argoClientService.resumeSchedule(name, namespace);
+	}
 }

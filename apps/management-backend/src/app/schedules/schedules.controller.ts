@@ -1,4 +1,4 @@
-import { Body, Controller, Get, Param, Post, UseGuards } from '@nestjs/common';
+import { Body, Controller, Get, Param, Patch, Post, UseGuards } from '@nestjs/common';
 import {
 	ApiCreatedResponse,
 	ApiOkResponse,
@@ -64,5 +64,39 @@ export class SchedulesController {
 		@Body() body: CreateScheduleDto,
 	): Promise<string> {
 		return this.schedulesService.createSchedule(body, user);
+	}
+
+	@ApiOperation({ summary: 'Suspend a Schedule' })
+	@ApiOkResponse({ description: 'The Schedule has been suspended' })
+	@ApiResponse({
+		status: 403,
+		description: 'You do not have permission to update schedules',
+	})
+	@RequirePermission('update', 'schedule')
+	@ApiParam({ name: 'namespace', description: 'The namespace of the Schedule' })
+	@ApiParam({ name: 'name', description: 'The name of the Schedule' })
+	@Patch(':namespace/:name/suspend')
+	async suspendSchedule(
+		@Param('namespace') namespace: string,
+		@Param('name') name: string,
+	): Promise<void> {
+		return this.schedulesService.suspendSchedule(name, namespace);
+	}
+
+	@ApiOperation({ summary: 'Resume a Schedule' })
+	@ApiOkResponse({ description: 'The Schedule has been resumed' })
+	@ApiResponse({
+		status: 403,
+		description: 'You do not have permission to update schedules',
+	})
+	@RequirePermission('update', 'schedule')
+	@ApiParam({ name: 'namespace', description: 'The namespace of the Schedule' })
+	@ApiParam({ name: 'name', description: 'The name of the Schedule' })
+	@Patch(':namespace/:name/resume')
+	async resumeSchedule(
+		@Param('namespace') namespace: string,
+		@Param('name') name: string,
+	): Promise<void> {
+		return this.schedulesService.resumeSchedule(name, namespace);
 	}
 }
