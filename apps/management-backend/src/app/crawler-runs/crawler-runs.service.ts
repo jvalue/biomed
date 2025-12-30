@@ -1,0 +1,23 @@
+import { Injectable } from '@nestjs/common';
+import { ArgoClientService } from '../argo-client/argo-client.service';
+import { CursorBasedPaginationRequestDto } from '../pagination/dto/cursor-based-pagination-request.dto';
+import { CursorBasedPaginationResponseDto } from '../pagination/dto/cursor-based-pagination-response.dto';
+import { CrawlerRunDto } from './dto/crawler-run.dto';
+import { CrawlerRunFilterDto } from './dto/crawler-run-filter.dto';
+
+@Injectable()
+export class CrawlerRunsService {
+	constructor(private readonly argoClientService: ArgoClientService) {}
+
+	/**
+	 * Lists all Crawler Runs.
+	 * @param filter Optional filtering options
+	 * @param pagination Optional pagination options
+	 */
+	async listCrawlerRuns(
+		filter?: CrawlerRunFilterDto,
+		pagination?: CursorBasedPaginationRequestDto,
+	): Promise<CursorBasedPaginationResponseDto<CrawlerRunDto>> {
+		return this.argoClientService.listCrawlerRuns(filter, pagination);
+	}
+}

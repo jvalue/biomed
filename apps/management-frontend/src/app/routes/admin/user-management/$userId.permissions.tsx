@@ -24,17 +24,17 @@ export const Route = createFileRoute('/admin/user-management/$userId/permissions
 });
 
 const permissionGroups = {
-	workflows: [
-		UserPermission.WORKFLOW_READ,
-		UserPermission.WORKFLOW_CREATE,
-		UserPermission.WORKFLOW_UPDATE,
-		UserPermission.WORKFLOW_DELETE,
+	crawlerRuns: [
+		UserPermission.CRAWLER_RUN_READ,
+		UserPermission.CRAWLER_RUN_CREATE,
+		UserPermission.CRAWLER_RUN_UPDATE,
+		UserPermission.CRAWLER_RUN_DELETE,
 	],
-	templates: [
-		UserPermission.TEMPLATE_READ,
-		UserPermission.TEMPLATE_CREATE,
-		UserPermission.TEMPLATE_UPDATE,
-		UserPermission.TEMPLATE_DELETE,
+	crawlerTemplates: [
+		UserPermission.CRAWLER_TEMPLATE_READ,
+		UserPermission.CRAWLER_TEMPLATE_CREATE,
+		UserPermission.CRAWLER_TEMPLATE_UPDATE,
+		UserPermission.CRAWLER_TEMPLATE_DELETE,
 	],
 	schedules: [
 		UserPermission.SCHEDULE_READ,
@@ -52,14 +52,14 @@ const permissionGroups = {
 };
 
 const permissionLabels: Record<UserPermission, string> = {
-	[UserPermission.WORKFLOW_CREATE]: 'Create',
-	[UserPermission.WORKFLOW_READ]: 'Read',
-	[UserPermission.WORKFLOW_UPDATE]: 'Edit',
-	[UserPermission.WORKFLOW_DELETE]: 'Delete',
-	[UserPermission.TEMPLATE_CREATE]: 'Create',
-	[UserPermission.TEMPLATE_READ]: 'Read',
-	[UserPermission.TEMPLATE_UPDATE]: 'Edit',
-	[UserPermission.TEMPLATE_DELETE]: 'Delete',
+	[UserPermission.CRAWLER_RUN_CREATE]: 'Create',
+	[UserPermission.CRAWLER_RUN_READ]: 'Read',
+	[UserPermission.CRAWLER_RUN_UPDATE]: 'Edit',
+	[UserPermission.CRAWLER_RUN_DELETE]: 'Delete',
+	[UserPermission.CRAWLER_TEMPLATE_CREATE]: 'Create',
+	[UserPermission.CRAWLER_TEMPLATE_READ]: 'Read',
+	[UserPermission.CRAWLER_TEMPLATE_UPDATE]: 'Edit',
+	[UserPermission.CRAWLER_TEMPLATE_DELETE]: 'Delete',
 	[UserPermission.SCHEDULE_CREATE]: 'Create',
 	[UserPermission.SCHEDULE_READ]: 'Read',
 	[UserPermission.SCHEDULE_UPDATE]: 'Edit',
@@ -72,8 +72,8 @@ const permissionLabels: Record<UserPermission, string> = {
 };
 
 const groupLabels = {
-	workflows: 'Workflows',
-	templates: 'Templates',
+	crawlerRuns: 'Crawler Runs',
+	crawlerTemplates: 'Crawler Templates',
 	schedules: 'Schedules',
 	users: 'Users',
 };

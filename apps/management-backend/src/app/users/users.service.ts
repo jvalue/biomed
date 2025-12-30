@@ -54,8 +54,8 @@ export class UsersService {
 	async approveUser(userId: string, requestingUser: UserEntity): Promise<void> {
 		await this.findUserByIdOrFail(userId);
 
-		// Give user basic default permissions upon approval (read workflows)
-		const permissions: UserPermission[] = [UserPermission.WORKFLOW_READ];
+		// Give user basic default permissions upon approval (read crawler runs)
+		const permissions: UserPermission[] = [UserPermission.CRAWLER_RUN_READ];
 		await this.usersRepository.update(userId, {
 			status: UserStatus.ACTIVE,
 			approvedBy: requestingUser.id,

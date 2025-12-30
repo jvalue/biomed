@@ -72,7 +72,7 @@ describe('UsersService (relevant methods)', () => {
 			status: UserStatus.ACTIVE,
 			approvedBy: requestingUser.id,
 			approvedAt: expect.any(Date),
-			permissions: [UserPermission.WORKFLOW_READ],
+			permissions: [UserPermission.CRAWLER_RUN_READ],
 		});
 	});
 
@@ -93,7 +93,7 @@ describe('UsersService (relevant methods)', () => {
 		const requestingUser = { id: 'same' } as UserEntity;
 
 		await expect(
-			service.updatePermissions('same', [UserPermission.WORKFLOW_READ], requestingUser),
+			service.updatePermissions('same', [UserPermission.CRAWLER_RUN_CREATE], requestingUser),
 		).rejects.toBeInstanceOf(ForbiddenException);
 	});
 
@@ -102,7 +102,7 @@ describe('UsersService (relevant methods)', () => {
 		const requestingUser = { id: 'other' } as UserEntity;
 
 		await expect(
-			service.updatePermissions('missing', [UserPermission.WORKFLOW_READ], requestingUser),
+			service.updatePermissions('missing', [UserPermission.CRAWLER_RUN_READ], requestingUser),
 		).rejects.toBeInstanceOf(ForbiddenException);
 	});
 
@@ -110,7 +110,7 @@ describe('UsersService (relevant methods)', () => {
 		mockRepo.findOne.mockResolvedValue({ id: 'target' } as UserEntity);
 		mockRepo.update.mockResolvedValue(undefined);
 		const requestingUser = { id: 'admin' } as UserEntity;
-		const perms = [UserPermission.TEMPLATE_READ];
+		const perms = [UserPermission.CRAWLER_TEMPLATE_READ];
 
 		await service.updatePermissions('target', perms, requestingUser);
 

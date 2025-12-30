@@ -2,24 +2,24 @@
  * Mapper functions for argo
  */
 
+import { CrawlerRunDto } from '../../crawler-runs/dto/crawler-run.dto';
+import { CrawlerTemplateDto } from '../../crawler-templates/dto/crawler-template.dto';
 import { CursorBasedPaginationResponseDto } from '../../pagination/dto/cursor-based-pagination-response.dto';
 import { ScheduleDto } from '../../schedules/dto/schedule.dto';
-import { WorkflowRunDto } from '../../workflow-runs/dto/workflow-run.dto';
-import { WorkflowTemplateDto } from '../../workflow-templates/dto/workflow-template.dto';
 import { ArgoCursorPaginatedListDto } from '../dto/argo-cursor-paginated-list-dto';
 import { ArgoCronWorkflowDto } from '../dto/cron-workflows/argo-cron-workflow.dto';
 import { ArgoWorkflowRunDto } from '../dto/workflow-runs/argo-workflow-run.dto';
 import { ArgoWorkflowTemplateDto } from '../dto/workflow-templates/argo-workflow-template.dto';
 
 /**
- * Maps ArgoWorkflowRunDto to WorkflowRunDto
+ * Maps ArgoWorkflowRunDto to CrawlerRunDto
  * @param run
  */
-export function mapArgoWorkflowRunDtoToWorkflowRunDto(run: ArgoWorkflowRunDto): WorkflowRunDto {
-	const workflowRun = new WorkflowRunDto();
+export function mapArgoWorkflowRunDtoToWorkflowRunDto(run: ArgoWorkflowRunDto): CrawlerRunDto {
+	const workflowRun = new CrawlerRunDto();
 	workflowRun.name = run.metadata.name;
 	workflowRun.namespace = run.metadata.namespace;
-	workflowRun.workflowTemplateName =
+	workflowRun.crawlerTemplateName =
 		run.metadata.labels['workflows.argoproj.io/workflow-template'] ??
 		run.metadata.labels.customSetWorkflowTemplateName;
 	workflowRun.scheduleName = run.metadata.labels['workflows.argoproj.io/cron-workflow'];
@@ -30,13 +30,13 @@ export function mapArgoWorkflowRunDtoToWorkflowRunDto(run: ArgoWorkflowRunDto): 
 }
 
 /**
- * Maps ArgoWorkflowTemplateDto to WorkflowTemplateDto
+ * Maps ArgoWorkflowTemplateDto to CrawlerTemplateDto
  * @param template
  */
 export function mapArgoWorkflowTemplateDtoToWorkflowTemplateDto(
 	template: ArgoWorkflowTemplateDto,
-): WorkflowTemplateDto {
-	const workflowTemplate = new WorkflowTemplateDto();
+): CrawlerTemplateDto {
+	const workflowTemplate = new CrawlerTemplateDto();
 	workflowTemplate.name = template.metadata.name;
 	workflowTemplate.namespace = template.metadata.namespace;
 	workflowTemplate.createdAt = template.metadata.creationTimestamp;
@@ -59,7 +59,7 @@ export function mapArgoCronWorkflowDtoToScheduleDto(
 	schedule.name = cronWorkflow.metadata.name;
 	schedule.namespace = cronWorkflow.metadata.namespace;
 	// We filter for cron workflows that reference a workflow template, so this should always be defined
-	schedule.workflowTemplateName = cronWorkflow.spec.workflowSpec.workflowTemplateRef?.name ?? '';
+	schedule.crawlerTemplateName = cronWorkflow.spec.workflowSpec.workflowTemplateRef?.name ?? '';
 	schedule.parameters =
 		cronWorkflow.spec.workflowSpec.arguments?.parameters?.map((param) => ({
 			name: param.name,
