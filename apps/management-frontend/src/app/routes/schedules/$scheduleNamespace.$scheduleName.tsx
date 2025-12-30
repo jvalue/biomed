@@ -66,8 +66,8 @@ function RouteComponent() {
 					},
 					{
 						action: 'read',
-						subject: 'template',
-						label: 'read templates',
+						subject: 'crawler-template',
+						label: 'read crawler templates',
 					},
 				]}
 			>
@@ -166,7 +166,7 @@ function RouteComponent() {
 						</CardContent>
 					</Card>
 
-					<Can ability={ability} I="read" a="workflow">
+					<Can ability={ability} I="read" a="crawler-run">
 						<Card className="shadow-lg">
 							<CardHeader className="border-b">
 								<CardTitle className="text-xl">Crawler Runs</CardTitle>

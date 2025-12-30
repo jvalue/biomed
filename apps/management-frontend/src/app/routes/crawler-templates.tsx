@@ -14,7 +14,9 @@ function RouteComponent() {
 		<AuthGuard>
 			<PermissionGuard
 				ability={ability}
-				required={[{ action: 'read', subject: 'template', label: 'read templates' }]}
+				required={[
+					{ action: 'read', subject: 'crawler-template', label: 'read crawler templates' },
+				]}
 			>
 				<h1>Crawler Templates</h1>
 				<CrawlerTemplatesList />

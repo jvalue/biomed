@@ -23,7 +23,7 @@ export class CrawlerTemplatesController {
 	@ApiOperation({ summary: 'Lists all Crawler Templates' })
 	@ApiOkResponse({ type: [CrawlerTemplateDto], description: 'List of Crawler Templates' })
 	@ApiForbiddenResponse({ description: 'You do not have permission to access crawler templates' })
-	@RequirePermission('read', 'template')
+	@RequirePermission('read', 'crawler-template')
 	@Get()
 	async listCrawlerTemplates(
 		@Query() filterParams?: CrawlerTemplatesFilterDto,
@@ -48,7 +48,7 @@ export class CrawlerTemplatesController {
 		type: [CrawlerRunParameterDto],
 		description: 'Optional parameters to pass to the crawler Template',
 	})
-	@RequirePermission('create', 'workflow')
+	@RequirePermission('create', 'crawler-run')
 	@Post(':namespace/:templateName/submit')
 	async submitCrawlerTemplateRun(
 		@Param('namespace') namespace: string,
