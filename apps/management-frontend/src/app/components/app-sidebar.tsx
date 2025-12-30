@@ -38,19 +38,19 @@ export function AppSidebar() {
 						</SidebarMenu>
 					</SidebarGroupContent>
 				</SidebarGroup>
-				<Can ability={ability} I="read" a="workflow">
+				<Can ability={ability} I="read" a="crawler-run">
 					<SidebarGroup>
-						<SidebarGroupLabel>Statistics and Workflow Information</SidebarGroupLabel>
+						<SidebarGroupLabel>Statistics and Run Information</SidebarGroupLabel>
 						<SidebarGroupContent>
 							<SidebarMenu>
-								<SidebarMenuItem key="workflow-list">
+								<SidebarMenuItem key="crawler-runs">
 									<SidebarMenuButton asChild>
 										<Link
-											to="/workflow-list"
+											to="/crawler-runs"
 											activeProps={{ style: { fontWeight: 'bold' } }}
 											activeOptions={{ exact: true }}
 										>
-											Workflow List
+											Crawler Runs
 										</Link>
 									</SidebarMenuButton>
 								</SidebarMenuItem>
@@ -58,19 +58,19 @@ export function AppSidebar() {
 						</SidebarGroupContent>
 					</SidebarGroup>
 				</Can>
-				<Can ability={ability} I="read" a="template">
+				<Can ability={ability} I="read" a="crawler-template">
 					<SidebarGroup>
 						<SidebarGroupLabel>Orchestration</SidebarGroupLabel>
 						<SidebarGroupContent>
 							<SidebarMenu>
-								<SidebarMenuItem key="workflow-templates">
+								<SidebarMenuItem key="crawler-templates">
 									<SidebarMenuButton asChild>
 										<Link
-											to="/workflow-templates"
+											to="/crawler-templates"
 											activeProps={{ style: { fontWeight: 'bold' } }}
 											activeOptions={{ exact: true }}
 										>
-											Workflow Templates
+											Crawler Templates
 										</Link>
 									</SidebarMenuButton>
 								</SidebarMenuItem>
