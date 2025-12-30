@@ -27,20 +27,20 @@ export class CreateScheduleDto {
 	@Validate(IsCronExpression)
 	cronExpression!: string;
 
-	@ApiProperty({ description: 'Namespace of the workflow template to be executed' })
+	@ApiProperty({ description: 'Namespace of the crawler template to be executed' })
 	@IsString()
 	@IsNotEmpty()
 	@Equals('argo-managed-crawler', { message: 'Namespace has to be argo-managed-crawler' })
-	workflowTemplateNamespace!: string;
+	crawlerTemplateNamespace!: string;
 
-	@ApiProperty({ description: 'Name of the workflow template to be executed' })
+	@ApiProperty({ description: 'Name of the crawler template to be executed' })
 	@IsString()
 	@IsNotEmpty()
-	workflowTemplateName!: string;
+	crawlerTemplateName!: string;
 
 	@ApiProperty({
 		type: [ScheduleParameterDto],
-		description: 'The parameters which the schedule passes to the workflow template',
+		description: 'The parameters which the schedule passes to the crawler template',
 	})
 	@IsArray()
 	@IsOptional()
