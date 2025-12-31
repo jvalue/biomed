@@ -60,12 +60,7 @@ export default function CrawlerTemplateRunDialog({
 					setParameters({});
 					// Redirect to crawler-runs page
 					router.navigate({ to: '/crawler-runs' });
-					toast.success(`Crawler run for template "${template.name}" submitted successfully.`, {
-						position: 'top-right',
-						autoClose: 5000,
-						closeOnClick: true,
-						pauseOnHover: true,
-					});
+					toast.success(`Crawler run for template "${template.name}" submitted successfully.`);
 				},
 			},
 		);
