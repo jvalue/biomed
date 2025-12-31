@@ -1,5 +1,6 @@
 import { useRouter } from '@tanstack/react-router';
 import React, { useState } from 'react';
+import { toast } from 'react-toastify';
 import { CrawlerTemplateDto } from '@/src/app/api/dto/crawler-templates/crawler-template.dto';
 import { useSubmitCrawlerTemplateRun } from '@/src/app/api/hooks/useCrawlerTemplates';
 import { Button } from '@/src/app/components/design-components/button';
@@ -59,6 +60,12 @@ export default function CrawlerTemplateRunDialog({
 					setParameters({});
 					// Redirect to crawler-runs page
 					router.navigate({ to: '/crawler-runs' });
+					toast.success(`Crawler run for template "${template.name}" submitted successfully.`, {
+						position: 'top-right',
+						autoClose: 5000,
+						closeOnClick: true,
+						pauseOnHover: true,
+					});
 				},
 			},
 		);
