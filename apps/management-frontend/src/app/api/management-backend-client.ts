@@ -1,4 +1,5 @@
 import axios from 'axios';
+import { toast } from 'react-toastify';
 
 export const managementBackendClient = axios.create({
 	// biome-ignore lint/suspicious/noExplicitAny: <needed here>
@@ -6,3 +7,16 @@ export const managementBackendClient = axios.create({
 	timeout: 10000,
 	withCredentials: true,
 });
+
+managementBackendClient.interceptors.response.use(
+	(response) => response,
+	(error) => {
+		const msg =
+			error?.response?.data?.message ??
+			error?.response?.data ??
+			error?.message ??
+			'Network or server error';
+		toast.error(`Request failed: ${msg}`, { autoClose: 8000 });
+		return Promise.reject(error);
+	},
+);
