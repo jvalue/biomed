@@ -12,7 +12,14 @@ export default function App() {
 				<AppNav>
 					<Outlet />
 				</AppNav>
-				<ToastContainer />
+				<ToastContainer
+					position="top-right"
+					autoClose={5000}
+					hideProgressBar={false}
+					newestOnTop={false}
+					closeOnClick
+					pauseOnHover={true}
+				/>
 			</div>
 		</AuthProvider>
 	);
