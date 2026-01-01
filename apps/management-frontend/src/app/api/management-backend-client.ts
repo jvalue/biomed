@@ -16,8 +16,8 @@ managementBackendClient.interceptors.response.use(
 			error?.response?.data ??
 			error?.message ??
 			'Network or server error';
-		if (error?.response?.status === 401) {
-			// Ignore unauthorized errors, they are handled by redirecting to login
+		if (error?.response?.status === 401 && error?.config?.url?.endsWith('/auth/me')) {
+			// Ignore unauthorized errors for getting user profile, they are handled by redirecting to login
 			return;
 		}
 		toast.error(`Request failed: ${msg}`, { autoClose: 8000 });
