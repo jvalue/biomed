@@ -1,4 +1,5 @@
 import { Can } from '@casl/react';
+import { toast } from 'react-toastify';
 import { useApproveUser, useBlockUser, useUsers } from '@/src/app/api/hooks/useUsers';
 import { Button } from '@/src/app/components/design-components/button';
 import { Spinner } from '@/src/app/components/design-components/spinner';
@@ -12,13 +13,21 @@ import {
 	TableRow,
 } from '@/src/app/components/design-components/table';
 import { useAuth } from '@/src/app/contexts/AuthContext';
-import { UserStatus } from '../../api/dto/user/user.dto';
+import { UserDto, UserStatus } from '../../api/dto/user/user.dto';
 
 export default function PendingUsersTableComponent() {
 	const { ability } = useAuth();
 	const { data, isLoading, error } = useUsers(UserStatus.PENDING);
 	const approveUserMutation = useApproveUser();
 	const blockUserMutation = useBlockUser();
+
+	const approveUser = (user: UserDto) => {
+		approveUserMutation.mutate(user.id, {
+			onSuccess: () => {
+				toast.success(`User ${user.username} approved successfully`);
+			},
+		});
+	};
 
 	if (isLoading) {
 		return (
@@ -48,7 +57,7 @@ export default function PendingUsersTableComponent() {
 						<TableCell className="flex gap-2">
 							<Can ability={ability} I={'approve'} an={'user'}>
 								<Button
-									onClick={() => approveUserMutation.mutate(user.id)}
+									onClick={() => approveUser(user)}
 									disabled={approveUserMutation.isPending}
 									aria-busy={approveUserMutation.isPending}
 									variant={'secondary'}

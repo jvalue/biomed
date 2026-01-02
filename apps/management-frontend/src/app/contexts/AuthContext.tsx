@@ -32,9 +32,11 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 	const fetchUserProfile = async () => {
 		try {
 			const response = await managementBackendClient.get('/auth/me');
-			const data = response.data;
-			setUser(data.user);
-			setAbility(new PureAbility(data.abilityRules));
+			const data = response?.data;
+			if (data) {
+				setUser(data.user);
+				setAbility(new PureAbility(data.abilityRules));
+			}
 			// biome-ignore lint/suspicious/noExplicitAny: <doesn't work differently>
 		} catch (error: any) {
 			if (error.response?.status === 401) {
