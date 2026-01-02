@@ -2,6 +2,7 @@ import { Label } from '@radix-ui/react-label';
 import { createFileRoute, useRouter } from '@tanstack/react-router';
 // biome-ignore lint/correctness/noUnusedImports: <is used>
 import React, { useEffect, useState } from 'react';
+import { toast } from 'react-toastify';
 import { UserPermission } from '@/src/app/api/dto/user/user.dto';
 import { useUpdateUserPermissions, useUserById } from '@/src/app/api/hooks/useUsers';
 import { Button } from '@/src/app/components/design-components/button';
@@ -100,11 +101,23 @@ function RouteComponent() {
 	};
 
 	const handleSubmit = async () => {
-		updatePermissions.mutate({
-			userId,
-			permissions: selectedPermissions,
-		});
-		await router.navigate({ to: '/admin/user-management' });
+		updatePermissions.mutate(
+			{
+				userId,
+				permissions: selectedPermissions,
+			},
+			{
+				onSuccess: () => {
+					router.navigate({ to: '/admin/user-management' });
+					toast.success(
+						<p>
+							Permissions for user <span className="font-semibold">{data?.username}</span> updated
+							successfully
+						</p>,
+					);
+				},
+			},
+		);
 	};
 
 	if (isLoading) {
