@@ -45,4 +45,6 @@ export class CreateScheduleDto {
 	@IsArray()
 	@IsOptional()
 	parameters?: ScheduleParameterDto[];
+
+	// TODO: Add retry strategy
 }
