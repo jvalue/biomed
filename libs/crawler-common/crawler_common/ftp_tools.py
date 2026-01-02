@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import ftplib
+from urllib.parse import urlparse
 import logging
 from datetime import datetime, timezone
 
@@ -14,31 +15,14 @@ _truncated_due_to_depth = False
 
 def get_root_folders(ftp_url: str, ftp_user: str, ftp_password: str) -> list[str]:
     """Connect to FTP server and retrieve root folder names."""
-
-    folders: list[str] = []
     try:
-        ftp = ftplib.FTP(ftp_url)
-        ftp.login(ftp_user, ftp_password)
-
-        # Prefer MLSD for structured directory info
-        try:
-            for name, facts in ftp.mlsd():
-                if facts.get("type") == "dir" and name not in {".", ".."}:
-                    folders.append(name)
-        except ftplib.error_perm:
-            # MLSD not supported, fall back to parsing LIST output
-            def parse_list_line(line: str) -> None:
-                if line.startswith("d"):
-                    folders.append(line.split()[-1])
-
-            ftp.retrlines("LIST", parse_list_line)
-
-        ftp.quit()
+        # Reuse traversal logic to get immediate children at root
+        root = get_ftp_structure(ftp_url, ftp_user, ftp_password, max_depth=1)
+        # Return only directories
+        return [child.name for child in root.children if child.is_dir]
     except ftplib.all_errors as exc:  # pragma: no cover - network dependent
         print(f"FTP error: {exc}")
         raise
-
-    return folders
 
 
 def get_ftp_structure(
@@ -54,11 +38,12 @@ def get_ftp_structure(
         logger.info(f"Starting traversal with max_depth={max_depth}")
         global _truncated_due_to_depth
         _truncated_due_to_depth = False
-        ftp = ftplib.FTP(ftp_url)
-        ftp.login(ftp_user, ftp_password)
+        ftp, initial_path = _open_ftp_connection(ftp_url, ftp_user, ftp_password)
 
-        root = FTPNode(name="/", is_dir=True, path="/")
-        _traverse_ftp(ftp, root, "/", depth=0, max_depth=max_depth)
+        # Use the initial path (from URL) as root if provided
+        root_path = initial_path or "/"
+        root = FTPNode(name=root_path.rstrip("/") or "/", is_dir=True, path=root_path)
+        _traverse_ftp(ftp, root, root_path, depth=0, max_depth=max_depth)
 
         ftp.quit()
         if _truncated_due_to_depth:
@@ -70,6 +55,37 @@ def get_ftp_structure(
     except ftplib.all_errors as exc:  # pragma: no cover - network dependent
         print(f"FTP error: {exc}")
         raise
+
+
+def _open_ftp_connection(
+    ftp_url: str, ftp_user: str, ftp_password: str
+) -> tuple[ftplib.FTP, str]:
+    """Open an FTP connection from a URL or hostname.
+
+    Returns a tuple of (ftp_connection, initial_path).
+    """
+    parsed = urlparse(ftp_url)
+    if parsed.scheme:
+        host = parsed.hostname
+        port = parsed.port
+        initial_path = parsed.path or "/"
+    else:
+        host = ftp_url
+        port = None
+        initial_path = "/"
+
+    if not host:
+        raise ValueError(f"Invalid FTP URL/host: {ftp_url}")
+
+    # Connect using explicit host/port when provided to avoid passing a scheme
+    if port:
+        ftp = ftplib.FTP()
+        ftp.connect(host, port)
+    else:
+        ftp = ftplib.FTP(host)
+
+    ftp.login(ftp_user, ftp_password)
+    return ftp, initial_path
 
 
 def _traverse_ftp(
@@ -149,7 +165,9 @@ def _write_tree(node: FTPNode, file, prefix: str) -> None:
             meta_parts.append(f"size={child.size}")
         if child.modified is not None:
             # ISO-like UTC formatting
-            meta_parts.append(f"modified={child.modified.astimezone(timezone.utc).strftime('%Y-%m-%dT%H:%M:%SZ')}")
+            meta_parts.append(
+                f"modified={child.modified.astimezone(timezone.utc).strftime('%Y-%m-%dT%H:%M:%SZ')}"
+            )
         meta = f" ({', '.join(meta_parts)})" if meta_parts else ""
 
         file.write(f"{prefix}{connector}{name}{meta}\n")
@@ -191,7 +209,9 @@ def _extract_metadata_from_facts(facts: dict) -> tuple[int | None, datetime | No
     return size, modified
 
 
-def _fetch_file_metadata(ftp: ftplib.FTP, path: str) -> tuple[int | None, datetime | None]:
+def _fetch_file_metadata(
+    ftp: ftplib.FTP, path: str
+) -> tuple[int | None, datetime | None]:
     """Fetch file size and modified datetime using FTP commands as fallbacks.
 
     Uses `SIZE` and `MDTM` commands. Returns a tuple (size, modified).
