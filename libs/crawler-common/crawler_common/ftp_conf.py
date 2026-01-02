@@ -44,12 +44,17 @@ def load_env_vars(dotenv_path: Path | str | None = None) -> tuple[str, str, str]
     ftp_user: str | None = os.getenv("FTP_USER")
     ftp_password: str | None = os.getenv("FTP_PASSWORD")
 
-    missing: list[str] = _missing_vars([("FTP_URL", ftp_url), ("FTP_USER", ftp_user), ("FTP_PASSWORD", ftp_password)])
+    missing: list[str] = _missing_vars(
+        [("FTP_URL", ftp_url), ("FTP_USER", ftp_user), ("FTP_PASSWORD", ftp_password)]
+    )
     if missing:
         location_hint = f" using .env at {dotenv_path}" if dotenv_path else ""
-        raise ValueError(f"Missing environment variables{location_hint}: {', '.join(missing)}")
+        raise ValueError(
+            f"Missing environment variables{location_hint}: {', '.join(missing)}"
+        )
 
-    # type narrowing
+    assert ftp_url is not None and ftp_user is not None and ftp_password is not None
+
     return ftp_url, ftp_user, ftp_password
 
 
