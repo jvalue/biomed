@@ -24,6 +24,7 @@ export class ArgoScheduleEngine implements IScheduleEngine {
 			.addParameters(dto.parameters)
 			.addLabel('created-by', user.id)
 			.addLabel('created-by-fallback', user.username)
+			.addRetries(dto.retries)
 			.build();
 
 		// Generate YAML from the object

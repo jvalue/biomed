@@ -32,6 +32,7 @@ export default function CrawlerTemplateScheduleDialog({
 	const createSchedule = useCreateSchedule();
 	const [scheduleName, setScheduleName] = useState('');
 	const [cronExpression, setCronExpression] = useState('');
+	const [retries, setRetries] = useState<number>(0);
 	const [parameters, setParameters] = useState<Record<string, string>>({});
 	const [prLink, setPrLink] = useState<string | null>(null);
 	const [errorMessage, setErrorMessage] = useState<string | null>(null);
@@ -114,6 +115,7 @@ export default function CrawlerTemplateScheduleDialog({
 				crawlerTemplateNamespace: template.namespace,
 				crawlerTemplateName: template.name,
 				parameters: paramArray,
+				retries: retries,
 			},
 			{
 				onSuccess: (data) => {
@@ -206,6 +208,25 @@ export default function CrawlerTemplateScheduleDialog({
 									Examples: <code className="bg-muted px-1 py-0.5 rounded">0 0 * * *</code> (daily
 									at midnight), <code className="bg-muted px-1 py-0.5 rounded">0 */6 * * *</code>{' '}
 									(every 6 hours)
+								</p>
+							</div>
+
+							<div className="space-y-2">
+								<Label htmlFor="retries" className="text-sm font-medium">
+									Retries <span className="text-red-500">*</span>
+								</Label>
+								<Input
+									id="retries"
+									value={retries}
+									onChange={(e) => setRetries(e.target.value ? Number(e.target.value) : 0)}
+									pattern="[0-9]+"
+									type="number"
+									min={0}
+									placeholder="2"
+									className={`w-full`}
+								/>
+								<p className="text-xs text-muted-foreground">
+									Number of retry attempts upon failure (default 2)
 								</p>
 							</div>
 						</div>

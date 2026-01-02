@@ -10,10 +10,6 @@ export class ArgoCronWorkflowBuilder {
 		this.reset();
 	}
 
-	// TODO: Add automountServiceAccountToken setting
-	//TODO: Add entrypoint setting
-	//TODO: Add gc settings
-	// TODO: Add tll settings
 	/**
 	 * Resets the builder to its initial state.
 	 */
@@ -33,6 +29,7 @@ export class ArgoCronWorkflowBuilder {
 			spec: {
 				schedules: [],
 				concurrencyPolicy: 'Forbid',
+				automountServiceAccountToken: true,
 				startingDeadlineSeconds: 0,
 				workflowSpec: {
 					workflowTemplateRef: {
@@ -43,6 +40,17 @@ export class ArgoCronWorkflowBuilder {
 					},
 					workflowMetadata: {
 						labels: {},
+					},
+					ttlStrategy: {
+						// Default: Keep the workflow for 7 days after completion
+						secondsAfterCompletion: 604800, // 7 days
+					},
+					podGC: {
+						strategy: 'OnWorkflowSuccess',
+					},
+					retryStrategy: {
+						retryPolicy: 'Always',
+						limit: 2,
 					},
 				},
 			},
@@ -109,6 +117,12 @@ export class ArgoCronWorkflowBuilder {
 			...this.workflow.metadata.labels,
 			...labels,
 		};
+		return this;
+	}
+
+	public addRetries(limit?: number): this {
+		if (!limit) return this;
+		this.workflow.spec.workflowSpec.retryStrategy.limit = limit;
 		return this;
 	}
 

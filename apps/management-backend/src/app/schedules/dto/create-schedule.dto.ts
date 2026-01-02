@@ -46,5 +46,7 @@ export class CreateScheduleDto {
 	@IsOptional()
 	parameters?: ScheduleParameterDto[];
 
-	// TODO: Add retry strategy
+	@ApiProperty({ description: 'Number of retries in case of failure' })
+	@IsOptional()
+	retries?: number;
 }

@@ -10,4 +10,6 @@ export class CreateScheduleDto {
 	crawlerTemplateName!: string;
 
 	parameters?: ScheduleParameterDto[];
+
+	retries?: number;
 }
