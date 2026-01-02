@@ -10,7 +10,6 @@ from datetime import datetime, timezone
 from crawler_common.ftp_node import FTPNode
 
 logger = logging.getLogger(__name__)
-_truncated_due_to_depth = False
 
 
 def get_root_folders(ftp_url: str, ftp_user: str, ftp_password: str) -> list[str]:
@@ -33,20 +32,22 @@ def get_ftp_structure(
 ) -> FTPNode:
     """Recursively retrieve the FTP directory structure up to ``max_depth``."""
 
+    # Validate max_depth to avoid surprising traversal behavior.
+    if not isinstance(max_depth, int) or max_depth < 1:
+        raise ValueError(f"max_depth must be a positive integer (got {max_depth!r})")
+
+    ftp: ftplib.FTP | None = None
     try:
         logger.info(f"Connecting to FTP server: {ftp_url}")
         logger.info(f"Starting traversal with max_depth={max_depth}")
-        global _truncated_due_to_depth
-        _truncated_due_to_depth = False
         ftp, initial_path = _open_ftp_connection(ftp_url, ftp_user, ftp_password)
 
         # Use the initial path (from URL) as root if provided
         root_path = initial_path or "/"
         root = FTPNode(name=root_path.rstrip("/") or "/", is_dir=True, path=root_path)
-        _traverse_ftp(ftp, root, root_path, depth=0, max_depth=max_depth)
+        truncated = _traverse_ftp(ftp, root, root_path, depth=0, max_depth=max_depth)
 
-        ftp.quit()
-        if _truncated_due_to_depth:
+        if truncated:
             logger.warning(
                 "Traversal reached max_depth; deeper paths were not explored."
             )
@@ -55,6 +56,14 @@ def get_ftp_structure(
     except ftplib.all_errors as exc:  # pragma: no cover - network dependent
         print(f"FTP error: {exc}")
         raise
+    finally:
+        if ftp is not None:
+            try:
+                ftp.quit()
+            except Exception as exc:
+                logger.debug(
+                    "Error while quitting FTP connection: %s", exc, exc_info=True
+                )
 
 
 def _open_ftp_connection(
@@ -94,11 +103,17 @@ def _traverse_ftp(
     current_path: str,
     depth: int,
     max_depth: int,
-) -> None:
-    """Recursively traverse FTP directory structure."""
+) -> bool:
+    """Recursively traverse FTP directory structure.
+
+    Returns True if traversal was truncated due to reaching `max_depth` at
+    any visited directory (so callers can react without relying on globals).
+    """
 
     if depth >= max_depth:
-        return
+        return False
+
+    truncated = False
 
     try:
         logger.info(f"Traversing: {current_path} (depth {depth}/{max_depth})")
@@ -128,19 +143,24 @@ def _traverse_ftp(
                     node.modified = fetched_modified
             parent.children.append(node)
 
-            if is_dir and depth < max_depth - 1:
-                _traverse_ftp(ftp, node, path, depth + 1, max_depth)
-            elif is_dir and depth >= max_depth - 1:
-                # We found a directory at the boundary; deeper content won't be crawled
-                global _truncated_due_to_depth
-                _truncated_due_to_depth = True
-                logger.debug(f"Max depth reached at {path}; not descending further")
+            if is_dir:
+                if depth < max_depth - 1:
+                    child_truncated = _traverse_ftp(
+                        ftp, node, path, depth + 1, max_depth
+                    )
+                    if child_truncated:
+                        truncated = True
+                else:
+                    # We found a directory at the boundary; deeper content won't be crawled
+                    truncated = True
+                    logger.debug(f"Max depth reached at {path}; not descending further")
     except ftplib.error_perm:
-        # Skip directories without permission
+        # Skip directories without permissionpass
         logger.warning(f"Permission denied: {current_path}")
-        pass
     except ftplib.all_errors as exc:  # pragma: no cover - network dependent
         print(f"Error traversing {current_path}: {exc}")
+
+    return truncated
 
 
 def write_ftp_structure_to_file(root: FTPNode, output_path: str) -> None:
@@ -183,7 +203,8 @@ def _parse_modify_ts(value: str) -> datetime | None:
         base = value.split(".")[0]
         dt = datetime.strptime(base, "%Y%m%d%H%M%S")
         return dt.replace(tzinfo=timezone.utc)
-    except Exception:
+    except (ValueError, TypeError) as exc:
+        logger.debug("Failed to parse modify timestamp %r: %s", value, exc)
         return None
 
 
@@ -199,7 +220,8 @@ def _extract_metadata_from_facts(facts: dict) -> tuple[int | None, datetime | No
     if size_val is not None:
         try:
             size = int(size_val)
-        except Exception:
+        except (ValueError, TypeError) as exc:
+            logger.debug("Invalid size value %r: %s", size_val, exc)
             size = None
 
     modify_val = facts.get("modify")
@@ -225,9 +247,12 @@ def _fetch_file_metadata(
         if sz is not None:
             size = int(sz)
     except ftplib.error_perm:
-        pass
-    except Exception:
-        pass
+        # SIZE not supported or permission denied; leave size as None
+        logger.debug("SIZE not permitted for %s", path)
+    except Exception as exc:
+        logger.debug(
+            "Unexpected error running SIZE for %s: %s", path, exc, exc_info=True
+        )
 
     # MDTM: return last modification time (UTC)
     try:
@@ -241,8 +266,10 @@ def _fetch_file_metadata(
             ts = parts[0].removeprefix("213")
             modified = _parse_modify_ts(ts)
     except ftplib.error_perm:
-        pass
-    except Exception:
-        pass
+        logger.debug("MDTM not permitted for %s", path)
+    except Exception as exc:
+        logger.debug(
+            "Unexpected error running MDTM for %s: %s", path, exc, exc_info=True
+        )
 
     return size, modified

@@ -17,7 +17,7 @@ This creates a shared `.venv/` at the workspace root containing:
 - `crawler-general` (this app)
 - All Python dependencies for both projects
 
-For details on the shared FTP helpers and configuration, see [libs/crawler-common/README.md](libs/crawler-common/README.md).
+For details on the shared FTP helpers and configuration, see [../../libs/crawler-common/README.md](../../libs/crawler-common/README.md).
 
 **Quick Start - Run the App**
 
