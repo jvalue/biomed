@@ -44,18 +44,9 @@ $env:KUBECONFIG="<path-to-your-kubeconfig>"
 ```
 
 Then you can get the token with:
-For Mac/Linux:
 
-```bash 
-ARGO_TOKEN="Bearer $(kubectl get secret argo-user.service-account-token -n argo -o=jsonpath='{.data.token}' | base64 --decode)"
-echo $ARGO_TOKEN
-```
-
-For Windows (PowerShell): (need to install base64 utility first)
-
-```powershell
-$ARGO_TOKEN="Bearer $(kubectl get secret argo-user.service-account-token -n argo -o=jsonpath='{.data.token}' | base64 --decode)"
-echo $ARGO_TOKEN
+```bash
+kubectl -n argo create token argo-user 
 ```
 
 Add this token to your environment variables as `KUBE_BEARER_TOKEN`.
