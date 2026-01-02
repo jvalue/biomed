@@ -10,6 +10,10 @@ export class ArgoCronWorkflowBuilder {
 		this.reset();
 	}
 
+	// TODO: Add automountServiceAccountToken setting
+	//TODO: Add entrypoint setting
+	//TODO: Add gc settings
+	// TODO: Add tll settings
 	/**
 	 * Resets the builder to its initial state.
 	 */
