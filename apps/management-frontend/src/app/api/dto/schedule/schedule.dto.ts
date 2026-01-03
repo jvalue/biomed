@@ -10,6 +10,18 @@ class ScheduleStatisticsDto {
 	failedRuns!: number;
 }
 
+class RetryStrategyDto {
+	retries!: number;
+
+	backoffDuration?: number;
+
+	backoffFactor?: number;
+
+	backoffCap?: number;
+
+	backoffMaxDuration?: number;
+}
+
 export class ScheduleDto {
 	name!: string;
 
@@ -20,6 +32,8 @@ export class ScheduleDto {
 	parameters!: ScheduleParameterDto[];
 
 	schedule!: string;
+
+	retryStrategy?: RetryStrategyDto;
 
 	suspended!: boolean;
 
