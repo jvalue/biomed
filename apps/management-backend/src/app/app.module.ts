@@ -10,6 +10,7 @@ import { CrawlerTemplatesModule } from './crawler-templates/crawler-templates.mo
 import { DbConfigService } from './db-config.service';
 import { DemoModule } from './demo/demo.module';
 import { validate } from './env.validation';
+import { HealthModule } from './health/health.module';
 import { SchedulesModule } from './schedules/schedules.module';
 import { UsersModule } from './users/users.module';
 
@@ -29,6 +30,7 @@ import { UsersModule } from './users/users.module';
 		CrawlerRunsModule,
 		CrawlerTemplatesModule,
 		SchedulesModule,
+		HealthModule,
 	],
 	controllers: [AppController],
 	providers: [AppService, AdminBootstrapService],
