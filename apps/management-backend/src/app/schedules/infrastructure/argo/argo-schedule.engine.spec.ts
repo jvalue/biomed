@@ -41,7 +41,7 @@ describe('ArgoScheduleEngine', () => {
 		// Check for important bits in the YAML output
 		expect(yamlContent).toContain(`name: ${dto.name}`);
 		expect(yamlContent).toContain('0 2 * * *'); // schedule present
-		expect(yamlContent).toContain(`workflow-template-name: ${dto.crawlerTemplateName}`);
+		expect(yamlContent).toContain(`customSetWorkflowTemplateName: ${dto.crawlerTemplateName}`);
 		expect(yamlContent).toContain(`created-by: ${user.id}`);
 		expect(yamlContent).toContain(`created-by-fallback: ${user.username}`);
 		// parameter included
