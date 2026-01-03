@@ -28,7 +28,6 @@ export interface CrawlerTemplateScheduleDialogProps {
 	onOpenChange: (open: boolean) => void;
 }
 
-//TODO: Validations for backoff
 export default function CrawlerTemplateScheduleDialog({
 	template,
 	open,
@@ -69,6 +68,89 @@ export default function CrawlerTemplateScheduleDialog({
 		return readable === 'Invalid cron expression';
 	}, [cronExpression]);
 
+	// Helper function to validate backoff factor
+	const validateBackoffFactor = (factor: string): string | null => {
+		const factorNum = Number(factor);
+		if (Number.isNaN(factorNum) || factorNum <= 0) {
+			return 'Backoff Factor must be a positive number';
+		}
+		return null;
+	};
+
+	// Helper function to validate backoff cap and maxDuration
+	const validateBackoffParams = (
+		durSeconds: number,
+		capSeconds: number | null,
+		maxDurSeconds: number | null,
+	): string | null => {
+		if (capSeconds !== null) {
+			if (capSeconds < 0) {
+				return 'Backoff Cap must be a non-negative value';
+			}
+			if (capSeconds < durSeconds) {
+				return 'Backoff Cap must be greater than or equal to Backoff Duration';
+			}
+		}
+
+		if (maxDurSeconds !== null) {
+			if (maxDurSeconds < 0) {
+				return 'Backoff Max Duration must be a non-negative value';
+			}
+			if (maxDurSeconds < durSeconds) {
+				return 'Backoff Max Duration must be greater than or equal to Backoff Duration';
+			}
+			if (capSeconds !== null && maxDurSeconds < capSeconds) {
+				return 'Backoff Max Duration must be greater than or equal to Backoff Cap';
+			}
+		}
+
+		return null;
+	};
+
+	// Helper function to validate backoff duration and related params
+	const validateBackoffDuration = (
+		duration: string,
+		factor: string,
+		cap: string,
+		maxDuration: string,
+	): string | null => {
+		const durSeconds = durationToSeconds(duration);
+		if (durSeconds < 0) {
+			return 'Backoff Duration must be a non-negative value';
+		}
+
+		if (factor) {
+			const factorError = validateBackoffFactor(factor);
+			if (factorError) return factorError;
+		}
+
+		const capSeconds = cap ? durationToSeconds(cap) : null;
+		const maxDurSeconds = maxDuration ? durationToSeconds(maxDuration) : null;
+		return validateBackoffParams(durSeconds, capSeconds, maxDurSeconds);
+	};
+
+	// Validation for retry strategy
+	const retryValidationError = useMemo(() => {
+		if (retries < 0) {
+			return 'Retries must be a non-negative integer';
+		}
+
+		if (!backoffDuration && (backoffFactor || backoffCap || backoffMaxDuration)) {
+			return 'Backoff Duration must be set if other backoff parameters are set';
+		}
+
+		if (backoffDuration) {
+			return validateBackoffDuration(
+				backoffDuration,
+				backoffFactor,
+				backoffCap,
+				backoffMaxDuration,
+			);
+		}
+
+		return null;
+	}, [retries, backoffDuration, backoffFactor, backoffCap, backoffMaxDuration]);
+
 	React.useEffect(() => {
 		if (template && open) {
 			setScheduleName('');
@@ -82,7 +164,7 @@ export default function CrawlerTemplateScheduleDialog({
 			setErrorMessage(null);
 			const initialParams: Record<string, string> = {};
 			template.parameters?.forEach((param) => {
-				initialParams[param.name] = param.defaultValue || '';
+				initialParams[param.name] = param.defaultValue ?? '';
 			});
 			setParameters(initialParams);
 		}
@@ -114,6 +196,12 @@ export default function CrawlerTemplateScheduleDialog({
 			setErrorMessage(
 				'Invalid schedule name. Bitte verwende nur Kleinbuchstaben, Zahlen, Bindestriche und Punkte gemäß der Namens-Regex.',
 			);
+			return;
+		}
+
+		// Validate retry strategy
+		if (retryValidationError) {
+			setErrorMessage(retryValidationError);
 			return;
 		}
 
@@ -253,9 +341,16 @@ export default function CrawlerTemplateScheduleDialog({
 
 					{/* Retry Configuration Section */}
 					<div className="space-y-4">
-						<div className="pb-2 border-b border-primary/20">
+						<div>
 							<h3 className="text-lg font-semibold text-primary">Retry Configuration</h3>
 						</div>
+
+						{retryValidationError && (
+							<div className="flex items-center gap-2 text-sm text-destructive bg-destructive/10 p-3 rounded-md">
+								<AlertCircle className="h-4 w-4 flex-shrink-0" />
+								<span>{retryValidationError}</span>
+							</div>
+						)}
 
 						<div className="grid grid-cols-1 md:grid-cols-2 gap-4 pl-3">
 							<div className="space-y-2">
@@ -365,7 +460,7 @@ export default function CrawlerTemplateScheduleDialog({
 											id={param.name}
 											value={parameters[param.name] || ''}
 											onChange={(e) => handleParameterChange(param.name, e.target.value)}
-											placeholder={param.defaultValue || 'Enter value...'}
+											placeholder={param.defaultValue ?? 'Enter value...'}
 											className="w-full"
 										/>
 										{param.defaultValue && (
@@ -428,7 +523,11 @@ export default function CrawlerTemplateScheduleDialog({
 						<Button
 							onClick={handleSubmit}
 							disabled={
-								createSchedule.isPending || !scheduleName || !cronExpression || cronIsInvalid
+								createSchedule.isPending ||
+								!scheduleName ||
+								!cronExpression ||
+								cronIsInvalid ||
+								retryValidationError !== null
 							}
 							className="bg-primary hover:bg-primary/90"
 						>
