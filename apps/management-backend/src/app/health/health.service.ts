@@ -5,6 +5,9 @@ export class HealthService {
 	async checkHealth(): Promise<HealthCheckDto> {
 		const targets = [
 			'https://ftp.ncbi.nlm.nih.gov/',
+			'https://www.ebi.ac.uk/services',
+			'https://www.ncbi.nlm.nih.gov/books/NBK25501/',
+			'https://www.uniprot.org/help/api',
 			'test.invalid', // invalid domain to simulate DOWN
 		];
 
@@ -44,8 +47,8 @@ export class HealthService {
 	 */
 	private async checkServiceHealth(url: string): Promise<HealthStatusEnum> {
 		const normalizedUrl = url.includes('://') ? url : `http://${url}`;
-		const timeoutMs = Number(process.env.HEALTH_CHECK_TIMEOUT_MS || 3000);
-		const maxAttempts = Number(process.env.HEALTH_CHECK_RETRIES || 2);
+		const timeoutMs = Number(3000);
+		const maxAttempts = Number(2);
 
 		for (let attempt = 1; attempt <= maxAttempts; attempt++) {
 			try {
