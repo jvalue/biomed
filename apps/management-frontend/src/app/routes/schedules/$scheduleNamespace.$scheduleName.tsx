@@ -28,6 +28,7 @@ export const Route = createFileRoute('/schedules/$scheduleNamespace/$scheduleNam
 	component: RouteComponent,
 });
 
+//TODO: show configuration section with retry strategy
 function RouteComponent() {
 	const { ability } = useAuth();
 	const { scheduleNamespace, scheduleName } = Route.useParams();

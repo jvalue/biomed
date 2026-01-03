@@ -14,6 +14,10 @@ import {
 	DialogHeader,
 	DialogTitle,
 } from '@/src/app/components/design-components/dialog';
+import {
+	DurationInput,
+	durationToSeconds,
+} from '@/src/app/components/design-components/duration-input';
 import { Input } from '@/src/app/components/design-components/input';
 import { Label } from '@/src/app/components/design-components/label';
 import { formatCronReadable } from '@/src/app/utils/cron';
@@ -24,6 +28,7 @@ export interface CrawlerTemplateScheduleDialogProps {
 	onOpenChange: (open: boolean) => void;
 }
 
+//TODO: Validations for backoff
 export default function CrawlerTemplateScheduleDialog({
 	template,
 	open,
@@ -33,6 +38,10 @@ export default function CrawlerTemplateScheduleDialog({
 	const [scheduleName, setScheduleName] = useState('');
 	const [cronExpression, setCronExpression] = useState('');
 	const [retries, setRetries] = useState<number>(0);
+	const [backoffDuration, setBackoffDuration] = useState<string>('');
+	const [backoffFactor, setBackoffFactor] = useState<string>('');
+	const [backoffCap, setBackoffCap] = useState<string>('');
+	const [backoffMaxDuration, setBackoffMaxDuration] = useState<string>('');
 	const [parameters, setParameters] = useState<Record<string, string>>({});
 	const [prLink, setPrLink] = useState<string | null>(null);
 	const [errorMessage, setErrorMessage] = useState<string | null>(null);
@@ -64,6 +73,11 @@ export default function CrawlerTemplateScheduleDialog({
 		if (template && open) {
 			setScheduleName('');
 			setCronExpression('');
+			setRetries(0);
+			setBackoffDuration('');
+			setBackoffFactor('');
+			setBackoffCap('');
+			setBackoffMaxDuration('');
 			setPrLink(null);
 			setErrorMessage(null);
 			const initialParams: Record<string, string> = {};
@@ -108,6 +122,30 @@ export default function CrawlerTemplateScheduleDialog({
 			value,
 		}));
 
+		// Build retry strategy
+		const retryStrategy: {
+			retries: number;
+			backoffDuration?: number;
+			backoffFactor?: number;
+			backoffCap?: number;
+			backoffMaxDuration?: number;
+		} = {
+			retries: retries,
+		};
+
+		if (backoffDuration) {
+			retryStrategy.backoffDuration = durationToSeconds(backoffDuration);
+			if (backoffFactor) {
+				retryStrategy.backoffFactor = Number(backoffFactor);
+			}
+			if (backoffCap) {
+				retryStrategy.backoffCap = durationToSeconds(backoffCap);
+			}
+			if (backoffMaxDuration) {
+				retryStrategy.backoffMaxDuration = durationToSeconds(backoffMaxDuration);
+			}
+		}
+
 		createSchedule.mutate(
 			{
 				name: scheduleName,
@@ -115,7 +153,7 @@ export default function CrawlerTemplateScheduleDialog({
 				crawlerTemplateNamespace: template.namespace,
 				crawlerTemplateName: template.name,
 				parameters: paramArray,
-				retries: retries,
+				retryStrategy: retryStrategy,
 			},
 			{
 				onSuccess: (data) => {
@@ -210,25 +248,103 @@ export default function CrawlerTemplateScheduleDialog({
 									(every 6 hours)
 								</p>
 							</div>
+						</div>
+					</div>
 
+					{/* Retry Configuration Section */}
+					<div className="space-y-4">
+						<div className="pb-2 border-b border-primary/20">
+							<h3 className="text-lg font-semibold text-primary">Retry Configuration</h3>
+						</div>
+
+						<div className="grid grid-cols-1 md:grid-cols-2 gap-4 pl-3">
 							<div className="space-y-2">
 								<Label htmlFor="retries" className="text-sm font-medium">
-									Retries <span className="text-red-500">*</span>
+									Retries
 								</Label>
 								<Input
 									id="retries"
 									value={retries}
 									onChange={(e) => setRetries(e.target.value ? Number(e.target.value) : 0)}
-									pattern="[0-9]+"
 									type="number"
 									min={0}
-									placeholder="2"
-									className={`w-full`}
+									placeholder="0"
+									className="w-full"
 								/>
 								<p className="text-xs text-muted-foreground">
-									Number of retry attempts upon failure (default 2)
+									Number of retry attempts upon failure (default: 0)
 								</p>
 							</div>
+
+							{retries > 0 && (
+								<div className="space-y-2">
+									<Label htmlFor="backoffDuration" className="text-sm font-medium">
+										Backoff Duration
+									</Label>
+									<DurationInput
+										id="backoffDuration"
+										value={backoffDuration}
+										onChange={setBackoffDuration}
+										placeholder="0"
+									/>
+									<p className="text-xs text-muted-foreground">
+										Initial wait time before first retry. Set this to enable backoff.
+									</p>
+								</div>
+							)}
+
+							{backoffDuration && (
+								<>
+									<div className="space-y-2">
+										<Label htmlFor="backoffFactor" className="text-sm font-medium">
+											Backoff Factor
+										</Label>
+										<Input
+											id="backoffFactor"
+											value={backoffFactor}
+											onChange={(e) => setBackoffFactor(e.target.value)}
+											type="number"
+											min={0}
+											step="0.1"
+											placeholder="0"
+											className="w-full"
+										/>
+										<p className="text-xs text-muted-foreground">
+											Multiplier for exponential backoff (e.g., 2 doubles the wait time each retry)
+										</p>
+									</div>
+
+									<div className="space-y-2">
+										<Label htmlFor="backoffCap" className="text-sm font-medium">
+											Backoff Cap
+										</Label>
+										<DurationInput
+											id="backoffCap"
+											value={backoffCap}
+											onChange={setBackoffCap}
+											placeholder="0"
+										/>
+										<p className="text-xs text-muted-foreground">
+											Maximum wait time for a single backoff interval
+										</p>
+									</div>
+
+									<div className="space-y-2">
+										<Label htmlFor="backoffMaxDuration" className="text-sm font-medium">
+											Backoff Max Duration
+										</Label>
+										<DurationInput
+											id="backoffMaxDuration"
+											value={backoffMaxDuration}
+											onChange={setBackoffMaxDuration}
+											placeholder="0"
+										/>
+										<p className="text-xs text-muted-foreground">
+											Maximum total time spent waiting across all retries
+										</p>
+									</div>
+								</>
+							)}
 						</div>
 					</div>
 

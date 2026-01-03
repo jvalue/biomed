@@ -6,8 +6,8 @@
     "test": "nx run-many --target=test --all",
     "test:coverage": "nx run-many --target=test:coverage --all",
     "prepare": "husky",
-    "lint": "nx run-many --target=lint --all",
-    "lint:fix": "nx run-many --target=lint:fix --all",
+    "lint": "nx run-many --target=lint --all --error-on-warnings",
+    "lint:fix": "nx run-many --target=lint:fix --all  --error-on-warnings",
     "be": "nx serve management-backend",
     "fe": "nx serve management-frontend",
     "crawler": "uv run apps/crawler/crawler_general/hello.py"
@@ -32,6 +32,7 @@
     "@radix-ui/react-avatar": "^1.1.11",
     "@radix-ui/react-dialog": "^1.1.15",
     "@radix-ui/react-label": "^2.1.8",
+    "@radix-ui/react-select": "^2.2.6",
     "@radix-ui/react-separator": "^1.1.8",
     "@radix-ui/react-slot": "^1.2.4",
     "@radix-ui/react-switch": "^1.2.6",

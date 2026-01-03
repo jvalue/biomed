@@ -39,9 +39,24 @@ interface CronWorkflowSpec {
 	automountServiceAccountToken?: boolean;
 }
 
+interface RetryStrategyBackoff {
+	// Initial delay before first retry
+	duration?: string;
+
+	// Multiplier to increase delay between retries
+	factor?: number;
+
+	// Maximum delay between retries
+	cap?: string;
+
+	// Maximum duration overall for backoff
+	maxDuration?: string;
+}
+
 interface RetryStrategy {
 	retryPolicy: 'Always' | 'OnFailure' | 'OnError' | 'OnTransientError';
 	limit: number;
+	backoff?: RetryStrategyBackoff;
 }
 
 interface ObjectMeta {
