@@ -1,8 +1,5 @@
 import { Can } from '@casl/react';
 import { createFileRoute } from '@tanstack/react-router';
-import { Info } from 'lucide-react';
-// biome-ignore lint/correctness/noUnusedImports: <is used>
-import React from 'react';
 import { useCrawlerRuns } from '@/src/app/api/hooks/useCrawlerRuns';
 import {
 	useResumeSchedule,
@@ -17,16 +14,12 @@ import {
 	CardHeader,
 	CardTitle,
 } from '@/src/app/components/design-components/card';
+import ParameterSectionComponent from '@/src/app/components/design-components/parameterSection.component';
 import { Spinner } from '@/src/app/components/design-components/spinner';
-import {
-	Tooltip,
-	TooltipContent,
-	TooltipTrigger,
-} from '@/src/app/components/design-components/tooltip';
 import { PermissionGuard } from '@/src/app/components/guards/permission-guard';
+import ScheduleConfigurationSectionComponent from '@/src/app/components/schedules/scheduleConfigurationSection.component';
 import { useAuth } from '@/src/app/contexts/AuthContext';
 import { formatCronReadable, getNextRunDate } from '@/src/app/utils/cron';
-import { formatDurationSeconds } from '@/src/app/utils/formatDuration';
 import { Badge } from '../../components/design-components/badge';
 import { Switch } from '../../components/design-components/switch';
 import { AuthGuard } from '../../components/guards/auth-guard';
@@ -180,168 +173,9 @@ function RouteComponent() {
 						</Card>
 					</div>
 
-					<Card className="shadow-lg">
-						<CardHeader className="border-b">
-							<CardTitle className="text-xl">Parameters</CardTitle>
-							<CardDescription>Configured parameters for this schedule</CardDescription>
-						</CardHeader>
-						<CardContent className="pt-6">
-							{schedule?.parameters && schedule.parameters.length > 0 ? (
-								<div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-3">
-									{schedule.parameters.map((p) => (
-										<div
-											key={p.name}
-											className="px-4 py-2 rounded-md bg-gray-100 border border-gray-200 text-sm"
-										>
-											<span className="font-semibold text-gray-900">{p.name}:</span>{' '}
-											<span className="text-gray-700">{p.value}</span>
-										</div>
-									))}
-								</div>
-							) : (
-								<p className="text-sm text-muted-foreground">No parameters configured</p>
-							)}
-						</CardContent>
-					</Card>
+					<ParameterSectionComponent parameters={schedule?.parameters} />
 
-					<Card className="shadow-lg">
-						<CardHeader className="border-b">
-							<CardTitle className="text-xl">Configuration</CardTitle>
-							<CardDescription>Advanced configuration settings for this schedule</CardDescription>
-						</CardHeader>
-						<CardContent className="pt-6 space-y-6">
-							<div>
-								<h3 className="text-lg font-semibold mb-4">Retry Strategy</h3>
-								{schedule?.retryStrategy ? (
-									<div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
-										<div className="flex items-center gap-2">
-											<div className="flex flex-col">
-												<span className="text-xs uppercase tracking-wide text-muted-foreground mb-1 flex items-center gap-2">
-													Retries
-													<Tooltip>
-														<TooltipTrigger asChild>
-															<button
-																type="button"
-																className="p-0 m-0 focus:outline-none"
-																aria-label="Retries info"
-															>
-																<Info className="w-4 h-4 text-muted-foreground" />
-															</button>
-														</TooltipTrigger>
-														<TooltipContent>
-															Number of retry attempts before giving up
-														</TooltipContent>
-													</Tooltip>
-												</span>
-												<span className="text-lg font-semibold">
-													{schedule.retryStrategy.retries}
-												</span>
-											</div>
-										</div>
-
-										<div className="flex flex-col">
-											<span className="text-xs uppercase tracking-wide text-muted-foreground mb-1 flex items-center gap-2">
-												Backoff Duration
-												{/* Info icon with tooltip */}
-												<Tooltip>
-													<TooltipTrigger asChild>
-														<button
-															type="button"
-															className="p-0 m-0 focus:outline-none"
-															aria-label="Backoff Duration info"
-														>
-															<Info className="w-4 h-4 text-muted-foreground" />
-														</button>
-													</TooltipTrigger>
-													<TooltipContent>Initial wait time before retry attempts</TooltipContent>
-												</Tooltip>
-											</span>
-											<span className="text-lg font-semibold">
-												{formatDurationSeconds(schedule.retryStrategy.backoffDuration)}
-											</span>
-										</div>
-
-										{schedule.retryStrategy.backoffFactor !== undefined && (
-											<div className="flex flex-col">
-												<span className="text-xs uppercase tracking-wide text-muted-foreground mb-1 flex items-center gap-2">
-													Backoff Factor
-													<Tooltip>
-														<TooltipTrigger asChild>
-															<button
-																type="button"
-																className="p-0 m-0 focus:outline-none"
-																aria-label="Backoff Factor info"
-															>
-																<Info className="w-4 h-4 text-muted-foreground" />
-															</button>
-														</TooltipTrigger>
-														<TooltipContent>
-															Multiplier applied to the backoff duration for each retry attempt
-														</TooltipContent>
-													</Tooltip>
-												</span>
-												<span className="text-lg font-semibold">
-													{schedule.retryStrategy.backoffFactor}
-												</span>
-											</div>
-										)}
-
-										{schedule.retryStrategy.backoffCap !== undefined && (
-											<div className="flex flex-col">
-												<span className="text-xs uppercase tracking-wide text-muted-foreground mb-1 flex items-center gap-2">
-													Backoff Cap
-													<Tooltip>
-														<TooltipTrigger asChild>
-															<button
-																type="button"
-																className="p-0 m-0 focus:outline-none"
-																aria-label="Backoff Cap info"
-															>
-																<Info className="w-4 h-4 text-muted-foreground" />
-															</button>
-														</TooltipTrigger>
-														<TooltipContent>
-															Maximum wait time applied to a single retry attempt
-														</TooltipContent>
-													</Tooltip>
-												</span>
-												<span className="text-lg font-semibold">
-													{formatDurationSeconds(schedule.retryStrategy.backoffCap)}
-												</span>
-											</div>
-										)}
-
-										{schedule.retryStrategy.backoffMaxDuration !== undefined && (
-											<div className="flex flex-col">
-												<span className="text-xs uppercase tracking-wide text-muted-foreground mb-1 flex items-center gap-2">
-													Backoff Max Duration
-													<Tooltip>
-														<TooltipTrigger asChild>
-															<button
-																type="button"
-																className="p-0 m-0 focus:outline-none"
-																aria-label="Backoff Max Duration info"
-															>
-																<Info className="w-4 h-4 text-muted-foreground" />
-															</button>
-														</TooltipTrigger>
-														<TooltipContent>
-															Maximum total wait time across all retries
-														</TooltipContent>
-													</Tooltip>
-												</span>
-												<span className="text-lg font-semibold">
-													{formatDurationSeconds(schedule.retryStrategy.backoffMaxDuration)}
-												</span>
-											</div>
-										)}
-									</div>
-								) : (
-									<p className="text-sm text-muted-foreground">No retry strategy configured</p>
-								)}
-							</div>
-						</CardContent>
-					</Card>
+					<ScheduleConfigurationSectionComponent retryStrategy={schedule?.retryStrategy} />
 
 					<Can ability={ability} I="read" a="crawler-run">
 						<Card className="shadow-lg">
