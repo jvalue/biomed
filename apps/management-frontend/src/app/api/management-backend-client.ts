@@ -1,4 +1,5 @@
 import axios from 'axios';
+import { toast } from 'react-toastify';
 
 export const managementBackendClient = axios.create({
 	// biome-ignore lint/suspicious/noExplicitAny: <needed here>
@@ -6,3 +7,20 @@ export const managementBackendClient = axios.create({
 	timeout: 10000,
 	withCredentials: true,
 });
+
+managementBackendClient.interceptors.response.use(
+	(response) => response,
+	(error) => {
+		const msg =
+			error?.response?.data?.message ??
+			error?.response?.data ??
+			error?.message ??
+			'Network or server error';
+		if (error?.response?.status === 401 && error?.config?.url?.endsWith('/auth/me')) {
+			// Ignore unauthorized errors for getting user profile, they are handled by redirecting to login
+			return;
+		}
+		toast.error(`Request failed: ${msg}`, { autoClose: 8000 });
+		return Promise.reject(error);
+	},
+);
