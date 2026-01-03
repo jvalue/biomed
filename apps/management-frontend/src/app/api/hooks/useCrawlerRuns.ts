@@ -11,6 +11,6 @@ export const useCrawlerRuns = (params?: {
 	return useQuery({
 		queryKey: ['crawlerRuns', params?.scheduleName, params?.limit ?? null, params?.offset ?? null],
 		queryFn: () => crawlerRunService.getCrawlerRuns(params),
-		refetchInterval: 5000,
+		refetchInterval: 5000, // Auto-refresh
 	});
 };

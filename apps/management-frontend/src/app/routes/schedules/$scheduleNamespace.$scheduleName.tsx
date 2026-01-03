@@ -33,7 +33,6 @@ export const Route = createFileRoute('/schedules/$scheduleNamespace/$scheduleNam
 		const raw = search.page;
 		const n = typeof raw === 'string' || typeof raw === 'number' ? Number(raw) : NaN;
 
-		// keep it out of the URL unless page >= 2
 		const page = Number.isFinite(n) && n >= 2 ? Math.floor(n) : undefined;
 
 		return { page } as { page?: number };
@@ -55,6 +54,7 @@ function RouteComponent() {
 		navigate({
 			search: (prev: { page?: number }) => ({
 				...prev,
+				// omit from URL on page 1
 				page: p >= 2 ? p : undefined,
 			}),
 		});
