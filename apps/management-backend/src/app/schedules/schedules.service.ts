@@ -11,8 +11,7 @@ export class SchedulesService {
 		@Inject(SCHEDULE_ENGINE)
 		private readonly scheduleEngine: IScheduleEngine,
 		private readonly argoClientService: ArgoClientService,
-	) {
-	}
+	) {}
 
 	/**
 	 * Lists all Schedules
@@ -21,11 +20,10 @@ export class SchedulesService {
 		const schedules = await this.argoClientService.listSchedules();
 		// Sort schedules primary by suspended status, then by creation date
 		schedules.sort((a, b) => {
-				if (a.suspended && !b.suspended) return 1;
-				if (!a.suspended && b.suspended) return -1;
-				return new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime();
-			}
-		);
+			if (a.suspended && !b.suspended) return 1;
+			if (!a.suspended && b.suspended) return -1;
+			return new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime();
+		});
 		return schedules;
 	}
 
