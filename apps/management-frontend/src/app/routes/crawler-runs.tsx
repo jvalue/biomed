@@ -5,20 +5,33 @@ import { PermissionGuard } from '@/src/app/components/guards/permission-guard';
 import { useAuth } from '../contexts/AuthContext';
 
 export const Route = createFileRoute('/crawler-runs')({
-	validateSearch: (search: Record<string, unknown>) => ({
-		page: Number(search.page ?? 1),
-	}),
+	validateSearch: (search: Record<string, unknown>) => {
+		const raw = search.page;
+		const n = typeof raw === 'string' || typeof raw === 'number' ? Number(raw) : NaN;
+
+		const page = Number.isFinite(n) && n >= 2 ? Math.floor(n) : undefined;
+
+		return { page } as { page?: number };
+	},
 	component: RouteComponent,
 });
 
 function RouteComponent() {
 	const { ability } = useAuth();
-	const { page } = Route.useSearch();
+
+	const search = Route.useSearch();
+	const page = search.page ?? 1; // <-- IMPORTANT
+
 	const navigate = Route.useNavigate();
 
 	const setPage = (nextPage: number) => {
+		const p = Math.max(1, nextPage);
+
 		navigate({
-			search: (prev) => ({ ...prev, page: Math.max(1, nextPage) }),
+			search: (prev) => ({
+				...prev,
+				page: p >= 2 ? p : undefined, // omit from URL on page 1
+			}),
 		});
 	};
 
