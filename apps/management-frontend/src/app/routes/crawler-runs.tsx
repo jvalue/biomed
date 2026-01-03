@@ -20,7 +20,7 @@ function RouteComponent() {
 	const { ability } = useAuth();
 
 	const search = Route.useSearch();
-	const page = search.page ?? 1; // <-- IMPORTANT
+	const page = search.page ?? 1;
 
 	const navigate = Route.useNavigate();
 
@@ -30,7 +30,8 @@ function RouteComponent() {
 		navigate({
 			search: (prev: { page?: number }) => ({
 				...prev,
-				page: p >= 2 ? p : undefined, // omit from URL on page 1
+				// omit from URL on page 1
+				page: p >= 2 ? p : undefined,
 			}),
 		});
 	};
