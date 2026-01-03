@@ -1,7 +1,12 @@
+import { Injectable } from '@nestjs/common';
 import axios from 'axios';
+import { ArgoClientService } from '../argo-client/argo-client.service';
 import { HealthCheckDto, HealthStatusEnum } from './dto/healthCheck.dto';
 
+@Injectable()
 export class HealthService {
+	constructor(private readonly argoClientService: ArgoClientService) {}
+
 	async checkHealth(): Promise<HealthCheckDto> {
 		const targets = [
 			'https://ftp.ncbi.nlm.nih.gov/',
@@ -17,7 +22,7 @@ export class HealthService {
 		);
 
 		const kubernetesStatus = HealthStatusEnum.AVAILABLE; // placeholder
-		const orchestratorStatus = HealthStatusEnum.AVAILABLE; // placeholder
+		const orchestratorStatus = await this.argoClientService.checkHealth();
 
 		// Determine overall status
 		const overAllStatus = this.determineOverallStatus(
@@ -29,7 +34,7 @@ export class HealthService {
 		return {
 			overAllStatus,
 			kubernetesStatus,
-			orchestratorStatus,
+			orchestratorStatus: orchestratorStatus,
 			targetUrlsStatus: checks,
 		};
 	}
