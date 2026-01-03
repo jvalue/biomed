@@ -1,8 +1,9 @@
-import { Injectable, Logger } from '@nestjs/common';
+import { BadRequestException, Injectable, Logger } from '@nestjs/common';
 import * as yaml from 'js-yaml';
 import { UserEntity } from '../../../users/entity/user.entity';
 import { CreateScheduleDto } from '../../dto/create-schedule.dto';
 import { IScheduleEngine } from '../../schedule-engine.interface';
+import { ArgoCronWorkflow } from './argo-cron-workflow';
 import { ArgoCronWorkflowBuilder } from './argo-cron-workflow.builder';
 
 /**
@@ -15,17 +16,23 @@ export class ArgoScheduleEngine implements IScheduleEngine {
 	async createSchedule(dto: CreateScheduleDto, user: UserEntity): Promise<string> {
 		this.logger.log(`Building Argo CronWorkflow for ${dto.name}`);
 
+		let workflowObject: ArgoCronWorkflow;
+
 		// Use the builder to create the CronWorkflow object
 		const builder = new ArgoCronWorkflowBuilder();
-		const workflowObject = builder
-			.setName(dto.name)
-			.setSchedule(dto.cronExpression)
-			.setTemplateRef(dto.crawlerTemplateName)
-			.addParameters(dto.parameters)
-			.addLabel('created-by', user.id)
-			.addLabel('created-by-fallback', user.username)
-			.addRetries(dto.retries)
-			.build();
+		try {
+			workflowObject = builder
+				.setName(dto.name)
+				.setSchedule(dto.cronExpression)
+				.setTemplateRef(dto.crawlerTemplateName)
+				.addParameters(dto.parameters)
+				.addLabel('created-by', user.id)
+				.addLabel('created-by-fallback', user.username)
+				.addRetryStrategy(dto.retryStrategy)
+				.build();
+		} catch (error) {
+			throw new BadRequestException(`Failed to create schedule: ${error.message}`);
+		}
 
 		// Generate YAML from the object
 		const yamlString = yaml.dump(workflowObject);

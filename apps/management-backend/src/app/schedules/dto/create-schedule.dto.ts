@@ -1,4 +1,5 @@
 import { ApiProperty } from '@nestjs/swagger';
+import { Type } from 'class-transformer';
 import {
 	Equals,
 	IsArray,
@@ -10,6 +11,28 @@ import {
 } from 'class-validator';
 import { IsCronExpression } from '../infrastructure/argo/cron.validator';
 import { ScheduleParameterDto } from './schedule.dto';
+
+export class RetryStrategyDto {
+	@ApiProperty({ description: 'Number of retries in case of failure' })
+	@IsNotEmpty()
+	retries!: number;
+
+	@ApiProperty({ description: 'Initial delay before first retry in seconds', required: false })
+	@IsOptional()
+	backoffDuration?: number;
+
+	@ApiProperty({ description: 'Multiplier to increase delay between retries', required: false })
+	@IsOptional()
+	backoffFactor?: number;
+
+	@ApiProperty({ description: 'Maximum delay between retries in seconds', required: false })
+	@IsOptional()
+	backoffCap?: number;
+
+	@ApiProperty({ description: 'Maximum duration overall for backoff in seconds', required: false })
+	@IsOptional()
+	backoffMaxDuration?: number;
+}
 
 export class CreateScheduleDto {
 	@ApiProperty({ description: 'Name of the schedule' })
@@ -46,7 +69,8 @@ export class CreateScheduleDto {
 	@IsOptional()
 	parameters?: ScheduleParameterDto[];
 
-	@ApiProperty({ description: 'Number of retries in case of failure' })
+	@ApiProperty({ description: 'Retry strategy in case of workflow failure', required: false })
 	@IsOptional()
-	retries?: number;
+	@Type(() => RetryStrategyDto)
+	retryStrategy?: RetryStrategyDto;
 }

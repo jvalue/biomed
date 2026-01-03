@@ -1,3 +1,4 @@
+import { RetryStrategyDto } from '../../dto/create-schedule.dto';
 import { ArgoCronWorkflow, WorkflowParameter } from './argo-cron-workflow';
 
 /**
@@ -51,6 +52,7 @@ export class ArgoCronWorkflowBuilder {
 					retryStrategy: {
 						retryPolicy: 'Always',
 						limit: 2,
+						backoff: {},
 					},
 				},
 			},
@@ -120,9 +122,58 @@ export class ArgoCronWorkflowBuilder {
 		return this;
 	}
 
-	public addRetries(limit?: number): this {
-		if (!limit) return this;
-		this.workflow.spec.workflowSpec.retryStrategy.limit = limit;
+	public addRetryStrategy(retryStrategy: RetryStrategyDto): this {
+		if (!retryStrategy) return this;
+		if (retryStrategy.retries < 0) {
+			throw new Error('Retries must be a non-negative integer');
+		}
+		this.workflow.spec.workflowSpec.retryStrategy.limit = retryStrategy.retries;
+		if (retryStrategy.backoffDuration) {
+			if (retryStrategy.backoffDuration < 0) {
+				throw new Error('Backoff duration must be a non-negative integer');
+			}
+			this.workflow.spec.workflowSpec.retryStrategy.backoff.duration =
+				retryStrategy.backoffDuration.toString();
+
+			if (retryStrategy.backoffFactor) {
+				if (retryStrategy.backoffFactor < 0) {
+					throw new Error('Backoff factor must be a non-negative number');
+				}
+				this.workflow.spec.workflowSpec.retryStrategy.backoff.factor = retryStrategy.backoffFactor;
+			}
+			if (retryStrategy.backoffCap) {
+				if (retryStrategy.backoffCap < 0) {
+					throw new Error('Backoff cap must be a non-negative integer');
+				}
+				this.workflow.spec.workflowSpec.retryStrategy.backoff.cap =
+					retryStrategy.backoffCap.toString();
+			}
+			if (retryStrategy.backoffMaxDuration) {
+				if (retryStrategy.backoffMaxDuration < 0) {
+					throw new Error('Backoff max duration must be a non-negative integer');
+				}
+				this.workflow.spec.workflowSpec.retryStrategy.backoff.maxDuration =
+					retryStrategy.backoffMaxDuration.toString();
+			}
+
+			// Cross-field checks: cap/maxDuration should not be smaller than duration
+			const dur = retryStrategy.backoffDuration;
+			const cap = retryStrategy.backoffCap;
+			const maxDur = retryStrategy.backoffMaxDuration;
+
+			if (dur && cap && cap < dur) {
+				throw new Error('backoff.cap must be greater than or equal to backoff.duration');
+			}
+			if (dur && maxDur && maxDur < dur) {
+				throw new Error('backoff.maxDuration must be greater than or equal to backoff.duration');
+			}
+		} else if (
+			retryStrategy.backoffFactor ||
+			retryStrategy.backoffCap ||
+			retryStrategy.backoffMaxDuration
+		) {
+			throw new Error('Backoff duration must be set if other backoff parameters are set');
+		}
 		return this;
 	}
 
@@ -135,9 +186,7 @@ export class ArgoCronWorkflowBuilder {
 		if (!this.workflow.spec.workflowSpec.workflowTemplateRef.name) {
 			throw new Error('Workflow template reference name is required');
 		}
-		if (
-			!this.workflow.spec.workflowSpec.workflowMetadata?.labels['customSetWorkflowTemplateName']
-		) {
+		if (!this.workflow.spec.workflowSpec.workflowMetadata?.labels?.customSetWorkflowTemplateName) {
 			throw new Error('Workflow metadata label for workflow-template-name is required');
 		}
 

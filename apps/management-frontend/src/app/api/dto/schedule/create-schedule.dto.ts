@@ -1,5 +1,13 @@
 import { ScheduleParameterDto } from './schedule.dto';
 
+class RetryStrategyDto {
+	retries!: number;
+	backoffDuration?: number;
+	backoffFactor?: number;
+	backoffCap?: number;
+	backoffMaxDuration?: number;
+}
+
 export class CreateScheduleDto {
 	name!: string;
 
@@ -11,5 +19,5 @@ export class CreateScheduleDto {
 
 	parameters?: ScheduleParameterDto[];
 
-	retries?: number;
+	retryStrategy?: RetryStrategyDto;
 }
