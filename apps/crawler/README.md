@@ -1,9 +1,12 @@
 **Demo Crawler App**
 
-A small example crawler app that demonstrates a runnable Python script under the `crawler_general` package. The included `hello.py` prints a greeting and then writes progress to `progress.txt` while printing progress updates.
+Small crawler that uses FTP logic from the `crawler_general` package. The runnable entrypoint is `main.py`, which loads credentials from `.env` and lists root folders from the configured FTP server.
 
-**Purpose:**
-- **Crawler:** Simple sample app used by the monorepo to validate packaging, local runs and Docker builds.
+Biomedical Data Sources:
+- [NCBI FTP Site](https://ftp.ncbi.nlm.nih.gov/)
+- [EBI Data Services](https://www.ebi.ac.uk/services)
+- [NCBI E-utilities API](https://www.ncbi.nlm.nih.gov/books/NBK25501/)
+- [UniProt REST API](https://www.uniprot.org/help/api)
 
 **Setup on Clean Machine**
 
@@ -20,15 +23,17 @@ This creates a shared `.venv/` at the workspace root containing:
 - `crawler-general` (this app)
 - All Python dependencies for both projects
 
+For details on the shared FTP helpers and configuration, see [../../libs/crawler-common/README.md](../../libs/crawler-common/README.md).
+
 **Quick Start - Run the App**
 
 ```bash
 # From repository root, using the shared venv:
-uv run apps/crawler/crawler_general/hello.py
+uv run apps/crawler/crawler_general/main.py
 
 # Or activate the venv and run directly:
 source .venv/bin/activate
-python apps/crawler/crawler_general/hello.py
+python apps/crawler/crawler_general/main.py
 ```
 
 **Run in Docker (build & run)**
@@ -47,7 +52,7 @@ The `Dockerfile` installs `uv`, the shared `crawler-common` library and the app,
 # Dockerfile uses:
 # RUN uv pip install --system ./libs/crawler-common \
 #     && uv pip install --system .
-# CMD ["uv", "run", "crawler_general/hello.py"]
+# CMD ["uv", "run", "crawler_general/main.py"]
 ```
 
 **Run Tests**
@@ -65,7 +70,7 @@ uv run pytest apps/crawler/tests --cov
 ```
 
 **Notes & Tips**
-- The app package is `crawler_general` and the sample script lives at `apps/crawler/crawler_general/hello.py`.
+- The app package is `crawler_general` and the sample script lives at `apps/crawler/crawler_general/main.py`.
 - This project uses a **uv workspace** with a single shared `.venv/` at the repository root containing all Python projects.
 - Root `pyproject.toml` defines workspace members and pins Python version to 3.13. When you run `uv sync`, it automatically creates a venv with Python 3.13.
 - Run `uv sync` from the root whenever dependencies change in any `pyproject.toml`.
