@@ -1,5 +1,5 @@
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
-import { crawlerTemplateService } from '@/src/app/api/services/crawler-template-service';
+import { crawlerTemplateService } from '@/src/app/api/services/crawler-template.service';
 
 export const useCrawlerTemplates = () => {
 	return useQuery({
