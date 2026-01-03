@@ -51,33 +51,35 @@ export default function CrawlerRunList({
 			<CrawlerRunsTable runs={runs} />
 
 			<div className="mt-4">
-				<Pagination>
-					<PaginationContent>
-						<PaginationItem>
-							<PaginationPrevious
-								href="#"
-								disabled={!canPrev}
-								onClick={(e) => {
-									e.preventDefault();
-									if (!canPrev) return;
-									setPage(page - 1);
-								}}
-							/>
-						</PaginationItem>
+				{(canPrev || hasNextPage) && (
+					<Pagination>
+						<PaginationContent>
+							<PaginationItem>
+								<PaginationPrevious
+									href="#"
+									disabled={!canPrev}
+									onClick={(e) => {
+										e.preventDefault();
+										if (!canPrev) return;
+										setPage(page - 1);
+									}}
+								/>
+							</PaginationItem>
 
-						<PaginationItem>
-							<PaginationNext
-								href="#"
-								disabled={!hasNextPage}
-								onClick={(e) => {
-									e.preventDefault();
-									if (!hasNextPage) return;
-									setPage(page + 1);
-								}}
-							/>
-						</PaginationItem>
-					</PaginationContent>
-				</Pagination>
+							<PaginationItem>
+								<PaginationNext
+									href="#"
+									disabled={!hasNextPage}
+									onClick={(e) => {
+										e.preventDefault();
+										if (!hasNextPage) return;
+										setPage(page + 1);
+									}}
+								/>
+							</PaginationItem>
+						</PaginationContent>
+					</Pagination>
+				)}
 			</div>
 		</div>
 	);

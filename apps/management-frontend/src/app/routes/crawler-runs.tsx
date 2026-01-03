@@ -28,7 +28,7 @@ function RouteComponent() {
 		const p = Math.max(1, nextPage);
 
 		navigate({
-			search: (prev) => ({
+			search: (prev: { page?: number }) => ({
 				...prev,
 				page: p >= 2 ? p : undefined, // omit from URL on page 1
 			}),
