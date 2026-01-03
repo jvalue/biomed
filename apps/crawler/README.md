@@ -2,6 +2,12 @@
 
 Small crawler that uses FTP logic from the `crawler_general` package. The runnable entrypoint is `main.py`, which loads credentials from `.env` and lists root folders from the configured FTP server.
 
+Biomedical Data Sources:
+- [NCBI FTP Site](https://ftp.ncbi.nlm.nih.gov/)
+- [EBI Data Services](https://www.ebi.ac.uk/services)
+- [NCBI E-utilities API](https://www.ncbi.nlm.nih.gov/books/NBK25501/)
+- [UniProt REST API](https://www.uniprot.org/help/api)
+
 **Setup on Clean Machine**
 
 1. **Install `uv`**
