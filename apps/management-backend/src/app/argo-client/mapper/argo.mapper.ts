@@ -65,6 +65,16 @@ export function mapArgoCronWorkflowDtoToScheduleDto(
 			name: param.name,
 			value: param.value,
 		})) ?? [];
+	if (cronWorkflow.spec.workflowSpec.retryStrategy) {
+		schedule.retryStrategy = {
+			retries: cronWorkflow.spec.workflowSpec.retryStrategy.limit ?? 0,
+			backoffDuration: cronWorkflow.spec.workflowSpec.retryStrategy.backoff?.duration ?? undefined,
+			backoffFactor: cronWorkflow.spec.workflowSpec.retryStrategy.backoff?.factor ?? undefined,
+			backoffCap: cronWorkflow.spec.workflowSpec.retryStrategy.backoff?.cap ?? undefined,
+			backoffMaxDuration:
+				cronWorkflow.spec.workflowSpec.retryStrategy.backoff?.maxDuration ?? undefined,
+		};
+	}
 	schedule.schedule = cronWorkflow.spec.schedules ? cronWorkflow.spec.schedules[0] : '';
 	schedule.suspended = cronWorkflow.spec.suspend;
 	schedule.createdAt = cronWorkflow.metadata.creationTimestamp;
