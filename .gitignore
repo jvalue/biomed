@@ -47,12 +47,6 @@ __pycache__/
 #!.vscode/launch.json
 #!.vscode/extensions.json
 
-# IDE - IntelliJ
-.idea/*
-#!.idea/codeStyles/
-#!.idea/inspectionProfiles/
-#!.idea/runConfigurations/
-
 # misc
 /.sass-cache
 /connect.lock
