@@ -20,6 +20,16 @@ export const Route = createFileRoute('/health-status')({
 function RouteComponent() {
 	const { data: healthData, isLoading, error, refetch, dataUpdatedAt } = useHealthCheck();
 
+	// helper: safely extract hostname or return 'Invalid URL'
+	const getHostnameSafe = (url?: string) => {
+		if (!url) return 'Invalid URL';
+		try {
+			return new URL(url).hostname;
+		} catch {
+			return 'Invalid URL';
+		}
+	};
+
 	const getStatusIcon = (status: HealthStatusEnum) => {
 		switch (status) {
 			case HealthStatusEnum.AVAILABLE:
@@ -249,35 +259,39 @@ function RouteComponent() {
 
 				{healthData?.targetUrlsStatus && healthData.targetUrlsStatus.length > 0 ? (
 					<div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-						{healthData.targetUrlsStatus.map((target, index) => (
-							<Card
-								key={`${target.url}-${index}`}
-								className={`shadow-md border-l-4 ${getStatusColor(target.status)}`}
-							>
-								<CardHeader className="pb-3">
-									<div className="flex items-center justify-between">
-										<div className="flex items-center gap-2">
-											{getStatusIcon(target.status)}
-											<CardTitle className="text-base truncate" title={target.url}>
-												{new URL(target.url).hostname}
-											</CardTitle>
+						{healthData.targetUrlsStatus.map((target, index) => {
+							const host = getHostnameSafe(target.url);
+							const titleAttr = host === 'Invalid URL' ? 'Invalid URL' : target.url;
+							return (
+								<Card
+									key={`${target.url}-${index}`}
+									className={`shadow-md border-l-4 ${getStatusColor(target.status)}`}
+								>
+									<CardHeader className="pb-3">
+										<div className="flex items-center justify-between">
+											<div className="flex items-center gap-2">
+												{getStatusIcon(target.status)}
+												<CardTitle className="text-base truncate" title={titleAttr}>
+													{host}
+												</CardTitle>
+											</div>
+											{getStatusBadge(target.status)}
 										</div>
-										{getStatusBadge(target.status)}
-									</div>
-								</CardHeader>
-								<CardContent>
-									<div className="space-y-1">
-										<div className="text-xs text-muted-foreground truncate" title={target.url}>
-											{target.url}
+									</CardHeader>
+									<CardContent>
+										<div className="space-y-1">
+											<div className="text-xs text-muted-foreground truncate" title={titleAttr}>
+												{host === 'Invalid URL' ? 'Invalid URL' : target.url}
+											</div>
+											<div className="flex justify-between text-sm mt-2">
+												<span className="text-muted-foreground">Status:</span>
+												<span className="font-medium capitalize">{target.status}</span>
+											</div>
 										</div>
-										<div className="flex justify-between text-sm mt-2">
-											<span className="text-muted-foreground">Status:</span>
-											<span className="font-medium capitalize">{target.status}</span>
-										</div>
-									</div>
-								</CardContent>
-							</Card>
-						))}
+									</CardContent>
+								</Card>
+							);
+						})}
 					</div>
 				) : (
 					<Card className="shadow-md">
