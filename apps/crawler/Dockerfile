@@ -18,4 +18,4 @@ RUN uv pip install --system ./libs/crawler-common \
     && uv pip install --system .
 
 # Run the app directly with Python (packages already installed system-wide)
-CMD ["python", "crawler_general/hello.py"]
+CMD ["python", "crawler_general/main.py"]
