@@ -14,7 +14,7 @@ services:
       context: .
       dockerfile: apps/crawler/Dockerfile
     working_dir: /app
-    command: python crawler_general/hello.py
+    command: python crawler_general/main.py
     volumes:
       - ./apps/crawler:/app
       - ./libs/crawler-common:/app/libs/crawler-common
