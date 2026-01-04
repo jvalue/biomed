@@ -47,6 +47,15 @@ export class SchedulesService {
 	}
 
 	/**
+	 * Delete a Schedule
+	 * @param name The name of the Schedule
+	 * @param namespace The namespace of the Schedule
+	 */
+	async deleteSchedule(name: string, namespace: string): Promise<void> {
+		return this.argoClientService.deleteSchedule(name, namespace);
+	}
+
+	/**
 	 * Suspend a Schedule
 	 * @param name The name of the Schedule
 	 * @param namespace The namespace of the Schedule

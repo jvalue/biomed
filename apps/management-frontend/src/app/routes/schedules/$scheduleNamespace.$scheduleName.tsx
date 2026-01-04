@@ -1,12 +1,16 @@
 import { Can } from '@casl/react';
 import { createFileRoute } from '@tanstack/react-router';
+import React from 'react';
+import { toast } from 'react-toastify';
 import { useCrawlerRuns } from '@/src/app/api/hooks/useCrawlerRuns';
 import {
+	useDeleteSchedule,
 	useResumeSchedule,
 	useScheduleByNameAndNamespace,
 	useSuspendSchedule,
 } from '@/src/app/api/hooks/useSchedules';
 import CrawlerRunsTable from '@/src/app/components/crawler-runs/crawler-runs-table';
+import { Button } from '@/src/app/components/design-components/button';
 import {
 	Card,
 	CardContent,
@@ -24,6 +28,7 @@ import {
 import ParameterSectionComponent from '@/src/app/components/design-components/parameterSection.component';
 import { Spinner } from '@/src/app/components/design-components/spinner';
 import { PermissionGuard } from '@/src/app/components/guards/permission-guard';
+import DeleteScheduleDialogComponent from '@/src/app/components/schedules/delete-schedule-dialog.component';
 import ScheduleConfigurationSectionComponent from '@/src/app/components/schedules/scheduleConfigurationSection.component';
 import { useAuth } from '@/src/app/contexts/AuthContext';
 import { formatCronReadable, getNextRunDate } from '@/src/app/utils/cron';
@@ -50,6 +55,9 @@ function RouteComponent() {
 	const { scheduleNamespace, scheduleName } = Route.useParams();
 	const suspendSchedule = useSuspendSchedule();
 	const resumeSchedule = useResumeSchedule();
+	const deleteSchedule = useDeleteSchedule();
+
+	const [deleteDialogOpen, setDeleteDialogOpen] = React.useState(false);
 
 	const handleToggleSuspend = () => {
 		if (suspended) {
@@ -157,6 +165,17 @@ function RouteComponent() {
 									disabled={suspendSchedule.isPending || resumeSchedule.isPending}
 									size={'large'}
 								/>
+								{/* Delete button with permission check */}
+								<Can ability={ability} I="delete" a="schedule">
+									<Button
+										variant="destructive"
+										onClick={() => setDeleteDialogOpen(true)}
+										disabled={deleteSchedule.isPending}
+										className="ml-2 bg-red-600 hover:bg-red-700"
+									>
+										Delete
+									</Button>
+								</Can>
 							</div>
 						</Can>
 					</div>
@@ -269,6 +288,17 @@ function RouteComponent() {
 							</CardContent>
 						</Card>
 					</Can>
+
+					<DeleteScheduleDialogComponent
+						open={deleteDialogOpen}
+						onOpenChange={setDeleteDialogOpen}
+						scheduleName={scheduleName}
+						scheduleNamespace={scheduleNamespace}
+						onDeleted={() => {
+							navigate({ to: '/schedules' });
+							toast.success(`Schedule ${scheduleName} deleted successfully`);
+						}}
+					/>
 				</div>
 			</PermissionGuard>
 		</AuthGuard>

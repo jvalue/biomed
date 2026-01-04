@@ -1,4 +1,4 @@
-import { Body, Controller, Get, Param, Patch, Post, UseGuards } from '@nestjs/common';
+import { Body, Controller, Delete, Get, Param, Patch, Post, UseGuards } from '@nestjs/common';
 import {
 	ApiCreatedResponse,
 	ApiOkResponse,
@@ -64,6 +64,23 @@ export class SchedulesController {
 		@Body() body: CreateScheduleDto,
 	): Promise<void> {
 		return this.schedulesService.createSchedule(body, user);
+	}
+
+	@ApiOperation({ summary: 'Delete a Schedule' })
+	@ApiOkResponse({ description: 'The Schedule has been deleted' })
+	@ApiResponse({
+		status: 403,
+		description: 'You do not have permission to delete schedules',
+	})
+	@RequirePermission('delete', 'schedule')
+	@ApiParam({ name: 'namespace', description: 'The namespace of the Schedule' })
+	@ApiParam({ name: 'name', description: 'The name of the Schedule' })
+	@Delete(':namespace/:name')
+	async deleteSchedule(
+		@Param('namespace') namespace: string,
+		@Param('name') name: string,
+	): Promise<void> {
+		return this.schedulesService.deleteSchedule(name, namespace);
 	}
 
 	@ApiOperation({ summary: 'Suspend a Schedule' })

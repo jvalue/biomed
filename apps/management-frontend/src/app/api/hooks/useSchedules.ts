@@ -57,6 +57,25 @@ export const useCreateSchedule = () => {
 };
 
 /**
+ * Delete a schedule
+ * @param name
+ * @param namespace
+ */
+export const useDeleteSchedule = () => {
+	const queryClient = useQueryClient();
+	return useMutation({
+		mutationFn: ({ name, namespace }: { name: string; namespace: string }) =>
+			scheduleService.deleteSchedule(name, namespace),
+		onSuccess: (_data, variables) => {
+			// Invalidate and refetch schedules query to reflect changes
+			queryClient.invalidateQueries({
+				queryKey: ['schedules', variables.name, variables.namespace],
+			});
+		},
+	});
+};
+
+/**
  * Suspend a schedule
  * @param name
  * @param namespace
