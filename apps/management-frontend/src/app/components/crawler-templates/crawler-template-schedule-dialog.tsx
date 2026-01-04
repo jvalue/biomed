@@ -6,6 +6,7 @@ import {
 	CrawlerTemplateDto,
 	CrawlerTemplateParameterDto,
 } from '@/src/app/api/dto/crawler-templates/crawler-template.dto';
+import { RetryStrategyDto } from '@/src/app/api/dto/schedule/create-schedule.dto';
 import { useCreateSchedule, useScheduleNameExists } from '@/src/app/api/hooks/useSchedules';
 import { Button } from '@/src/app/components/design-components/button';
 import {
@@ -227,17 +228,9 @@ export default function CrawlerTemplateScheduleDialog({
 		}));
 
 		// Build retry strategy
-		const retryStrategy: {
-			retries: number;
-			backoffDuration?: number;
-			backoffFactor?: number;
-			backoffCap?: number;
-			backoffMaxDuration?: number;
-		} = {
-			retries: retries,
-		};
+		const retryStrategy: RetryStrategyDto | undefined = retries !== 0 ? { retries } : undefined;
 
-		if (backoffDuration) {
+		if (retryStrategy && backoffDuration) {
 			retryStrategy.backoffDuration = durationToSeconds(backoffDuration);
 			if (backoffFactor) {
 				retryStrategy.backoffFactor = Number(backoffFactor);
