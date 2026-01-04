@@ -23,6 +23,24 @@ export const useScheduleByNameAndNamespace = (
 };
 
 /**
+ * Check if a schedule name exists in a namespace
+ * @param name
+ * @param namespace
+ * @param enabled optional flag to enable the query (default: true)
+ */
+export const useScheduleNameExists = (
+	name: string,
+	namespace: string,
+	enabled: boolean = true,
+): UseQueryResult<boolean> => {
+	return useQuery<boolean>({
+		queryKey: ['schedules', name, namespace, 'exists'],
+		queryFn: () => scheduleService.scheduleNameExists(name, namespace),
+		enabled: enabled && !!name && !!namespace,
+	});
+};
+
+/**
  * Create a new schedule
  * @param createScheduleDto
  */

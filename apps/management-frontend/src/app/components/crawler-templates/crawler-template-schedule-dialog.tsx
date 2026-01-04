@@ -6,7 +6,7 @@ import {
 	CrawlerTemplateDto,
 	CrawlerTemplateParameterDto,
 } from '@/src/app/api/dto/crawler-templates/crawler-template.dto';
-import { useCreateSchedule } from '@/src/app/api/hooks/useSchedules';
+import { useCreateSchedule, useScheduleNameExists } from '@/src/app/api/hooks/useSchedules';
 import { Button } from '@/src/app/components/design-components/button';
 import {
 	Dialog,
@@ -53,10 +53,20 @@ export default function CrawlerTemplateScheduleDialog({
 		[],
 	);
 
+	// Validate name against regex
 	const nameIsInvalid = useMemo(() => {
 		if (!scheduleName) return false;
 		return !nameRegex.test(scheduleName);
 	}, [scheduleName, nameRegex]);
+
+	// Check if name already exists in the template's namespace (only when name and namespace are present)
+	const scheduleNameQuery = useScheduleNameExists(
+		scheduleName,
+		template?.namespace ?? '',
+		Boolean(scheduleName && template?.namespace),
+	);
+
+	const scheduleNameExists = scheduleNameQuery.data === true;
 
 	const cronReadable = useMemo(() => {
 		if (!cronExpression) return null;
@@ -199,6 +209,12 @@ export default function CrawlerTemplateScheduleDialog({
 			return;
 		}
 
+		// Validate duplicate name
+		if (scheduleNameExists) {
+			setErrorMessage('A schedule with this name already exists');
+			return;
+		}
+
 		// Validate retry strategy
 		if (retryValidationError) {
 			setErrorMessage(retryValidationError);
@@ -291,14 +307,22 @@ export default function CrawlerTemplateScheduleDialog({
 									value={scheduleName}
 									onChange={(e) => setScheduleName(e.target.value)}
 									placeholder="e.g., biomed-north-america-daily"
-									className={`w-full ${nameIsInvalid ? 'border-red-500 focus-visible:ring-red-500' : ''}`}
-									aria-invalid={nameIsInvalid}
+									className={`w-full ${nameIsInvalid || scheduleNameExists ? 'border-red-500 focus-visible:ring-red-500' : ''}`}
+									aria-invalid={nameIsInvalid || scheduleNameExists}
 								/>
 								{nameIsInvalid && (
 									<div className="flex items-center gap-2 mt-2 p-2 bg-red-50 dark:bg-red-950 rounded-md border border-red-200 dark:border-red-800">
 										<AlertCircle className="h-4 w-4 text-red-600 dark:text-red-400" />
 										<span className="text-sm text-red-800 dark:text-red-300">
 											Invalid name. Allowed: lowercase letters, numbers, hyphens, and dots.
+										</span>
+									</div>
+								)}
+								{!nameIsInvalid && scheduleNameExists && (
+									<div className="flex items-center gap-2 mt-2 p-2 bg-red-50 dark:bg-red-950 rounded-md border border-red-200 dark:border-red-800">
+										<AlertCircle className="h-4 w-4 text-red-600 dark:text-red-400" />
+										<span className="text-sm text-red-800 dark:text-red-300">
+											A schedule with this name already exists
 										</span>
 									</div>
 								)}
@@ -500,7 +524,9 @@ export default function CrawlerTemplateScheduleDialog({
 							!scheduleName ||
 							!cronExpression ||
 							cronIsInvalid ||
-							retryValidationError !== null
+							retryValidationError !== null ||
+							scheduleNameExists ||
+							scheduleNameQuery.isLoading
 						}
 						className="bg-primary hover:bg-primary/90"
 					>

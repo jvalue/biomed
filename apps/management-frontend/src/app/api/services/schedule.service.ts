@@ -14,6 +14,12 @@ export const scheduleService = {
 		return data;
 	},
 
+	scheduleNameExists: async (name: string, namespace: string): Promise<boolean> => {
+		const path = `schedules/${encodeURIComponent(namespace)}/${encodeURIComponent(name)}/exists`;
+		const { data } = await managementBackendClient.get<boolean>(path);
+		return data;
+	},
+
 	/**
 	 * Create a new schedule
 	 * @param createScheduleDto
