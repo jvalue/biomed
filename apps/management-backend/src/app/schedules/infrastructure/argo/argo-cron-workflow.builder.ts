@@ -84,7 +84,7 @@ export class ArgoCronWorkflowBuilder {
 		if (!this.workflow.spec.workflowSpec.workflowMetadata.labels) {
 			this.workflow.spec.workflowSpec.workflowMetadata.labels = {};
 		}
-		this.workflow.spec.workflowSpec.workflowMetadata.labels['customSetWorkflowTemplateName'] =
+		this.workflow.spec.workflowSpec.workflowMetadata.labels.customSetWorkflowTemplateName =
 			templateName;
 
 		return this;

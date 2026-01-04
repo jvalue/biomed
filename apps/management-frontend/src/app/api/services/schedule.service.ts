@@ -29,6 +29,16 @@ export const scheduleService = {
 	},
 
 	/**
+	 * Delete a schedule
+	 * @param name
+	 * @param namespace
+	 */
+	deleteSchedule: async (name: string, namespace: string): Promise<void> => {
+		const path = `schedules/${encodeURIComponent(namespace)}/${encodeURIComponent(name)}`;
+		await managementBackendClient.delete(path);
+	},
+
+	/**
 	 * Suspend a schedule
 	 * @param name
 	 * @param namespace

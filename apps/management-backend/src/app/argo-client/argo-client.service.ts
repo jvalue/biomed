@@ -285,6 +285,27 @@ export class ArgoClientService implements IOrchestratorClient {
 	}
 
 	/**
+	 * Delete a cron workflow by name and namespace
+	 * @param name Name of the cron workflow
+	 * @param namespace Namespace of the cron workflow
+	 */
+	async deleteSchedule(name: string, namespace: string): Promise<void> {
+		this.logger.log(
+			`Deleting cron workflow ${name} in namespace ${namespace} via Argo Workflows API`,
+		);
+
+		const url = `/cron-workflows/${namespace}/${name}`;
+
+		try {
+			await this.http.delete(url);
+			this.logger.log(`Cron workflow ${name} in namespace ${namespace} deleted successfully`);
+		} catch (err) {
+			this.logger.error(`Error deleting cron workflow ${name} in namespace ${namespace}:`, err);
+			throw err;
+		}
+	}
+
+	/**
 	 * Suspend a cron workflow by name and namespace
 	 * @param name Name of the cron workflow
 	 * @param namespace Namespace of the cron workflow
