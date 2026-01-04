@@ -41,9 +41,8 @@ export class SchedulesService {
 	 * Create a new Schedule
 	 * @param createScheduleDto The Schedule to create
 	 * @param user The user creating the Schedule
-	 * @returns The link to the created PR of the schedule
 	 */
-	async createSchedule(createScheduleDto: CreateScheduleDto, user: UserEntity): Promise<string> {
+	async createSchedule(createScheduleDto: CreateScheduleDto, user: UserEntity): Promise<void> {
 		return this.scheduleEngine.createSchedule(createScheduleDto, user);
 	}
 

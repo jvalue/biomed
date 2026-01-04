@@ -52,7 +52,7 @@ export class SchedulesController {
 	}
 
 	@ApiOperation({ summary: 'Create a new Schedule' })
-	@ApiCreatedResponse({ type: String, description: 'The link to the created PR of the schedule' })
+	@ApiCreatedResponse({ description: 'The Schedule has been created' })
 	@ApiResponse({
 		status: 403,
 		description: 'You do not have permission to create schedules',
@@ -62,7 +62,7 @@ export class SchedulesController {
 	async createSchedule(
 		@CurrentUser() user: UserEntity,
 		@Body() body: CreateScheduleDto,
-	): Promise<string> {
+	): Promise<void> {
 		return this.schedulesService.createSchedule(body, user);
 	}
 

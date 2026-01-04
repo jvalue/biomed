@@ -25,7 +25,6 @@ export const useScheduleByNameAndNamespace = (
 /**
  * Create a new schedule
  * @param createScheduleDto
- * @returns The link to the created PR of the schedule
  */
 export const useCreateSchedule = () => {
 	const queryClient = useQueryClient();

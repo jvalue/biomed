@@ -1,5 +1,7 @@
-import { AlertCircle, ExternalLink } from 'lucide-react';
+import { useRouter } from '@tanstack/react-router';
+import { AlertCircle } from 'lucide-react';
 import React, { useMemo, useState } from 'react';
+import { toast } from 'react-toastify';
 import {
 	CrawlerTemplateDto,
 	CrawlerTemplateParameterDto,
@@ -33,6 +35,7 @@ export default function CrawlerTemplateScheduleDialog({
 	open,
 	onOpenChange,
 }: CrawlerTemplateScheduleDialogProps) {
+	const router = useRouter();
 	const createSchedule = useCreateSchedule();
 	const [scheduleName, setScheduleName] = useState('');
 	const [cronExpression, setCronExpression] = useState('');
@@ -42,7 +45,6 @@ export default function CrawlerTemplateScheduleDialog({
 	const [backoffCap, setBackoffCap] = useState<string>('');
 	const [backoffMaxDuration, setBackoffMaxDuration] = useState<string>('');
 	const [parameters, setParameters] = useState<Record<string, string>>({});
-	const [prLink, setPrLink] = useState<string | null>(null);
 	const [errorMessage, setErrorMessage] = useState<string | null>(null);
 
 	// Regex validation for name (Kubernetes-style DNS-1123 subdomain)
@@ -160,8 +162,6 @@ export default function CrawlerTemplateScheduleDialog({
 			setBackoffFactor('');
 			setBackoffCap('');
 			setBackoffMaxDuration('');
-			setPrLink(null);
-			setErrorMessage(null);
 			const initialParams: Record<string, string> = {};
 			template.parameters?.forEach((param) => {
 				initialParams[param.name] = param.defaultValue ?? '';
@@ -244,9 +244,11 @@ export default function CrawlerTemplateScheduleDialog({
 				retryStrategy: retryStrategy,
 			},
 			{
-				onSuccess: (data) => {
+				onSuccess: () => {
 					// Store the PR link instead of navigating immediately
-					setPrLink(data);
+					router.navigate({ to: `/schedules/${template.namespace}/${scheduleName}` });
+					onOpenChange(false);
+					toast.success(`Schedule "${scheduleName}" created successfully.`);
 				},
 			},
 		);
@@ -483,58 +485,28 @@ export default function CrawlerTemplateScheduleDialog({
 					</div>
 				)}
 
-				{prLink ? (
-					<div className="space-y-4 py-4">
-						<div className="p-4 bg-green-50 dark:bg-green-950 border border-green-200 dark:border-green-800 rounded-lg space-y-3">
-							<div className="flex items-center gap-2">
-								<div className="h-2 w-2 bg-green-500 rounded-full animate-pulse" />
-								<h3 className="text-lg font-semibold text-green-700 dark:text-green-400">
-									Schedule Created Successfully!
-								</h3>
-							</div>
-							<p className="text-sm text-green-800 dark:text-green-300">
-								The schedule has been created as a Pull Request. Please follow these steps:
-							</p>
-							<ol className="list-decimal list-inside space-y-2 text-sm text-green-900 dark:text-green-200 ml-2">
-								<li>Review and approve the Pull Request</li>
-								<li>Merge the PR after approval</li>
-								<li>Start the GitHub Action to deploy the schedule</li>
-							</ol>
-							<a
-								href={prLink}
-								target="_blank"
-								rel="noopener noreferrer"
-								className="inline-flex items-center gap-2 mt-2 px-4 py-2 bg-green-600 hover:bg-green-700 text-white rounded-md transition-colors font-medium"
-							>
-								<ExternalLink className="h-4 w-4" />
-								Open Pull Request
-							</a>
-						</div>
-					</div>
-				) : (
-					<DialogFooter className="gap-2 sm:gap-0">
-						<Button
-							variant="outline"
-							onClick={() => onOpenChange(false)}
-							disabled={createSchedule.isPending}
-						>
-							Cancel
-						</Button>
-						<Button
-							onClick={handleSubmit}
-							disabled={
-								createSchedule.isPending ||
-								!scheduleName ||
-								!cronExpression ||
-								cronIsInvalid ||
-								retryValidationError !== null
-							}
-							className="bg-primary hover:bg-primary/90"
-						>
-							{createSchedule.isPending ? 'Creating PR ...' : 'Create Schedule'}
-						</Button>
-					</DialogFooter>
-				)}
+				<DialogFooter className="gap-2 sm:gap-0">
+					<Button
+						variant="outline"
+						onClick={() => onOpenChange(false)}
+						disabled={createSchedule.isPending}
+					>
+						Cancel
+					</Button>
+					<Button
+						onClick={handleSubmit}
+						disabled={
+							createSchedule.isPending ||
+							!scheduleName ||
+							!cronExpression ||
+							cronIsInvalid ||
+							retryValidationError !== null
+						}
+						className="bg-primary hover:bg-primary/90"
+					>
+						{createSchedule.isPending ? 'Creating PR ...' : 'Create Schedule'}
+					</Button>
+				</DialogFooter>
 			</DialogContent>
 		</Dialog>
 	);
