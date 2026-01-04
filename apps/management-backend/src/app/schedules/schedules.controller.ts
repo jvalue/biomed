@@ -99,4 +99,22 @@ export class SchedulesController {
 	): Promise<void> {
 		return this.schedulesService.resumeSchedule(name, namespace);
 	}
+
+	@ApiOperation({ summary: 'Check if a Schedule name already exists in a namespace' })
+	@ApiOkResponse({ description: 'Returns true if the Schedule name exists, false otherwise' })
+	@ApiResponse({
+		status: 403,
+		description: 'You do not have permission to access schedules',
+	})
+	@RequirePermission('read', 'schedule')
+	@ApiParam({ name: 'namespace', description: 'The namespace to check' })
+	@ApiParam({ name: 'name', description: 'The Schedule name to check' })
+	@Get(':namespace/:name/exists')
+	async scheduleNameAlreadyExists(
+		@Param('namespace') namespace: string,
+		@Param('name') name: string,
+	): Promise<boolean> {
+		const schedule = await this.schedulesService.getScheduleByNameAndNamespace(name, namespace);
+		return !!schedule;
+	}
 }
