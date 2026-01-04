@@ -1,14 +1,6 @@
 import { ApiProperty } from '@nestjs/swagger';
 import { Type } from 'class-transformer';
-import {
-	Equals,
-	IsArray,
-	IsNotEmpty,
-	IsOptional,
-	IsString,
-	Matches,
-	Validate,
-} from 'class-validator';
+import { IsArray, IsNotEmpty, IsOptional, IsString, Matches, Validate } from 'class-validator';
 import { IsCronExpression } from '../infrastructure/argo/cron.validator';
 import { ScheduleParameterDto } from './schedule.dto';
 
@@ -53,7 +45,6 @@ export class CreateScheduleDto {
 	@ApiProperty({ description: 'Namespace of the crawler template to be executed' })
 	@IsString()
 	@IsNotEmpty()
-	@Equals('argo-managed-crawler', { message: 'Namespace has to be argo-managed-crawler' })
 	crawlerTemplateNamespace!: string;
 
 	@ApiProperty({ description: 'Name of the crawler template to be executed' })
