@@ -11,19 +11,15 @@ import { useCrawlerRuns } from '../../api/hooks/useCrawlerRuns';
 
 const PAGE_SIZE = 20;
 
-export default function CrawlerRunList({
-	page,
-	setPage,
-	scheduleName,
-}: {
+export interface CrawlerRunListProps {
 	page: number;
 	setPage: (page: number) => void;
-	scheduleName?: string;
-}) {
+}
+
+export default function CrawlerRunList({ page, setPage }: CrawlerRunListProps) {
 	const offset = (page - 1) * PAGE_SIZE;
 
 	const { data, isLoading, error } = useCrawlerRuns({
-		scheduleName,
 		limit: PAGE_SIZE,
 		offset,
 	});

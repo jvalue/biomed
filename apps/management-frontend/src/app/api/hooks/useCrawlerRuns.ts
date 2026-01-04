@@ -9,7 +9,7 @@ export const useCrawlerRuns = (params?: {
 	offset?: number;
 }): UseQueryResult<CursorBasedPaginationResponseDto<CrawlerRunDto>> => {
 	return useQuery({
-		queryKey: ['crawlerRuns', params?.scheduleName, params?.limit ?? null, params?.offset ?? null],
+		queryKey: ['crawlerRuns', params?.scheduleName, params?.limit, params?.offset],
 		queryFn: () => crawlerRunService.getCrawlerRuns(params),
 		refetchInterval: 5000, // Auto-refresh
 	});
