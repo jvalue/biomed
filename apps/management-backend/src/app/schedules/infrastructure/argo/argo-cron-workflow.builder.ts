@@ -49,11 +49,6 @@ export class ArgoCronWorkflowBuilder {
 					podGC: {
 						strategy: 'OnWorkflowSuccess',
 					},
-					retryStrategy: {
-						retryPolicy: 'Always',
-						limit: 2,
-						backoff: {},
-					},
 				},
 			},
 		};
@@ -132,7 +127,12 @@ export class ArgoCronWorkflowBuilder {
 		if (retryStrategy.retries < 0) {
 			throw new Error('Retries must be a non-negative integer');
 		}
-		this.workflow.spec.workflowSpec.retryStrategy.limit = retryStrategy.retries;
+		this.workflow.spec.workflowSpec.retryStrategy = {
+			retryPolicy: 'Always',
+			limit: retryStrategy.retries,
+			backoff: {},
+		};
+
 		if (retryStrategy.backoffDuration) {
 			if (retryStrategy.backoffDuration < 0) {
 				throw new Error('Backoff duration must be a non-negative integer');
