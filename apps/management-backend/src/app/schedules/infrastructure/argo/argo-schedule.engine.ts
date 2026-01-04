@@ -25,6 +25,7 @@ export class ArgoScheduleEngine implements IScheduleEngine {
 		try {
 			workflowObject = builder
 				.setName(dto.name)
+				.setNamespace(dto.crawlerTemplateNamespace)
 				.setSchedule(dto.cronExpression)
 				.setTemplateRef(dto.crawlerTemplateName)
 				.addParameters(dto.parameters)

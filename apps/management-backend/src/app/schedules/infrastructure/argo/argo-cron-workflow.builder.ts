@@ -21,7 +21,7 @@ export class ArgoCronWorkflowBuilder {
 			kind: 'CronWorkflow',
 			metadata: {
 				name: '',
-				// Hardcoded namespace as this should be the namespace where the crawler should run
+				// Default namespace
 				namespace: 'argo-managed-crawler',
 				labels: {
 					'managed-by': 'biomed-management-ui',
@@ -61,6 +61,11 @@ export class ArgoCronWorkflowBuilder {
 
 	public setName(name: string): this {
 		this.workflow.metadata.name = name;
+		return this;
+	}
+
+	public setNamespace(namespace: string): this {
+		this.workflow.metadata.namespace = namespace;
 		return this;
 	}
 
