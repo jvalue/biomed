@@ -11,6 +11,7 @@ import { IOrchestratorClient } from '../orchestrators/orchestrator-client.interf
 import { CursorBasedPaginationRequestDto } from '../pagination/dto/cursor-based-pagination-request.dto';
 import { CursorBasedPaginationResponseDto } from '../pagination/dto/cursor-based-pagination-response.dto';
 import { ScheduleDto } from '../schedules/dto/schedule.dto';
+import { ArgoCronWorkflow } from '../schedules/infrastructure/argo/argo-cron-workflow';
 import { ArgoAuthService } from './argo-auth/argo-auth.service';
 import { ArgoCursorPaginatedListDto } from './dto/argo-cursor-paginated-list-dto';
 import { ArgoCronWorkflowDto } from './dto/cron-workflows/argo-cron-workflow.dto';
@@ -256,6 +257,29 @@ export class ArgoClientService implements IOrchestratorClient {
 				return null;
 			}
 			this.logger.error(`Error getting cron workflow ${name} from namespace ${namespace}:`, err);
+			throw err;
+		}
+	}
+
+	/**
+	 * Creates a cron workflow schedule
+	 * @param cronWorkflowObject The cron workflow object to create
+	 * @param namespace The namespace to create the cron workflow in
+	 */
+	async createSchedule(cronWorkflowObject: ArgoCronWorkflow, namespace: string): Promise<void> {
+		this.logger.log(`Creating new cron workflow via Argo Workflows API`);
+
+		const url = `/cron-workflows/${namespace}`;
+
+		const body = {
+			cronWorkflow: cronWorkflowObject,
+		};
+
+		try {
+			await this.http.post(url, body);
+			this.logger.log(`Cron workflow created successfully`);
+		} catch (err) {
+			this.logger.error(`Error creating cron workflow:`, err);
 			throw err;
 		}
 	}

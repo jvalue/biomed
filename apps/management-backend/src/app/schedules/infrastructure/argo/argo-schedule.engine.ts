@@ -1,5 +1,6 @@
 import { BadRequestException, Injectable, Logger } from '@nestjs/common';
 import * as yaml from 'js-yaml';
+import { ArgoClientService } from '../../../argo-client/argo-client.service';
 import { UserEntity } from '../../../users/entity/user.entity';
 import { CreateScheduleDto } from '../../dto/create-schedule.dto';
 import { IScheduleEngine } from '../../schedule-engine.interface';
@@ -11,9 +12,10 @@ import { ArgoCronWorkflowBuilder } from './argo-cron-workflow.builder';
  */
 @Injectable()
 export class ArgoScheduleEngine implements IScheduleEngine {
+	constructor(private readonly argoClientService: ArgoClientService) {}
 	private readonly logger = new Logger(ArgoScheduleEngine.name);
 
-	async createSchedule(dto: CreateScheduleDto, user: UserEntity): Promise<string> {
+	async createSchedule(dto: CreateScheduleDto, user: UserEntity): Promise<void> {
 		this.logger.log(`Building Argo CronWorkflow for ${dto.name}`);
 
 		let workflowObject: ArgoCronWorkflow;
@@ -34,22 +36,12 @@ export class ArgoScheduleEngine implements IScheduleEngine {
 			throw new BadRequestException(`Failed to create schedule: ${error.message}`);
 		}
 
-		// Generate YAML from the object
+		// Generate YAML from the object for debug reasons
 		const yamlString = yaml.dump(workflowObject);
 
 		this.logger.debug('Generated YAML:', yamlString);
 
-		// Create a pull request with the generated YAML
-		return this.createPullRequest(dto.name, yamlString);
-	}
-
-	async createPullRequest(filename: string, content: string): Promise<string> {
-		this.logger.log(content);
-		// TODO: Create a PR in the Git repository with the given filename and content
-		// Create a new branch
-		// Commit the YAML file
-		// Open PR and return the link
-		this.logger.log(`Mock: PR created for ${filename}.yaml`);
-		return `http://mock-repo/pull-requests/${filename}`;
+		// Send the YAML to Argo Workflows API
+		await this.argoClientService.createSchedule(workflowObject, dto.crawlerTemplateNamespace);
 	}
 }

@@ -17,11 +17,9 @@ export const scheduleService = {
 	/**
 	 * Create a new schedule
 	 * @param createScheduleDto
-	 * @returns The link to the created PR of the schedule
 	 */
-	createSchedule: async (createScheduleDto: CreateScheduleDto): Promise<string> => {
-		const { data } = await managementBackendClient.post('schedules', createScheduleDto);
-		return data;
+	createSchedule: async (createScheduleDto: CreateScheduleDto): Promise<void> => {
+		await managementBackendClient.post('schedules', createScheduleDto);
 	},
 
 	/**

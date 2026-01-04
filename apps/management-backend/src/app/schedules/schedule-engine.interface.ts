@@ -8,7 +8,7 @@ export interface IScheduleEngine {
 	 * @param user The user creating the schedule
 	 * @returns The link to the created PR of the schedule
 	 */
-	createSchedule(createScheduleDto: CreateScheduleDto, user: UserEntity): Promise<string>;
+	createSchedule(createScheduleDto: CreateScheduleDto, user: UserEntity): Promise<void>;
 }
 
 export const SCHEDULE_ENGINE = 'SCHEDULE_ENGINE';

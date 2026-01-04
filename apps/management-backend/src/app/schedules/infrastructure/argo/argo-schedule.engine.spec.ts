@@ -1,17 +1,22 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest';
+import { ArgoClientService } from '../../../argo-client/argo-client.service';
 import { UserEntity } from '../../../users/entity/user.entity';
 import { CreateScheduleDto } from '../../dto/create-schedule.dto';
 import { ArgoScheduleEngine } from './argo-schedule.engine';
 
 describe('ArgoScheduleEngine', () => {
 	let engine: ArgoScheduleEngine;
+	let argoClientMock: { createSchedule: ReturnType<typeof vi.fn> };
 
 	beforeEach(() => {
-		engine = new ArgoScheduleEngine();
 		vi.restoreAllMocks();
+		argoClientMock = {
+			createSchedule: vi.fn().mockResolvedValue(undefined),
+		};
+		engine = new ArgoScheduleEngine(argoClientMock as unknown as ArgoClientService);
 	});
 
-	it('creates a PR and includes expected labels and template name in generated YAML', async () => {
+	it('calls ArgoClientService.createSchedule with expected CronWorkflow object and namespace', async () => {
 		// Arrange
 		const dto: CreateScheduleDto = {
 			name: 'nightly-sync',
@@ -23,30 +28,38 @@ describe('ArgoScheduleEngine', () => {
 
 		const user = { id: 'user-123', username: 'jdoe' } as UserEntity;
 
-		// Spy / mock the private PR creation to capture arguments and return a URL
-		const prUrl = 'http://mock-repo/pull-requests/nightly-sync';
-		const prSpy = vi.spyOn(engine, 'createPullRequest').mockResolvedValue(prUrl);
-
 		// Act
-		const result = await engine.createSchedule(dto, user);
+		await engine.createSchedule(dto, user);
 
 		// Assert
-		expect(result).toBe(prUrl);
-		expect(prSpy).toHaveBeenCalled();
+		expect(argoClientMock.createSchedule).toHaveBeenCalledTimes(1);
+		const calledArgs = argoClientMock.createSchedule.mock.calls[0];
+		const passedWorkflow = calledArgs[0];
+		const passedNamespace = calledArgs[1];
 
-		const calledArgs = prSpy.mock.calls[0];
-		expect(calledArgs[0]).toBe(dto.name); // filename
+		expect(passedNamespace).toBe(dto.crawlerTemplateNamespace);
 
-		const yamlContent = calledArgs[1] as string;
-		// Check for important bits in the YAML output
-		expect(yamlContent).toContain(`name: ${dto.name}`);
-		expect(yamlContent).toContain('0 2 * * *'); // schedule present
-		expect(yamlContent).toContain(`customSetWorkflowTemplateName: ${dto.crawlerTemplateName}`);
-		expect(yamlContent).toContain(`created-by: ${user.id}`);
-		expect(yamlContent).toContain(`created-by-fallback: ${user.username}`);
-		// parameter included
-		expect(yamlContent).toContain('inputPath');
-		expect(yamlContent).toContain('/data/in');
+		expect(passedWorkflow).toBeDefined();
+		expect(passedWorkflow).toMatchObject({
+			metadata: {
+				name: dto.name,
+				labels: {
+					'created-by': user.id,
+					'created-by-fallback': user.username,
+				},
+			},
+			spec: {
+				schedules: [dto.cronExpression],
+				workflowSpec: {
+					workflowTemplateRef: {
+						name: dto.crawlerTemplateName,
+					},
+					arguments: {
+						parameters: [{ name: 'inputPath', value: '/data/in' }],
+					},
+				},
+			},
+		});
 	});
 
 	it('propagates builder validation error when template name is missing', async () => {
