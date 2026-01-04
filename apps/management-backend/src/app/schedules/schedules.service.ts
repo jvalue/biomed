@@ -18,11 +18,12 @@ export class SchedulesService {
 	 */
 	async listSchedules(): Promise<ScheduleDto[]> {
 		const schedules = await this.argoClientService.listSchedules();
-		// Sort schedules primary by suspended status, then by creation date
+		// Sort schedules primary by suspended status, then by creation date (newest first)
 		schedules.sort((a, b) => {
 			if (a.suspended && !b.suspended) return 1;
 			if (!a.suspended && b.suspended) return -1;
-			return new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime();
+			// descending by createdAt: newer first
+			return new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime();
 		});
 		return schedules;
 	}
