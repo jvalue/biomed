@@ -14,6 +14,13 @@ import {
 	CardHeader,
 	CardTitle,
 } from '@/src/app/components/design-components/card';
+import {
+	Pagination,
+	PaginationContent,
+	PaginationItem,
+	PaginationNext,
+	PaginationPrevious,
+} from '@/src/app/components/design-components/pagination';
 import ParameterSectionComponent from '@/src/app/components/design-components/parameterSection.component';
 import { Spinner } from '@/src/app/components/design-components/spinner';
 import { PermissionGuard } from '@/src/app/components/guards/permission-guard';
@@ -24,7 +31,17 @@ import { Badge } from '../../components/design-components/badge';
 import { Switch } from '../../components/design-components/switch';
 import { AuthGuard } from '../../components/guards/auth-guard';
 
+const PAGE_SIZE = 20;
+
 export const Route = createFileRoute('/schedules/$scheduleNamespace/$scheduleName')({
+	validateSearch: (search: Record<string, unknown>) => {
+		const raw = search.page;
+		const n = typeof raw === 'string' || typeof raw === 'number' ? Number(raw) : NaN;
+
+		const page = Number.isFinite(n) && n >= 2 ? Math.floor(n) : undefined;
+
+		return { page } as { page?: number };
+	},
 	component: RouteComponent,
 });
 
@@ -42,14 +59,37 @@ function RouteComponent() {
 		}
 	};
 
+	const search = Route.useSearch();
+	const page = search.page ?? 1;
+	const offset = (page - 1) * PAGE_SIZE;
+
+	const navigate = Route.useNavigate();
+	const setPage = (nextPage: number) => {
+		const p = Math.max(1, nextPage);
+		navigate({
+			search: (prev: { page?: number }) => ({
+				...prev,
+				// omit from URL on page 1
+				page: p >= 2 ? p : undefined,
+			}),
+		});
+	};
+
 	const {
 		data: schedule,
 		isLoading: scheduleQueryIsLoading,
 		error: scheduleQueryError,
 	} = useScheduleByNameAndNamespace(scheduleName, scheduleNamespace);
-	const { data: runsQueryData, isLoading: runsQueryIsLoading } = useCrawlerRuns(scheduleName);
+	const { data: runsQueryData, isLoading: runsQueryIsLoading } = useCrawlerRuns({
+		scheduleName,
+		limit: PAGE_SIZE,
+		offset,
+	});
 
 	const runs = runsQueryData?.data || [];
+	const hasNextPage = !!runsQueryData?.metadata?.hasMore;
+	const canPrev = page > 1;
+	const showPagination = canPrev || hasNextPage;
 
 	if (scheduleQueryIsLoading) {
 		return (
@@ -189,7 +229,40 @@ function RouteComponent() {
 										<Spinner className="size-10" />
 									</div>
 								) : runs.length > 0 ? (
-									<CrawlerRunsTable runs={runs}></CrawlerRunsTable>
+									<>
+										<CrawlerRunsTable runs={runs}></CrawlerRunsTable>
+										{showPagination && (
+											<div className="mt-4">
+												<Pagination>
+													<PaginationContent>
+														<PaginationItem>
+															<PaginationPrevious
+																href="#"
+																disabled={!canPrev}
+																onClick={(e) => {
+																	e.preventDefault();
+																	if (!canPrev) return;
+																	setPage(page - 1);
+																}}
+															/>
+														</PaginationItem>
+
+														<PaginationItem>
+															<PaginationNext
+																href="#"
+																disabled={!hasNextPage}
+																onClick={(e) => {
+																	e.preventDefault();
+																	if (!hasNextPage) return;
+																	setPage(page + 1);
+																}}
+															/>
+														</PaginationItem>
+													</PaginationContent>
+												</Pagination>
+											</div>
+										)}
+									</>
 								) : (
 									<p className="text-sm text-muted-foreground">No runs found for this schedule</p>
 								)}
