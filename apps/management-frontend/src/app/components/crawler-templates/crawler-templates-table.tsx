@@ -1,8 +1,9 @@
 import { Can } from '@casl/react';
-import { Plus } from 'lucide-react';
+import { Calendar, Plus } from 'lucide-react';
 import { useState } from 'react';
 import { CrawlerTemplateDto } from '@/src/app/api/dto/crawler-templates/crawler-template.dto';
 import CrawlerTemplateRunDialog from '@/src/app/components/crawler-templates/crawler-template-run-dialog';
+import CrawlerTemplateScheduleDialog from '@/src/app/components/crawler-templates/crawler-template-schedule-dialog';
 import { Button } from '@/src/app/components/design-components/button';
 import {
 	Table,
@@ -23,10 +24,16 @@ export default function CrawlerTemplatesTable({ templates = [] }: CrawlerTemplat
 	const { ability } = useAuth();
 	const [selectedTemplate, setSelectedTemplate] = useState<CrawlerTemplateDto | null>(null);
 	const [dialogOpen, setDialogOpen] = useState(false);
+	const [scheduleDialogOpen, setScheduleDialogOpen] = useState(false);
 
 	const openDialog = (template: CrawlerTemplateDto) => {
 		setSelectedTemplate(template);
 		setDialogOpen(true);
+	};
+
+	const openScheduleDialog = (template: CrawlerTemplateDto) => {
+		setSelectedTemplate(template);
+		setScheduleDialogOpen(true);
 	};
 
 	return (
@@ -39,7 +46,8 @@ export default function CrawlerTemplatesTable({ templates = [] }: CrawlerTemplat
 						<TableHead className="text-primary">Namespace</TableHead>
 						<TableHead className="text-primary">Template Version</TableHead>
 						<TableHead className="text-primary">Created at</TableHead>
-						<TableHead className="text-primary">Start run</TableHead>
+						<TableHead className="text-primary">Start Run</TableHead>
+						<TableHead className="text-primary">Add Schedule</TableHead>
 					</TableRow>
 				</TableHeader>
 				<TableBody>
@@ -63,6 +71,17 @@ export default function CrawlerTemplatesTable({ templates = [] }: CrawlerTemplat
 									</Button>
 								</Can>
 							</TableCell>
+							<TableCell>
+								<Can ability={ability} I="create" a="schedule">
+									<Button
+										size="icon"
+										className="bg-blue-500 text-white hover:bg-blue-700"
+										onClick={() => openScheduleDialog(template)}
+									>
+										<Calendar />
+									</Button>
+								</Can>
+							</TableCell>
 						</TableRow>
 					))}
 				</TableBody>
@@ -71,6 +90,11 @@ export default function CrawlerTemplatesTable({ templates = [] }: CrawlerTemplat
 				template={selectedTemplate}
 				open={dialogOpen}
 				onOpenChange={setDialogOpen}
+			/>
+			<CrawlerTemplateScheduleDialog
+				template={selectedTemplate}
+				open={scheduleDialogOpen}
+				onOpenChange={setScheduleDialogOpen}
 			/>
 		</>
 	);

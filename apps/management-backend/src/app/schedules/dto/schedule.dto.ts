@@ -1,8 +1,9 @@
 import { ApiProperty } from '@nestjs/swagger';
 import { Type } from 'class-transformer';
-import { IsArray, IsBoolean, IsDate, IsNumber, IsString } from 'class-validator';
+import { IsArray, IsBoolean, IsDate, IsNumber, IsOptional, IsString } from 'class-validator';
+import { RetryStrategyDto } from './create-schedule.dto';
 
-class ScheduleParameterDto {
+export class ScheduleParameterDto {
 	@ApiProperty({
 		type: String,
 		description: 'The name of the parameter which the schedule passes to the crawler template',
@@ -60,6 +61,15 @@ export class ScheduleDto {
 	@ApiProperty({ type: String, description: 'The cron schedule expression' })
 	@IsString()
 	schedule!: string;
+
+	@ApiProperty({
+		type: RetryStrategyDto,
+		description: 'The retry strategy for failed runs triggered by the schedule',
+		nullable: true,
+	})
+	@IsOptional()
+	@Type(() => RetryStrategyDto)
+	retryStrategy?: RetryStrategyDto;
 
 	@ApiProperty({ type: Boolean, description: 'Indicates whether the schedule is suspended' })
 	@IsBoolean()

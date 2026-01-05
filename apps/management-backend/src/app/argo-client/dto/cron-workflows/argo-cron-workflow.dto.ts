@@ -31,6 +31,33 @@ class ArgoCronWorkflowSpecWorkflowSpecWorkflowTemplateRefDto {
 	name!: string;
 }
 
+class ArgoRetryStrategyBackoffDto {
+	@IsNumber()
+	@IsOptional()
+	duration?: number;
+
+	@IsNumber()
+	@IsOptional()
+	factor?: number;
+
+	@IsNumber()
+	@IsOptional()
+	cap?: number;
+
+	@IsNumber()
+	@IsOptional()
+	maxDuration?: number;
+}
+
+class ArgoCronWorkflowSpecWorkflowSpecRetryStrategyDto {
+	@IsNumber()
+	limit?: number;
+
+	@Type(() => ArgoRetryStrategyBackoffDto)
+	@IsOptional()
+	backoff?: ArgoRetryStrategyBackoffDto;
+}
+
 class ArgoCronWorkflowSpecWorkflowSpecDto {
 	@Type(() => ArgoCronWorkflowSpecWorkflowSpecWorkflowTemplateRefDto)
 	@IsOptional()
@@ -39,6 +66,10 @@ class ArgoCronWorkflowSpecWorkflowSpecDto {
 	@Type(() => ArgoCronWorkflowSpecWorkflowSpecArgumentsDto)
 	@IsOptional()
 	arguments?: ArgoCronWorkflowSpecWorkflowSpecArgumentsDto;
+
+	@Type(() => ArgoCronWorkflowSpecWorkflowSpecRetryStrategyDto)
+	@IsOptional()
+	retryStrategy?: ArgoCronWorkflowSpecWorkflowSpecRetryStrategyDto;
 }
 
 class ArgoCronWorkflowSpecDto {
