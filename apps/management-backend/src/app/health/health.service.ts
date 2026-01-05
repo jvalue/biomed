@@ -1,13 +1,15 @@
 import { Injectable } from '@nestjs/common';
 import axios from 'axios';
 import { ArgoClientService } from '../argo-client/argo-client.service';
-import { HealthCheckDto, HealthStatusEnum } from './dto/healthCheck.dto';
+import { SystemHealthDto } from './dto/systemHealth.dto';
+import { TargetUrlStatusDto } from './dto/targetUrlStatus.dto';
+import { HealthStatusEnum } from './enum/healthStatus.enum';
 
 @Injectable()
 export class HealthService {
 	constructor(private readonly argoClientService: ArgoClientService) {}
 
-	async checkHealth(): Promise<HealthCheckDto> {
+	async getTargetsHealth(): Promise<TargetUrlStatusDto[]> {
 		const targets = [
 			'https://ftp.ncbi.nlm.nih.gov/',
 			'https://www.ebi.ac.uk/services',
@@ -21,21 +23,16 @@ export class HealthService {
 			targets.map(async (url) => ({ url, status: await this.checkServiceHealth(url) })),
 		);
 
+		return checks;
+	}
+
+	async getSystemHealth(): Promise<SystemHealthDto> {
 		const kubernetesStatus = HealthStatusEnum.AVAILABLE; // placeholder
 		const orchestratorStatus = await this.argoClientService.checkHealth();
 
-		// Determine overall status
-		const overAllStatus = this.determineOverallStatus(
+		return {
 			kubernetesStatus,
 			orchestratorStatus,
-			checks.map((c) => c.status),
-		);
-
-		return {
-			overAllStatus,
-			kubernetesStatus,
-			orchestratorStatus: orchestratorStatus,
-			targetUrlsStatus: checks,
 		};
 	}
 
@@ -90,37 +87,5 @@ export class HealthService {
 		}
 
 		return HealthStatusEnum.DOWN;
-	}
-
-	/**
-	 * Determines the overall health status based on individual component statuses. if Kubernetes or Orchestrator is DOWN, overall is DOWN.
-	 * If Kubernetes or Orchestrator is LIMITED, overall is LIMITED unless any target URL is DOWN.
-	 * If any target Urls are down or limited overall is limited
-	 * @param kubernetesStatus
-	 * @param orchestratorStatus
-	 * @param targetUrlsStatus
-	 * @private
-	 */
-	private determineOverallStatus(
-		kubernetesStatus: HealthStatusEnum,
-		orchestratorStatus: HealthStatusEnum,
-		targetUrlsStatus: HealthStatusEnum[],
-	): HealthStatusEnum {
-		if (
-			kubernetesStatus === HealthStatusEnum.DOWN ||
-			orchestratorStatus === HealthStatusEnum.DOWN
-		) {
-			return HealthStatusEnum.DOWN;
-		}
-		if (
-			kubernetesStatus === HealthStatusEnum.LIMITED ||
-			orchestratorStatus === HealthStatusEnum.LIMITED
-		) {
-			return HealthStatusEnum.LIMITED;
-		}
-		if (targetUrlsStatus.includes(HealthStatusEnum.DOWN || HealthStatusEnum.LIMITED)) {
-			return HealthStatusEnum.LIMITED;
-		}
-		return HealthStatusEnum.AVAILABLE;
 	}
 }

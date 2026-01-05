@@ -7,7 +7,7 @@ import { CrawlerRunParameterDto } from '../crawler-runs/dto/crawler-run-paramete
 import { CrawlerTemplateDto } from '../crawler-templates/dto/crawler-template.dto';
 import { CrawlerTemplatesFilterDto } from '../crawler-templates/dto/crawler-templates-filter.dto';
 import { EnvironmentVariables } from '../env.validation';
-import { HealthStatusEnum } from '../health/dto/healthCheck.dto';
+import { HealthStatusEnum } from '../health/enum/healthStatus.enum';
 import { IOrchestratorClient } from '../orchestrators/orchestrator-client.interface';
 import { CursorBasedPaginationRequestDto } from '../pagination/dto/cursor-based-pagination-request.dto';
 import { CursorBasedPaginationResponseDto } from '../pagination/dto/cursor-based-pagination-response.dto';

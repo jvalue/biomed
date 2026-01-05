@@ -1,9 +1,15 @@
-import { HealthCheckDto } from '@/src/app/api/dto/health/healthCheck.dto';
+import { SystemHealthStatusDto } from '@/src/app/api/dto/health/systemHealthStatus.dto';
+import { TargetUrlStatusDto } from '@/src/app/api/dto/health/targetUrlStatus.dto';
 import { managementBackendClient } from '../management-backend-client';
 
 export const healthService = {
-	getHealthStatus: async (): Promise<HealthCheckDto> => {
-		const { data } = await managementBackendClient.get('health');
-		return data;
+	getSystemHealthStatus: async (): Promise<SystemHealthStatusDto> => {
+		const response = await managementBackendClient.get<SystemHealthStatusDto>('/health/system');
+		return response.data;
+	},
+
+	getTargetHealthStatus: async (): Promise<TargetUrlStatusDto[]> => {
+		const response = await managementBackendClient.get<TargetUrlStatusDto[]>('/health/targets');
+		return response.data;
 	},
 };
