@@ -6,7 +6,7 @@ import {
 	CrawlerTemplateDto,
 	CrawlerTemplateParameterDto,
 } from '@/src/app/api/dto/crawler-templates/crawler-template.dto';
-import { RetryStrategyDto } from '@/src/app/api/dto/schedule/create-schedule.dto';
+import { RetryStrategyDto } from '@/src/app/api/dto/schedule/schedule.dto';
 import { useCreateSchedule, useScheduleNameExists } from '@/src/app/api/hooks/useSchedules';
 import { Button } from '@/src/app/components/design-components/button';
 import {
@@ -205,7 +205,7 @@ export default function CrawlerTemplateScheduleDialog({
 		// Validate name
 		if (!scheduleName || nameIsInvalid) {
 			setErrorMessage(
-				'Invalid schedule name. Bitte verwende nur Kleinbuchstaben, Zahlen, Bindestriche und Punkte gemäß der Namens-Regex.',
+				'Invalid schedule name. Please use lowercase letters, numbers, hyphens, and dots only.',
 			);
 			return;
 		}
@@ -254,7 +254,7 @@ export default function CrawlerTemplateScheduleDialog({
 			},
 			{
 				onSuccess: () => {
-					// Store the PR link instead of navigating immediately
+					// Navigate to the schedule detail page after successful creation
 					router.navigate({ to: `/schedules/${template.namespace}/${scheduleName}` });
 					onOpenChange(false);
 					toast.success(`Schedule "${scheduleName}" created successfully.`);

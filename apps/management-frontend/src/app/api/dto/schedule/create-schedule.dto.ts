@@ -1,12 +1,4 @@
-import { ScheduleParameterDto } from './schedule.dto';
-
-export class RetryStrategyDto {
-	retries!: number;
-	backoffDuration?: number;
-	backoffFactor?: number;
-	backoffCap?: number;
-	backoffMaxDuration?: number;
-}
+import { RetryStrategyDto, ScheduleParameterDto } from './schedule.dto';
 
 export class CreateScheduleDto {
 	name!: string;
