@@ -35,17 +35,19 @@ export function AppSidebar() {
 									</Link>
 								</SidebarMenuButton>
 							</SidebarMenuItem>
-							<SidebarMenuItem key="health-status">
-								<SidebarMenuButton asChild>
-									<Link
-										to="/health-status"
-										activeProps={{ style: { fontWeight: 'bold' } }}
-										activeOptions={{ exact: true }}
-									>
-										Health Status
-									</Link>
-								</SidebarMenuButton>
-							</SidebarMenuItem>
+							<Can ability={ability} I="read" a="health">
+								<SidebarMenuItem key="health-status">
+									<SidebarMenuButton asChild>
+										<Link
+											to="/health-status"
+											activeProps={{ style: { fontWeight: 'bold' } }}
+											activeOptions={{ exact: true }}
+										>
+											Health Status
+										</Link>
+									</SidebarMenuButton>
+								</SidebarMenuItem>
+							</Can>
 						</SidebarMenu>
 					</SidebarGroupContent>
 				</SidebarGroup>

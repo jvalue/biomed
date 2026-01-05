@@ -1,5 +1,6 @@
 import { Controller, Get, UseGuards } from '@nestjs/common';
 import { ApiOkResponse, ApiOperation } from '@nestjs/swagger';
+import { RequirePermission } from '../auth/decorators/require-permission.decorator';
 import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
 import { PermissionsGuard } from '../auth/guards/permissions.guard';
 import { SystemHealthDto } from './dto/systemHealth.dto';
@@ -16,6 +17,7 @@ export class HealthController {
 		description: 'Health status of target services retrieved successfully',
 		type: [TargetUrlStatusDto],
 	})
+	@RequirePermission('read', 'health')
 	@Get('targets')
 	async getTargetHealthStatus(): Promise<TargetUrlStatusDto[]> {
 		return this.healthService.getTargetsHealth();
@@ -26,6 +28,7 @@ export class HealthController {
 		description: 'Overall system health status retrieved successfully',
 		type: SystemHealthDto,
 	})
+	@RequirePermission('read', 'health')
 	@Get('system')
 	async getSystemHealthStatus(): Promise<SystemHealthDto> {
 		return this.healthService.getSystemHealth();
