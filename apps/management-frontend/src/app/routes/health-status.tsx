@@ -1,6 +1,7 @@
 import { createFileRoute } from '@tanstack/react-router';
 import CrawlerTargetsComponent from '@/src/app/components/health/crawler-targets.component';
 import SystemHealthComponent from '@/src/app/components/health/system-health.component';
+import { AuthGuard } from '../components/guards/auth-guard';
 
 export const Route = createFileRoute('/health-status')({
 	component: RouteComponent,
@@ -8,14 +9,16 @@ export const Route = createFileRoute('/health-status')({
 
 function RouteComponent() {
 	return (
-		<div className="space-y-6">
-			<h1>Health Status</h1>
+		<AuthGuard>
+			<div className="space-y-6">
+				<h1>Health Status</h1>
 
-			{/* System Components Section */}
-			<SystemHealthComponent />
+				{/* System Components Section */}
+				<SystemHealthComponent />
 
-			{/* Crawler Targets Section */}
-			<CrawlerTargetsComponent />
-		</div>
+				{/* Crawler Targets Section */}
+				<CrawlerTargetsComponent />
+			</div>
+		</AuthGuard>
 	);
 }
