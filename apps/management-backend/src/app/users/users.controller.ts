@@ -1,4 +1,4 @@
-import { Body, Controller, Get, Logger, Param, Patch, Query, UseGuards } from '@nestjs/common';
+import { Body, Controller, Get, Param, Patch, Query, UseGuards } from '@nestjs/common';
 import {
 	ApiForbiddenResponse,
 	ApiNotFoundResponse,
@@ -20,8 +20,6 @@ import { UsersService } from './users.service';
 @Controller('users')
 @UseGuards(JwtAuthGuard, PermissionsGuard)
 export class UsersController {
-	private readonly logger = new Logger(UsersController.name);
-
 	constructor(private readonly usersService: UsersService) {}
 
 	@ApiOperation({ summary: 'Get all pending users' })
@@ -54,7 +52,6 @@ export class UsersController {
 	@RequirePermission('approve', 'user')
 	@Patch(':id/approve')
 	async approveUser(@Param('id') userId: string, @CurrentUser() requestingUser: UserEntity) {
-		this.logger.warn(`approve user called on userId: ${userId}`);
 		return this.usersService.approveUser(userId, requestingUser);
 	}
 
@@ -67,7 +64,6 @@ export class UsersController {
 	@RequirePermission('block', 'user')
 	@Patch(':id/block')
 	async blockUser(@Param('id') userId: string) {
-		this.logger.warn(`block user called on userId: ${userId}`);
 		return this.usersService.blockUser(userId);
 	}
 
