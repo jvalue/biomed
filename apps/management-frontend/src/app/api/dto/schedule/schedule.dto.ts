@@ -10,7 +10,7 @@ class ScheduleStatisticsDto {
 	failedRuns!: number;
 }
 
-class RetryStrategyDto {
+export class RetryStrategyDto {
 	retries!: number;
 
 	backoffDuration?: number;
