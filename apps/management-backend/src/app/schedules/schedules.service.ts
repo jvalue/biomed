@@ -3,7 +3,8 @@ import { ArgoClientService } from '../argo-client/argo-client.service';
 import { UserEntity } from '../users/entity/user.entity';
 import { CreateScheduleDto } from './dto/create-schedule.dto';
 import { ScheduleDto } from './dto/schedule.dto';
-import { IScheduleEngine, SCHEDULE_ENGINE } from './schedule-engine.interface';
+import type { IScheduleEngine } from './schedule-engine.interface';
+import { SCHEDULE_ENGINE } from './schedule-engine.interface';
 
 @Injectable()
 export class SchedulesService {
