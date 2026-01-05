@@ -1,3 +1,4 @@
+import { Can } from '@casl/react';
 import { Link } from '@tanstack/react-router';
 import { HealthStatusEnum } from '@/src/app/api/dto/health/healthStatus.enum';
 import { useSystemHealthCheck } from '@/src/app/api/hooks/useHealthCheck';
@@ -14,8 +15,11 @@ import { useAuth } from '@/src/app/contexts/AuthContext';
 import { getStatusIcon } from './health/health-utils';
 
 export function Header() {
-	const { user, isAuthenticated, isLoading } = useAuth();
-	const { data: healthStatus, isLoading: healthLoading } = useSystemHealthCheck(isAuthenticated);
+	const { user, isAuthenticated, isLoading, ability } = useAuth();
+	const hasPermissionsToAccessHealthStatus = ability?.can('read', 'health');
+	const { data: healthStatus, isLoading: healthLoading } = useSystemHealthCheck(
+		isAuthenticated && hasPermissionsToAccessHealthStatus,
+	);
 	let overallStatus: HealthStatusEnum;
 
 	//Determine overall system status
@@ -55,24 +59,29 @@ export function Header() {
 			<div className="flex items-center gap-4">
 				{!isLoading && isAuthenticated ? (
 					<>
-						{/* Compact System Health Indicator: clickable link to health status page, using shadcn Tooltip, positioned left of avatar */}
-						<Tooltip>
-							<TooltipTrigger asChild>
-								<Link
-									to="/health-status"
-									className="flex items-center"
-									aria-label={`System status: ${overallStatus ?? 'Unknown'}`}
-								>
-									{healthLoading ? (
-										<Spinner className="w-4 h-4 mr-2" />
-									) : (
-										<div className="flex items-center gap-1 mr-2">{getStatusIcon(overallStatus)}</div>
-									)}
-								</Link>
-							</TooltipTrigger>
-							<TooltipContent side="bottom">{overallStatus ?? 'Unknown'}</TooltipContent>
-						</Tooltip>
+						{/*Health Status*/}
+						<Can ability={ability} I="read" a="health">
+							<Tooltip>
+								<TooltipTrigger asChild>
+									<Link
+										to="/health-status"
+										className="flex items-center"
+										aria-label={`System status: ${overallStatus ?? 'Unknown'}`}
+									>
+										{healthLoading ? (
+											<Spinner className="w-4 h-4 mr-2" />
+										) : (
+											<div className="flex items-center gap-1 mr-2">
+												{getStatusIcon(overallStatus)}
+											</div>
+										)}
+									</Link>
+								</TooltipTrigger>
+								<TooltipContent side="bottom">{overallStatus ?? 'Unknown'}</TooltipContent>
+							</Tooltip>
+						</Can>
 
+						{/*User Avatar*/}
 						<Link to="/">
 							<div className="h-9 w-9 sm:h-10 sm:w-10">
 								<Avatar className="h-full w-full">
