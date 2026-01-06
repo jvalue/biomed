@@ -12,10 +12,15 @@ export class TargetsService {
 	) {}
 
 	/**
-	 * Find all target URLs
+	 * Find all targets with not suspended schedules
 	 */
-	findAllTargets(): Promise<TargetEntity[]> {
-		return this.targetsRepository.find();
+	async findAllActiveTargets(): Promise<TargetEntity[]> {
+		return this.targetsRepository
+			.createQueryBuilder('target')
+			.innerJoinAndSelect('target.schedules', 'schedule', 'schedule.suspended = :suspended', {
+				suspended: false,
+			})
+			.getMany();
 	}
 
 	/**

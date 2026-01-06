@@ -105,7 +105,11 @@ export class SchedulesService {
 	 * @param namespace The namespace of the Schedule
 	 */
 	async suspendSchedule(name: string, namespace: string): Promise<void> {
-		return this.argoClientService.suspendSchedule(name, namespace);
+		// Suspend in the orchestrator
+		await this.argoClientService.suspendSchedule(name, namespace);
+
+		// Update local database
+		await this.scheduleRepository.update({ name, namespace }, { suspended: true });
 	}
 
 	/**
@@ -114,7 +118,11 @@ export class SchedulesService {
 	 * @param namespace The namespace of the Schedule
 	 */
 	async resumeSchedule(name: string, namespace: string): Promise<void> {
-		return this.argoClientService.resumeSchedule(name, namespace);
+		// Resume in the orchestrator
+		await this.argoClientService.resumeSchedule(name, namespace);
+
+		// Update local database
+		await this.scheduleRepository.update({ name, namespace }, { suspended: false });
 	}
 
 	findAllTargetUrlsInScheduleParams(params: ScheduleParameterDto[]): string[] {
