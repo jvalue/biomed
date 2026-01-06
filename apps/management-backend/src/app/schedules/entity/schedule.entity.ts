@@ -28,6 +28,9 @@ export class ScheduleEntity {
 	@JoinColumn({ name: 'createdById' })
 	createdBy?: UserEntity;
 
+	@Column({ type: 'boolean', default: false })
+	suspended: boolean;
+
 	@ManyToMany(
 		() => TargetEntity,
 		(target) => target.schedules,

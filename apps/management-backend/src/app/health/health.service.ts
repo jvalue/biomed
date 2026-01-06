@@ -14,7 +14,7 @@ export class HealthService {
 	) {}
 
 	async getTargetsHealth(): Promise<TargetUrlStatusDto[]> {
-		const targets = await this.targetsService.findAllTargets();
+		const targets = await this.targetsService.findAllActiveTargets();
 
 		// Run checks in parallel
 		const checks: TargetUrlStatusDto[] = await Promise.all(
