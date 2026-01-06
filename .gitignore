@@ -41,6 +41,7 @@ __pycache__/
 .nvim.lua
 .nvimrc
 .exrc
+.idea
 
 # IDE - VSCode
 .vscode/*
