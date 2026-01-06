@@ -46,8 +46,12 @@ export default function CrawlerTemplatesTable({ templates = [] }: CrawlerTemplat
 						<TableHead className="text-primary">Namespace</TableHead>
 						<TableHead className="text-primary">Template Version</TableHead>
 						<TableHead className="text-primary">Created at</TableHead>
-						<TableHead className="text-primary">Start Run</TableHead>
-						<TableHead className="text-primary">Add Schedule</TableHead>
+						<Can ability={ability} I="create" a="crawler-run">
+							<TableHead className="text-primary">Start Run</TableHead>
+						</Can>
+						<Can ability={ability} I="create" a="schedule">
+							<TableHead className="text-primary">Add Schedule</TableHead>
+						</Can>
 					</TableRow>
 				</TableHeader>
 				<TableBody>
@@ -59,8 +63,8 @@ export default function CrawlerTemplatesTable({ templates = [] }: CrawlerTemplat
 								{template.templateVersion || '-'}
 							</TableCell>
 							<TableCell>{new Date(template.createdAt).toLocaleString()}</TableCell>
-							<TableCell>
-								<Can ability={ability} I="create" a="crawler-run">
+							<Can ability={ability} I="create" a="crawler-run">
+								<TableCell>
 									<Button
 										size="icon"
 										className="bg-green-500 text-white hover:bg-green-700"
@@ -69,10 +73,10 @@ export default function CrawlerTemplatesTable({ templates = [] }: CrawlerTemplat
 									>
 										<Plus />
 									</Button>
-								</Can>
-							</TableCell>
-							<TableCell>
-								<Can ability={ability} I="create" a="schedule">
+								</TableCell>
+							</Can>
+							<Can ability={ability} I="create" a="schedule">
+								<TableCell>
 									<Button
 										size="icon"
 										className="bg-blue-500 text-white hover:bg-blue-700"
@@ -80,8 +84,8 @@ export default function CrawlerTemplatesTable({ templates = [] }: CrawlerTemplat
 									>
 										<Calendar />
 									</Button>
-								</Can>
-							</TableCell>
+								</TableCell>
+							</Can>
 						</TableRow>
 					))}
 				</TableBody>
