@@ -139,3 +139,10 @@ if (ability.can('update', 'user')) {
 }
 ```
 
+## Database Migrations
+The management backend uses TypeORM for database management and migrations.
+To create a new migration, use the following command:
+```bash
+nx run management-backend:migrations:generate --name=Test
+```
+

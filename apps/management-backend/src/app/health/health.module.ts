@@ -3,9 +3,10 @@ import { ArgoClientModule } from '../argo-client/argo-client.module';
 import { AbilityFactory } from '../auth/ability-factory';
 import { HealthController } from './health.controller';
 import { HealthService } from './health.service';
+import { TargetsModule } from './targets/targets.module';
 
 @Module({
-	imports: [ArgoClientModule],
+	imports: [ArgoClientModule, TargetsModule],
 	controllers: [HealthController],
 	providers: [HealthService, AbilityFactory],
 })
