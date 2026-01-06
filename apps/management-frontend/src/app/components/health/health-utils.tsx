@@ -52,12 +52,3 @@ export const getServerStatus = (status?: HealthStatusEnum): string => {
 	if (status === HealthStatusEnum.LIMITED) return 'Degraded';
 	return 'Unreachable';
 };
-
-export const getHostnameSafe = (url?: string): string => {
-	if (!url) return 'Invalid URL';
-	try {
-		return new URL(url).hostname;
-	} catch {
-		return 'Invalid URL';
-	}
-};
