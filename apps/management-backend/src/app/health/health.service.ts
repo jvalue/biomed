@@ -1,6 +1,8 @@
 import { Injectable } from '@nestjs/common';
 import axios from 'axios';
 import { ArgoClientService } from '../argo-client/argo-client.service';
+import { AbilityFactory } from '../auth/ability-factory';
+import { UserEntity } from '../users/entity/user.entity';
 import { SystemHealthDto } from './dto/systemHealth.dto';
 import { TargetUrlStatusDto } from './dto/targetUrlStatus.dto';
 import { HealthStatusEnum } from './enum/healthStatus.enum';
@@ -11,21 +13,30 @@ export class HealthService {
 	constructor(
 		private readonly argoClientService: ArgoClientService,
 		private readonly targetsService: TargetsService,
+		private readonly abilityFactory: AbilityFactory,
 	) {}
 
-	async getTargetsHealth(): Promise<TargetUrlStatusDto[]> {
+	async getTargetsHealth(user: UserEntity): Promise<TargetUrlStatusDto[]> {
 		const targets = await this.targetsService.findAllActiveTargets();
 
 		// Run checks in parallel
-		const checks: TargetUrlStatusDto[] = await Promise.all(
+		const checks = await Promise.all(
 			targets.map(async (target) => {
 				const status = await this.checkServiceHealth(target.url);
-				return {
-					url: target.url,
-					status,
-				};
+				const dto = new TargetUrlStatusDto();
+				dto.target = target;
+				dto.status = status;
+				return dto;
 			}),
 		);
+
+		//Check if user has permissions to see schedules
+		const ability = this.abilityFactory.defineAbilityFor(user);
+		if (ability.cannot('read', 'schedule')) {
+			checks.forEach((check) => {
+				check.target.schedules = undefined;
+			});
+		}
 
 		return checks;
 	}

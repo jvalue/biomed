@@ -1,5 +1,5 @@
 import { SystemHealthStatusDto } from '@/src/app/api/dto/health/systemHealthStatus.dto';
-import { TargetUrlStatusDto } from '@/src/app/api/dto/health/targetUrlStatus.dto';
+import { TargetUrlStatusDto } from '@/src/app/api/dto/health/targets/targetUrlStatus.dto';
 import { managementBackendClient } from '../management-backend-client';
 
 export const healthService = {

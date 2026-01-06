@@ -1,4 +1,6 @@
-import { Globe, RefreshCw } from 'lucide-react';
+import { Can } from '@casl/react';
+import { Link } from '@tanstack/react-router';
+import { ChevronDown, Globe, RefreshCw } from 'lucide-react';
 import { useTargetUrlsHealthCheck } from '@/src/app/api/hooks/useHealthCheck';
 import { Button } from '@/src/app/components/design-components/button';
 import {
@@ -7,12 +9,24 @@ import {
 	CardHeader,
 	CardTitle,
 } from '@/src/app/components/design-components/card';
+import {
+	Collapsible,
+	CollapsibleContent,
+	CollapsibleTrigger,
+} from '@/src/app/components/design-components/collapsible';
 import { Spinner } from '@/src/app/components/design-components/spinner';
+import {
+	Tooltip,
+	TooltipContent,
+	TooltipTrigger,
+} from '@/src/app/components/design-components/tooltip';
+import { useAuth } from '@/src/app/contexts/AuthContext';
 import { HealthStatusEnum } from '../../api/dto/health/healthStatus.enum';
-import { TargetUrlStatusDto } from '../../api/dto/health/targetUrlStatus.dto';
-import { getHostnameSafe, getStatusBadge, getStatusColor, getStatusIcon } from './health-utils';
+import { TargetUrlStatusDto } from '../../api/dto/health/targets/targetUrlStatus.dto';
+import { getStatusBadge, getStatusColor, getStatusIcon } from './health-utils';
 
 export default function CrawlerTargetsComponent() {
+	const { ability } = useAuth();
 	const {
 		data: targetUrlsHealthStatus,
 		isLoading,
@@ -109,34 +123,75 @@ export default function CrawlerTargetsComponent() {
 
 					{targetUrlsHealthStatus && targetUrlsHealthStatus?.length > 0 ? (
 						<div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-							{targetUrlsHealthStatus.map((target: TargetUrlStatusDto, index: number) => {
-								const host = getHostnameSafe(target.url);
-								const titleAttr = host === 'Invalid URL' ? 'Invalid URL' : target.url;
+							{targetUrlsHealthStatus.map((targetStatus: TargetUrlStatusDto, index: number) => {
+								const titleAttr = targetStatus.target.displayName;
 								return (
 									<Card
-										key={`${target.url}-${index}`}
-										className={`shadow-md border-l-4 ${getStatusColor(target.status)}`}
+										key={`${targetStatus.target.url}-${index}`}
+										className={`shadow-md border-l-4 ${getStatusColor(targetStatus.status)}`}
 									>
 										<CardHeader className="pb-3">
 											<div className="flex items-center justify-between">
 												<div className="flex items-center gap-2">
-													{getStatusIcon(target.status)}
+													{getStatusIcon(targetStatus.status)}
 													<CardTitle className="text-base truncate" title={titleAttr}>
-														{host}
+														{targetStatus.target.displayName}
 													</CardTitle>
 												</div>
-												{getStatusBadge(target.status)}
+												{getStatusBadge(targetStatus.status)}
 											</div>
 										</CardHeader>
 										<CardContent>
 											<div className="space-y-1">
 												<div className="text-xs text-muted-foreground truncate" title={titleAttr}>
-													{host === 'Invalid URL' ? 'Invalid URL' : target.url}
+													{targetStatus.target.displayName}
 												</div>
 												<div className="flex justify-between text-sm mt-2">
 													<span className="text-muted-foreground">Status:</span>
-													<span className="font-medium capitalize">{target.status}</span>
+													<span className="font-medium capitalize">{targetStatus.status}</span>
 												</div>
+
+												<Can ability={ability} I="read" a="schedule">
+													<Collapsible>
+														<div className="mt-3">
+															<Tooltip>
+																<TooltipTrigger asChild>
+																	<CollapsibleTrigger className="w-full flex items-center justify-between py-2 rounded-md hover:bg-muted/20 text-sm text-muted-foreground">
+																		<span>
+																			Schedules ({targetStatus.target.schedules?.length || 0})
+																		</span>
+																		<span className={`transition-transform duration-150`}>
+																			<ChevronDown className="w-4 h-4" />
+																		</span>
+																	</CollapsibleTrigger>
+																</TooltipTrigger>
+																<TooltipContent side="top">
+																	Scheduled crawler runs associated with this target — these runs
+																	will likely fail if the target is down.
+																</TooltipContent>
+															</Tooltip>
+															<CollapsibleContent className="mt-2 bg-muted/5 rounded-md">
+																{targetStatus.target.schedules &&
+																targetStatus.target.schedules.length > 0 ? (
+																	targetStatus.target.schedules.map((s, i) => (
+																		<Link
+																			key={`${s.namespace}-${s.name}-${i}`}
+																			to={`/schedules/${s.namespace}/${s.name}`}
+																			className="flex justify-between text-sm py-1 hover:bg-muted/10 rounded py-2"
+																		>
+																			<span className="font-medium">{s.name}</span>
+																			<span className="text-muted-foreground">{s.namespace}</span>
+																		</Link>
+																	))
+																) : (
+																	<div className="text-sm text-muted-foreground">
+																		No schedules linked
+																	</div>
+																)}
+															</CollapsibleContent>
+														</div>
+													</Collapsible>
+												</Can>
 											</div>
 										</CardContent>
 									</Card>

@@ -1,8 +1,10 @@
 import { Controller, Get, UseGuards } from '@nestjs/common';
 import { ApiOkResponse, ApiOperation } from '@nestjs/swagger';
+import { CurrentUser } from '../auth/decorators/current-user.decorator';
 import { RequirePermission } from '../auth/decorators/require-permission.decorator';
 import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
 import { PermissionsGuard } from '../auth/guards/permissions.guard';
+import { UserEntity } from '../users/entity/user.entity';
 import { SystemHealthDto } from './dto/systemHealth.dto';
 import { TargetUrlStatusDto } from './dto/targetUrlStatus.dto';
 import { HealthService } from './health.service';
@@ -19,8 +21,8 @@ export class HealthController {
 	})
 	@RequirePermission('read', 'health')
 	@Get('targets')
-	async getTargetHealthStatus(): Promise<TargetUrlStatusDto[]> {
-		return this.healthService.getTargetsHealth();
+	async getTargetHealthStatus(@CurrentUser() user: UserEntity): Promise<TargetUrlStatusDto[]> {
+		return this.healthService.getTargetsHealth(user);
 	}
 
 	@ApiOperation({ summary: 'Get the overall system health status' })
