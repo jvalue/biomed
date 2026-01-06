@@ -57,7 +57,7 @@ export default function CrawlerRunsTable({
 	// Reset to first page when filter or page size changes
 	useEffect(() => {
 		setPage(1);
-	}, [scheduleName, effectivePageSize]);
+	}, [scheduleName, effectivePageSize, setPage]);
 
 	const { data, isLoading } = useCrawlerRuns({
 		limit: effectivePageSize,
@@ -79,11 +79,7 @@ export default function CrawlerRunsTable({
 
 	return (
 		<>
-			{isLoading ? (
-				<div className="flex min-h-[200px] items-center justify-center">
-					<Spinner className="size-10" />
-				</div>
-			) : runs.length > 0 ? (
+			{runs.length > 0 ? (
 				<>
 					<Table className="m-4 mt-6">
 						<TableCaption>Currently running crawler runs.</TableCaption>
