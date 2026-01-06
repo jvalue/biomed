@@ -4,8 +4,11 @@ import { TypeOrmModuleOptions, TypeOrmOptionsFactory } from '@nestjs/typeorm';
 import { DataSourceOptions } from 'typeorm';
 import { DemoEntity } from './demo/entity/demo.entity';
 import { EnvironmentVariables } from './env.validation';
+import { TargetEntity } from './health/targets/entity/target.entity';
 import { Demo1763983398209 } from './migrations/1763983398209-Demo';
 import { User1765788929734 } from './migrations/1765788929734-User';
+import { ScheduleTargets1767693181905 } from './migrations/1767693181905-ScheduleTargets';
+import { ScheduleEntity } from './schedules/entity/schedule.entity';
 import { UserEntity } from './users/entity/user.entity';
 
 @Injectable()
@@ -24,12 +27,12 @@ export class DbConfigService implements TypeOrmOptionsFactory {
 			username: this.configService.get('DATABASE_USER'),
 			password: this.configService.get('DATABASE_PASSWORD'),
 			database: this.configService.get('DATABASE_DATABASE'),
-			entities: [DemoEntity, UserEntity],
+			entities: [DemoEntity, UserEntity, ScheduleEntity, TargetEntity],
 			metadataTableName: 'typeorm_metadata_biomed',
 
 			migrationsTableName: 'migrations_biomed',
 			migrationsRun: true,
-			migrations: [Demo1763983398209, User1765788929734],
+			migrations: [Demo1763983398209, User1765788929734, ScheduleTargets1767693181905],
 			logging: true,
 			logger: 'debug',
 		};

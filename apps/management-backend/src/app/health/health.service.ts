@@ -4,23 +4,27 @@ import { ArgoClientService } from '../argo-client/argo-client.service';
 import { SystemHealthDto } from './dto/systemHealth.dto';
 import { TargetUrlStatusDto } from './dto/targetUrlStatus.dto';
 import { HealthStatusEnum } from './enum/healthStatus.enum';
+import { TargetsService } from './targets/targets.service';
 
 @Injectable()
 export class HealthService {
-	constructor(private readonly argoClientService: ArgoClientService) {}
+	constructor(
+		private readonly argoClientService: ArgoClientService,
+		private readonly targetsService: TargetsService,
+	) {}
 
 	async getTargetsHealth(): Promise<TargetUrlStatusDto[]> {
-		const targets = [
-			'https://ftp.ncbi.nlm.nih.gov/',
-			'https://www.ebi.ac.uk/services',
-			'https://www.ncbi.nlm.nih.gov/books/NBK25501/',
-			'https://www.uniprot.org/help/api',
-			'test.invalid', // invalid domain to simulate DOWN
-		];
+		const targets = await this.targetsService.findAllTargets();
 
 		// Run checks in parallel
-		const checks = await Promise.all(
-			targets.map(async (url) => ({ url, status: await this.checkServiceHealth(url) })),
+		const checks: TargetUrlStatusDto[] = await Promise.all(
+			targets.map(async (target) => {
+				const status = await this.checkServiceHealth(target.url);
+				return {
+					url: target.url,
+					status,
+				};
+			}),
 		);
 
 		return checks;
