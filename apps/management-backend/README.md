@@ -46,7 +46,7 @@ $env:KUBECONFIG="<path-to-your-kubeconfig>"
 Then you can get the token with:
 
 ```bash
-kubectl -n argo create token argo-user 
+kubectl -n argo create token argo-user --duration=10h   
 ```
 
 Add this token to your environment variables as `KUBE_BEARER_TOKEN`.
