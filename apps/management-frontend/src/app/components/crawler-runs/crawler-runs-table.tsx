@@ -24,8 +24,8 @@ const DEFAULT_PAGE_SIZE = 20;
 export interface CrawlerRunsTableProps {
 	page: number;
 	setPage: (page: number) => void;
-	pageSize?: number; // overrides default if provided
-	scheduleName?: string; // optional filter
+	pageSize?: number;
+	scheduleName?: string;
 }
 
 function getPhaseClass(phase?: CrawlerRunPhaseEnum | string) {

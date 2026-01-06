@@ -56,7 +56,6 @@ function RouteComponent() {
 			</div>
 		);
 	}
-
 	if (scheduleQueryError) {
 		return (
 			<div className="text-red-600">Error loading schedules: {scheduleQueryError.message}</div>
