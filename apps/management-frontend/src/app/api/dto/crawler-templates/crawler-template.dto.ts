@@ -1,4 +1,4 @@
-class CrawlerTemplateParameterDto {
+export class CrawlerTemplateParameterDto {
 	name!: string;
 	defaultValue?: string;
 }
