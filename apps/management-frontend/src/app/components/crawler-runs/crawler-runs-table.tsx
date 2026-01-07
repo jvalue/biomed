@@ -82,7 +82,7 @@ export default function CrawlerRunsTable({
 			{runs.length > 0 ? (
 				<>
 					<Table className="m-4 mt-6">
-						<TableCaption>Currently running crawler runs.</TableCaption>
+						<TableCaption>Crawler runs.</TableCaption>
 
 						<TableHeader>
 							<TableRow>
