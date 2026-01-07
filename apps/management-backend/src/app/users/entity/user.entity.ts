@@ -25,10 +25,8 @@ export class UserEntity {
 	passwordHash: string;
 
 	@Column({
-		type: 'enum',
-		enum: UserPermission,
-		array: true,
-		default: [],
+		type: 'simple-array',
+		default: '',
 	})
 	permissions: UserPermission[];
 
