@@ -2,6 +2,7 @@ import { Injectable } from '@nestjs/common';
 import axios from 'axios';
 import { ArgoClientService } from '../argo-client/argo-client.service';
 import { AbilityFactory } from '../auth/ability-factory';
+import { KubernetesClientService } from '../kubernetes-client/kubernetes-client.service';
 import { UserEntity } from '../users/entity/user.entity';
 import { SystemHealthDto } from './dto/systemHealth.dto';
 import { TargetUrlStatusDto } from './dto/targetUrlStatus.dto';
@@ -12,6 +13,7 @@ import { TargetsService } from './targets/targets.service';
 export class HealthService {
 	constructor(
 		private readonly argoClientService: ArgoClientService,
+		private readonly kubernetesClientService: KubernetesClientService,
 		private readonly targetsService: TargetsService,
 		private readonly abilityFactory: AbilityFactory,
 	) {}
@@ -42,7 +44,7 @@ export class HealthService {
 	}
 
 	async getSystemHealth(): Promise<SystemHealthDto> {
-		const kubernetesStatus = HealthStatusEnum.AVAILABLE; // placeholder
+		const kubernetesStatus = await this.kubernetesClientService.checkHealth();
 		const orchestratorStatus = await this.argoClientService.checkHealth();
 
 		return {

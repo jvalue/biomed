@@ -61,6 +61,9 @@ openssl rand -hex 32
 
 Add this key to your environment variables as `JWT_SECRET`.
 
+### Provide path to you kubeconfig
+Add the path to your kubeconfig file to your environment variables as `KUBE_CONFIG_PATH`.
+
 ## Authorization and Permission Management with CASL and Passport
 
 The management backend uses CASL (https://casl.js.org/) for authorization and permission management.

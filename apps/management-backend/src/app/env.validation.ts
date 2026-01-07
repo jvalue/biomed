@@ -27,6 +27,9 @@ export class EnvironmentVariables {
 	KUBE_BEARER_TOKEN!: string;
 
 	@IsString()
+	KUBE_CONFIG_PATH!: string;
+
+	@IsString()
 	ARGO_BASE_URL!: string;
 
 	@IsString()
