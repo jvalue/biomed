@@ -72,7 +72,7 @@ describe('UsersService (relevant methods)', () => {
 			status: UserStatus.ACTIVE,
 			approvedBy: requestingUser.id,
 			approvedAt: expect.any(Date),
-			permissions: [UserPermission.CRAWLER_RUN_READ],
+			permissions: [UserPermission.CRAWLER_RUN_READ, UserPermission.HEALTH_READ],
 		});
 	});
 
