@@ -21,5 +21,6 @@ import { SchedulesService } from './schedules.service';
 			useClass: ArgoScheduleEngine,
 		},
 	],
+	exports: [SchedulesService],
 })
 export class SchedulesModule {}

@@ -1,4 +1,4 @@
-import { Inject, Injectable } from '@nestjs/common';
+import { Inject, Injectable, Logger } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
 import { ArgoClientService } from '../argo-client/argo-client.service';
@@ -13,6 +13,8 @@ import { SCHEDULE_ENGINE } from './schedule-engine.interface';
 
 @Injectable()
 export class SchedulesService {
+	private readonly logger = new Logger(SchedulesService.name);
+
 	constructor(
 		@InjectRepository(ScheduleEntity)
 		private readonly scheduleRepository: Repository<ScheduleEntity>,
@@ -59,16 +61,7 @@ export class SchedulesService {
 		await this.scheduleEngine.createSchedule(createScheduleDto, user);
 
 		// Save schedule in the local database
-		// Extract target URLs from schedule parameters
-		const targetUrls = this.findAllTargetUrlsInScheduleParams(createScheduleDto.parameters);
-		// Create targets if they do not exist
-		const targets: TargetEntity[] = [];
-		for (const url of targetUrls) {
-			const target = await this.targetsService.createTargetIfNotExists(url);
-			if (target) {
-				targets.push(target);
-			}
-		}
+		const targets = await this.createTargetsIfNotExist(createScheduleDto.parameters);
 		// Create Schedule entity in the database
 		const scheduleEntity = new ScheduleEntity();
 		scheduleEntity.name = createScheduleDto.name;
@@ -77,6 +70,25 @@ export class SchedulesService {
 		scheduleEntity.createdBy = user;
 		scheduleEntity.targets = targets;
 		await this.scheduleRepository.save(scheduleEntity);
+	}
+
+	/**
+	 * Create Targets if they do not exist based on the target URLs found in the schedule parameters
+	 * @param parameters The schedule parameters
+	 * @private
+	 */
+	private async createTargetsIfNotExist(parameters: ScheduleParameterDto[]) {
+		// Extract target URLs from schedule parameters
+		const targetUrls = this.findAllTargetUrlsInScheduleParams(parameters);
+		// Create targets if they do not exist
+		const targets: TargetEntity[] = [];
+		for (const url of targetUrls) {
+			const target = await this.targetsService.createTargetIfNotExists(url);
+			if (target) {
+				targets.push(target);
+			}
+		}
+		return targets;
 	}
 
 	/**
@@ -129,7 +141,113 @@ export class SchedulesService {
 		await this.scheduleRepository.update({ name, namespace }, { suspended: false });
 	}
 
-	findAllTargetUrlsInScheduleParams(params: ScheduleParameterDto[]): string[] {
+	/**
+	 * Syncs schedules from the orchestrator with the local database
+	 * @param schedules all schedules from the orchestrator
+	 */
+	async syncSchedulesFromOrchestrator(schedules: ScheduleDto[]): Promise<void> {
+		const localMap = await this.buildLocalMap();
+		await this.processOrchestratorSchedules(schedules, localMap);
+		await this.deleteLocalSchedulesNotInOrchestrator(localMap);
+	}
+
+	/**
+	 * Loads all local schedules once and returns a map keyed by name||namespace
+	 */
+	private async buildLocalMap(): Promise<Map<string, ScheduleEntity>> {
+		const localSchedules = await this.scheduleRepository.find({ relations: ['targets'] });
+		const map = new Map<string, ScheduleEntity>();
+		for (const local of localSchedules) {
+			map.set(`${local.name}||${local.namespace}`, local);
+		}
+		return map;
+	}
+
+	/**
+	 * Processes all orchestrator orchestratorSchedules by upserting them into local DB and marking processed locals
+	 */
+	private async processOrchestratorSchedules(
+		orchestratorSchedules: ScheduleDto[],
+		localMap: Map<string, ScheduleEntity>,
+	): Promise<void> {
+		for (const schedule of orchestratorSchedules) {
+			await this.upsertScheduleFromOrchestrator(schedule, localMap);
+		}
+	}
+
+	/**
+	 * Deletes remaining local schedules that were not present in the orchestrator
+	 */
+	private async deleteLocalSchedulesNotInOrchestrator(
+		localMap: Map<string, ScheduleEntity>,
+	): Promise<void> {
+		for (const local of localMap.values()) {
+			this.logger.warn(
+				`Local schedule ${local.name} in namespace ${local.namespace} not found in orchestrator — deleting from local database.`,
+			);
+			await this.scheduleRepository.delete({ name: local.name, namespace: local.namespace });
+			if (local.targets) {
+				for (const target of local.targets) {
+					await this.targetsService.deleteTargetIfUnreferenced(target.url);
+				}
+			}
+		}
+	}
+
+	/**
+	 * Helper: insert or update a single schedule from the orchestrator into the local DB.
+	 * Also removes processed local entries from the provided localMap for efficiency reasons.
+	 */
+	private async upsertScheduleFromOrchestrator(
+		schedule: ScheduleDto,
+		localMap: Map<string, ScheduleEntity>,
+	): Promise<void> {
+		const key = `${schedule.name}||${schedule.namespace}`;
+		const existingSchedule = localMap.get(key);
+		if (!existingSchedule) {
+			this.logger.warn(
+				`Unknown schedule found in orchestrator, adding to local database: ${schedule.name} in namespace ${schedule.namespace}`,
+			);
+			const scheduleEntity = new ScheduleEntity();
+			scheduleEntity.name = schedule.name;
+			scheduleEntity.namespace = schedule.namespace;
+			scheduleEntity.crawlerTemplateName = schedule.crawlerTemplateName;
+			scheduleEntity.suspended = schedule.suspended;
+			scheduleEntity.targets = await this.createTargetsIfNotExist(schedule.parameters);
+
+			await this.scheduleRepository.save(scheduleEntity);
+			return;
+		}
+
+		// existing: check for inconsistencies and update if necessary
+		let needsUpdate = false;
+		if (existingSchedule.crawlerTemplateName !== schedule.crawlerTemplateName) {
+			this.logger.warn(
+				`Inconsistency found for schedule ${schedule.name} in namespace ${schedule.namespace}: crawlerTemplateName differs (orchestrator: ${schedule.crawlerTemplateName}, local: ${existingSchedule.crawlerTemplateName}). Updating local database.`,
+			);
+			existingSchedule.crawlerTemplateName = schedule.crawlerTemplateName;
+			needsUpdate = true;
+		}
+		if (existingSchedule.suspended !== (schedule.suspended ?? false)) {
+			this.logger.warn(
+				`Inconsistency found for schedule ${schedule.name} in namespace ${schedule.namespace}: suspended status differs (orchestrator: ${schedule.suspended}, local: ${existingSchedule.suspended}). Updating local database.`,
+			);
+			existingSchedule.suspended = schedule.suspended;
+			needsUpdate = true;
+		}
+		if (needsUpdate) {
+			await this.scheduleRepository.save(existingSchedule);
+		}
+
+		// mark as processed by removing from map
+		localMap.delete(key);
+	}
+
+	/**
+	 * Finds all target URLs in the given schedule parameters
+	 * @param params
+	 */
+	private findAllTargetUrlsInScheduleParams(params: ScheduleParameterDto[]): string[] {
 		const targetUrls: string[] = [];
 		if (!params) {
 			return targetUrls;

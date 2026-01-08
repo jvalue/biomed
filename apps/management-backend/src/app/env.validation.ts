@@ -1,5 +1,5 @@
 import { plainToClass } from 'class-transformer';
-import { IsNumber, IsString, validateSync } from 'class-validator';
+import { IsBoolean, IsNumber, IsString, validateSync } from 'class-validator';
 
 export class EnvironmentVariables {
 	@IsNumber({ maxDecimalPlaces: 0, allowInfinity: false, allowNaN: false })
@@ -37,6 +37,9 @@ export class EnvironmentVariables {
 
 	@IsString()
 	ADMIN_PASSWORD!: string;
+
+	@IsBoolean()
+	ORCHESTRATOR_SYNC_ENABLED!: boolean;
 }
 
 export function validate(config: Record<string, unknown>): EnvironmentVariables {
