@@ -3,6 +3,28 @@ name = "crawler"
 version = "0.1.0"
 description = "Crawler workspace"
 requires-python = ">=3.13"
+readme = 'README.md'
+dependencies = [
+    "crawler-common",
+    "psycopg2-binary>=2.9.10",
+    "sqlalchemy>=2.0.0",
+]
+
+[tool.hatch.build.targets.wheel]
+packages = ["crawler_general"]
+
+[tool.hatch.metadata]
+allow-direct-references = true
+
+[dependency-groups]
+dev = [
+  "autopep8>=2.3.1",
+  "ruff>=0.8.2",
+  "pytest>=8.3.4",
+  "pytest-sugar>=1.0.0",
+  "pytest-cov>=6.0.0",
+  "pytest-html>=4.1.1",
+]
 
 [build-system]
 requires = ["hatchling"]
