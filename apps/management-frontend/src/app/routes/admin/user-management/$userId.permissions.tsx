@@ -50,6 +50,12 @@ const permissionGroups = {
 		UserPermission.USER_APPROVE,
 		UserPermission.USER_BLOCK,
 	],
+	health: [
+		UserPermission.HEALTH_READ,
+		UserPermission.HEALTH_CREATE,
+		UserPermission.HEALTH_UPDATE,
+		UserPermission.HEALTH_DELETE,
+	],
 };
 
 const permissionLabels: Record<UserPermission, string> = {
@@ -70,6 +76,10 @@ const permissionLabels: Record<UserPermission, string> = {
 	[UserPermission.USER_DELETE]: 'Delete',
 	[UserPermission.USER_APPROVE]: 'Approve',
 	[UserPermission.USER_BLOCK]: 'Block',
+	[UserPermission.HEALTH_READ]: 'Read',
+	[UserPermission.HEALTH_CREATE]: 'Create',
+	[UserPermission.HEALTH_UPDATE]: 'Edit',
+	[UserPermission.HEALTH_DELETE]: 'Delete',
 };
 
 const groupLabels = {
@@ -77,6 +87,7 @@ const groupLabels = {
 	crawlerTemplates: 'Crawler Templates',
 	schedules: 'Schedules',
 	users: 'Users',
+	health: 'Health Status',
 };
 
 function RouteComponent() {

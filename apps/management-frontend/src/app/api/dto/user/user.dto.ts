@@ -38,6 +38,12 @@ export enum UserPermission {
 	USER_DELETE = 'user:delete',
 	USER_APPROVE = 'user:approve',
 	USER_BLOCK = 'user:block',
+
+	// Health Status Permissions
+	HEALTH_READ = 'health:read',
+	HEALTH_CREATE = 'health:create',
+	HEALTH_UPDATE = 'health:update',
+	HEALTH_DELETE = 'health:delete',
 }
 
 export class UserDto {

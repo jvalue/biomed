@@ -1,7 +1,7 @@
 import { UseQueryResult, useQuery } from '@tanstack/react-query';
 import { CrawlerRunDto } from '@/src/app/api/dto/crawler-runs/crawler-run.dto';
 import { CursorBasedPaginationResponseDto } from '@/src/app/api/dto/pagination/cursor-based-pagination-response.dto';
-import { crawlerRunService } from '../services/crawler-run-service';
+import { crawlerRunService } from '@/src/app/api/services/crawler-run.service';
 
 export const useCrawlerRuns = (params?: {
 	scheduleName?: string;
