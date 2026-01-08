@@ -22,7 +22,7 @@ export function Header() {
 	);
 	let overallStatus: HealthStatusEnum;
 
-	//Determine overall system status
+	// Determine overall system status
 	if (
 		healthStatus?.kubernetesStatus === HealthStatusEnum.DOWN ||
 		healthStatus?.orchestratorStatus === HealthStatusEnum.DOWN
