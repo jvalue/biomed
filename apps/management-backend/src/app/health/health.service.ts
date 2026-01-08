@@ -32,7 +32,7 @@ export class HealthService {
 			}),
 		);
 
-		//Check if user has permissions to see schedules
+		// Check if user has permissions to see schedules
 		const ability = this.abilityFactory.defineAbilityFor(user);
 		if (ability.cannot('read', 'schedule')) {
 			checks.forEach((check) => {
