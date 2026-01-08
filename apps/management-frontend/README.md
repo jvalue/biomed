@@ -9,7 +9,7 @@ A React + TypeScript frontend using Vite and Tailwind, organized for modular dev
   folder per domain (e.g. `'crawler-runs'`, `'users'`), and place components there when they are not reusable across domains.
 - `'src/app/routes/'`: Page-level route components (e.g. `'index.tsx'`, `'crawler-runs.tsx'`). These represent pages and integrate domain components and services.
 - `'src/app/api/dto/'`: Data Transfer Objects (DTOs) describing API payloads and responses. Subfolders per domain (e.g. `'crawler-runs/'`, `'pagination/'`).
-- `'src/app/api/services/'`: Service layer that orchestrates API calls and business logic (e.g. `'crawler-run-service.ts'`).
+- `'src/app/api/services/'`: Service layer that orchestrates API calls and business logic (e.g. `'crawler-run.service.ts'`).
 - `'src/app/api/management-backend-client.ts'`: HTTP client configuration and helpers to talk to the backend.
 - `'src/app/hooks/'`: Reusable hooks for data fetching and state (e.g. `'useCrawlerRuns.ts'`).
 - `'src/app/'`: App shell, router, layout and navigation (e.g. `'app.tsx'`, `'app-nav.tsx'`, `'router.tsx'`).
@@ -33,7 +33,7 @@ Base brand colors and design tokens are defined in `'tailwind.config.js'`. Keep 
 
 - DTOs: place in `'src/app/api/dto/'` with subfolders per domain (e.g. `'crawler-runs/crawler-run.dto.ts'`, 
   `'pagination/cursor-based-pagination-response.dto.ts'`). Keep them simple TypeScript types/interfaces.
-- Services: place in `'src/app/api/services/'`. Services encapsulate backend communication, compose the client, and expose typed functions for the UI (e.g. `'crawler-run-service.ts'`).
+- Services: place in `'src/app/api/services/'`. Services encapsulate backend communication, compose the client, and expose typed functions for the UI (e.g. `'crawler-run.service.ts'`).
 
 ## ShadCN Components
 

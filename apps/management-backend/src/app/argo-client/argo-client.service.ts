@@ -7,6 +7,7 @@ import { CrawlerRunParameterDto } from '../crawler-runs/dto/crawler-run-paramete
 import { CrawlerTemplateDto } from '../crawler-templates/dto/crawler-template.dto';
 import { CrawlerTemplatesFilterDto } from '../crawler-templates/dto/crawler-templates-filter.dto';
 import { EnvironmentVariables } from '../env.validation';
+import { HealthStatusEnum } from '../health/enum/healthStatus.enum';
 import { IOrchestratorClient } from '../orchestrators/orchestrator-client.interface';
 import { CursorBasedPaginationRequestDto } from '../pagination/dto/cursor-based-pagination-request.dto';
 import { CursorBasedPaginationResponseDto } from '../pagination/dto/cursor-based-pagination-response.dto';
@@ -47,6 +48,40 @@ export class ArgoClientService implements IOrchestratorClient {
 				Accept: 'application/json',
 			},
 		});
+	}
+
+	/**
+	 * Health check for Argo Workflows API by calling the templates endpoint
+	 * @return Health status of the Argo Workflows API (LIMITED for return code 4xx, DOWN for 5xx or network errors, AVAILABLE otherwise)
+	 */
+	async checkHealth(): Promise<HealthStatusEnum> {
+		this.logger.log('Checking health of Argo Workflows API');
+
+		try {
+			const res = await this.http.get('/workflow-templates/');
+			const statusCode = res.status;
+
+			if (statusCode >= 500) {
+				return HealthStatusEnum.DOWN;
+			} else if (statusCode >= 400) {
+				return HealthStatusEnum.LIMITED;
+			} else {
+				return HealthStatusEnum.AVAILABLE;
+			}
+		} catch (err) {
+			// Check if the error has a response (HTTP error)
+			if (err.response) {
+				const statusCode = err.response.status;
+				if (statusCode >= 500) {
+					return HealthStatusEnum.DOWN;
+				} else if (statusCode >= 400) {
+					return HealthStatusEnum.LIMITED;
+				}
+			}
+			// Network or other error
+			this.logger.error('Error checking health of Argo Workflows API:', err);
+			return HealthStatusEnum.DOWN;
+		}
 	}
 
 	/**

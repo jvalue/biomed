@@ -61,6 +61,9 @@ openssl rand -hex 32
 
 Add this key to your environment variables as `JWT_SECRET`.
 
+### Provide path to your kubeconfig
+Add the path to your kubeconfig file to your environment variables as `KUBE_CONFIG_PATH`.
+
 ## Authorization and Permission Management with CASL and Passport
 
 The management backend uses CASL (https://casl.js.org/) for authorization and permission management.
@@ -137,5 +140,12 @@ if (ability.can('update', 'user')) {
 } else {
 	// User does not have permission
 }
+```
+
+## Database Migrations
+The management backend uses TypeORM for database management and migrations.
+To create a new migration, use the following command:
+```bash
+nx run management-backend:migrations:generate --name=Test
 ```
 

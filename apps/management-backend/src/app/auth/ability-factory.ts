@@ -39,6 +39,12 @@ export class AbilityFactory {
 			[UserPermission.USER_DELETE]: () => can('delete', 'user'),
 			[UserPermission.USER_APPROVE]: () => can('approve', 'user'),
 			[UserPermission.USER_BLOCK]: () => can('block', 'user'),
+
+			// System Health Permissions
+			[UserPermission.HEALTH_READ]: () => can('read', 'health'),
+			[UserPermission.HEALTH_CREATE]: () => can('create', 'health'),
+			[UserPermission.HEALTH_UPDATE]: () => can('update', 'health'),
+			[UserPermission.HEALTH_DELETE]: () => can('delete', 'health'),
 		};
 
 		user.permissions?.forEach((permission) => {
