@@ -16,8 +16,8 @@ export class KubernetesClientService {
 	/**
 	 * Checks the health of the Kubernetes cluster.
 	 * Strategy:
-	 * 1. Check Nodes: Ensure all nodes are Ready and not under resource pressure.
-	 * 2. Check System Pods: Ensure critical system pods (in 'crawler-management' and 'argo' namespaces) are Running and Ready.
+	 * 1. Check Nodes: Ensure all nodes are ready and not under resource pressure.
+	 * 2. Check System Pods: Ensure critical system pods (in 'crawler-management' and 'argo' namespaces) are running and ready.
 	 *
 	 * Returns:
 	 * - HealthStatusEnum.AVAILABLE: All checks passed.
