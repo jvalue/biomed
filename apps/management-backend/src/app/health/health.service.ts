@@ -66,8 +66,8 @@ export class HealthService {
 	 */
 	private async checkServiceHealth(url: string): Promise<HealthStatusEnum> {
 		const normalizedUrl = url.includes('://') ? url : `http://${url}`;
-		const timeoutMs = Number(3000);
-		const maxAttempts = Number(2);
+		const timeoutMs = 3000;
+		const maxAttempts = 2;
 
 		for (let attempt = 1; attempt <= maxAttempts; attempt++) {
 			try {
