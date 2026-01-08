@@ -60,7 +60,7 @@ export class KubernetesClientService {
 			const podsRes = await this.coreV1.listNamespacedPod({ namespace: 'crawler-management' });
 			const systemPods = podsRes.items ?? [];
 
-			//Check the argo namespace
+			// Check the argo namespace
 			const argoPodsRes = await this.coreV1.listNamespacedPod({ namespace: 'argo' });
 			systemPods.push(...(argoPodsRes.items ?? []));
 

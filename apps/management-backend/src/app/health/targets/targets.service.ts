@@ -29,17 +29,29 @@ export class TargetsService {
 	 * @param user The user creating the target (optional), set only if created manually
 	 */
 	async createTargetIfNotExists(url: string, user?: UserEntity): Promise<TargetEntity> {
-		let target = await this.targetsRepository.findOne({ where: { url } });
-		if (!target) {
-			target = new TargetEntity();
-			target.url = url;
-			target.displayName = this.getHostNameFromUrl(url) ?? url;
-			if (user) {
-				target.createdBy = user;
-			}
-			target = await this.targetsRepository.save(target);
+		// Try to find an existing target first
+		const target = await this.targetsRepository.findOneBy({ url });
+		if (target) return target;
+
+		// Create new entity
+		const newTarget = this.targetsRepository.create({
+			url,
+			displayName: this.getHostNameFromUrl(url) ?? url,
+			createdBy: user,
+		});
+
+		// Save and handle possible race condition: if another process created the
+		// same target concurrently, the save may fail. In that case, re-query and
+		// return the existing one instead of throwing.
+		try {
+			return await this.targetsRepository.save(newTarget);
+		} catch (_err) {
+			// Return existing target if found
+			const existing = await this.targetsRepository.findOneBy({ url });
+			if (existing) return existing;
+			// If nothing found, rethrow the original error
+			throw _err;
 		}
-		return target;
 	}
 
 	/**
