@@ -35,11 +35,11 @@ export class KubernetesAuthService {
 	 * Get Kubeconfig from cluster
 	 */
 	private getKubeconfigFromCluster(): KubeConfig | null {
-		const cubeConfig = new KubeConfig();
+		const kubeConfig = new KubeConfig();
 		try {
-			cubeConfig.loadFromCluster();
+			kubeConfig.loadFromCluster();
 			// Check if the loaded config is valid
-			const cluster = cubeConfig.getCurrentCluster();
+			const cluster = kubeConfig.getCurrentCluster();
 			if (!cluster?.server || cluster.server.includes('undefined')) {
 				throw new Error('In-cluster config loaded but invalid (server URL undefined).');
 			}
@@ -48,7 +48,7 @@ export class KubernetesAuthService {
 			return null;
 		}
 		this.logger.log('Loaded Kubernetes config from cluster');
-		return cubeConfig;
+		return kubeConfig;
 	}
 
 	/**
@@ -56,20 +56,20 @@ export class KubernetesAuthService {
 	 * @param kubeConfigPath
 	 */
 	private getKubeconfigFromFile(kubeConfigPath: string): KubeConfig | null {
-		const cubeConfig = new KubeConfig();
+		const kubeConfig = new KubeConfig();
 		try {
 			if (kubeConfigPath) {
-				cubeConfig.loadFromFile(kubeConfigPath);
+				kubeConfig.loadFromFile(kubeConfigPath);
 				this.logger.log(`Loaded Kubernetes config from file: ${kubeConfigPath}`);
 			} else {
 				// Fallback to default location ($HOME/.kube/config)
-				cubeConfig.loadFromDefault();
+				kubeConfig.loadFromDefault();
 				this.logger.log('Loaded Kubernetes config from default location');
 			}
 		} catch (err) {
 			this.logger.error(`Failed to load Kubernetes config from file: ${err.message}`);
 			return null;
 		}
-		return cubeConfig;
+		return kubeConfig;
 	}
 }

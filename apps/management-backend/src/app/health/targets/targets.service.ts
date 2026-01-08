@@ -29,11 +29,11 @@ export class TargetsService {
 	 * @param user The user creating the target (optional), set only if created manually
 	 */
 	async createTargetIfNotExists(url: string, user?: UserEntity): Promise<TargetEntity> {
-		let target: TargetEntity = await this.targetsRepository.findOne({ where: { url } });
+		let target = await this.targetsRepository.findOne({ where: { url } });
 		if (!target) {
 			target = new TargetEntity();
 			target.url = url;
-			target.displayName = this.getHostNameFromUrl(url) || url;
+			target.displayName = this.getHostNameFromUrl(url) ?? url;
 			if (user) {
 				target.createdBy = user;
 			}
@@ -60,11 +60,11 @@ export class TargetsService {
 	 * Get the host name from a URL or null if the URL is invalid
 	 * @param url
 	 */
-	getHostNameFromUrl(url: string): string | null {
+	private getHostNameFromUrl(url: string): string | null {
 		try {
 			const parsedUrl = new URL(url);
 			return parsedUrl.hostname;
-		} catch (_error) {
+		} catch {
 			return null;
 		}
 	}
