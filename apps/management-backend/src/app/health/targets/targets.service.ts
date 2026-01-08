@@ -28,7 +28,9 @@ export class TargetsService {
 	 * @param url The target URL
 	 * @param user The user creating the target (optional), set only if created manually
 	 */
-	async createTargetIfNotExists(url: string, user?: UserEntity): Promise<TargetEntity> {
+	async createTargetIfNotExists(url: string, user?: UserEntity): Promise<TargetEntity | undefined> {
+		// Validate URL and return undefined if invalid
+		if (!this.isValidUrl(url)) return;
 		// Try to find an existing target first
 		const target = await this.targetsRepository.findOneBy({ url });
 		if (target) return target;
@@ -78,6 +80,19 @@ export class TargetsService {
 			return parsedUrl.hostname;
 		} catch {
 			return null;
+		}
+	}
+
+	/**
+	 * Validate if a URL is well-formed
+	 * @param url
+	 */
+	isValidUrl(url: string): boolean {
+		try {
+			new URL(url);
+			return true;
+		} catch {
+			return false;
 		}
 	}
 }
