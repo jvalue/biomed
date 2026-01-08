@@ -9,6 +9,16 @@ services:
     ports:
       - "5435:5435"
 
+  biomed-crawler-db:
+    image: postgres:18.1
+    user: "postgres"
+    environment:
+      - POSTGRES_USER=postgres
+      - POSTGRES_PASSWORD=postgres
+      - PGPORT=5436
+    ports:
+      - "5436:5436"
+      
   crawler-general:
     build:
       context: .
