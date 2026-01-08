@@ -22,6 +22,8 @@ export class SchedulesService {
 		private readonly targetsService: TargetsService,
 	) {}
 
+	private readonly VALID_TARGET_PARAM_NAMES = ['targetUrl', 'target'];
+
 	/**
 	 * Lists all Schedules
 	 */
@@ -63,7 +65,9 @@ export class SchedulesService {
 		const targets: TargetEntity[] = [];
 		for (const url of targetUrls) {
 			const target = await this.targetsService.createTargetIfNotExists(url);
-			targets.push(target);
+			if (target) {
+				targets.push(target);
+			}
 		}
 		// Create Schedule entity in the database
 		const scheduleEntity = new ScheduleEntity();
@@ -131,7 +135,8 @@ export class SchedulesService {
 			return targetUrls;
 		}
 		for (const param of params) {
-			if (param.name === 'targetUrl' || (param.name === 'target' && param.value)) {
+			// Check if any params are target URLs
+			if (this.VALID_TARGET_PARAM_NAMES.includes(param.name) && param.value) {
 				targetUrls.push(param.value);
 			}
 		}

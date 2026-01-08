@@ -65,10 +65,19 @@ export class HealthService {
 	 * - Network errors / timeouts -> DOWN
 	 */
 	private async checkServiceHealth(url: string): Promise<HealthStatusEnum> {
+		// Normalize URL to ensure it has a scheme
 		const normalizedUrl = url.includes('://') ? url : `http://${url}`;
 		const timeoutMs = 3000;
 		const maxAttempts = 2;
 
+		// Validate URL format
+		try {
+			new URL(normalizedUrl);
+		} catch {
+			return HealthStatusEnum.DOWN;
+		}
+
+		// Attempt requests with retries
 		for (let attempt = 1; attempt <= maxAttempts; attempt++) {
 			try {
 				const res = await axios.get(normalizedUrl, {
