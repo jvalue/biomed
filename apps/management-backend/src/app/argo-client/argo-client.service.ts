@@ -69,6 +69,16 @@ export class ArgoClientService implements IOrchestratorClient {
 				return HealthStatusEnum.AVAILABLE;
 			}
 		} catch (err) {
+			// Check if the error has a response (HTTP error)
+			if (err.response) {
+				const statusCode = err.response.status;
+				if (statusCode >= 500) {
+					return HealthStatusEnum.DOWN;
+				} else if (statusCode >= 400) {
+					return HealthStatusEnum.LIMITED;
+				}
+			}
+			// Network or other error
 			this.logger.error('Error checking health of Argo Workflows API:', err);
 			return HealthStatusEnum.DOWN;
 		}
