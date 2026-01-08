@@ -45,10 +45,9 @@ export default function SystemHealthComponent() {
 				</div>
 			</div>
 
-			{/* Content area: show spinner/error or actual cards, header remains visible */}
 			{error && (
 				<div className="text-red-600 p-4">
-					Error loading system health: {String(error.message || error)}
+					Error loading system health: {String(error.message ?? error)}
 				</div>
 			)}
 
@@ -82,7 +81,7 @@ export default function SystemHealthComponent() {
 								<div className="flex justify-between text-sm">
 									<span className="text-muted-foreground">Status:</span>
 									<span className="font-medium capitalize">
-										{healthData?.kubernetesStatus || 'Unknown'}
+										{healthData?.kubernetesStatus ?? 'Unknown'}
 									</span>
 								</div>
 							</div>
@@ -115,7 +114,7 @@ export default function SystemHealthComponent() {
 								<div className="flex justify-between text-sm">
 									<span className="text-muted-foreground">Status:</span>
 									<span className="font-medium capitalize">
-										{healthData?.orchestratorStatus || 'Unknown'}
+										{healthData?.orchestratorStatus ?? 'Unknown'}
 									</span>
 								</div>
 							</div>

@@ -62,7 +62,7 @@ export default function CrawlerTargetsComponent() {
 
 			{error && (
 				<div className="text-red-600 p-2">
-					Error loading targets: {String(error.message || error)}
+					Error loading targets: {String(error.message ?? error)}
 				</div>
 			)}
 
@@ -83,7 +83,7 @@ export default function CrawlerTargetsComponent() {
 									<div className="flex flex-col">
 										<span className="text-sm text-muted-foreground">Total Targets</span>
 										<span className="text-2xl font-bold">
-											{targetUrlsHealthStatus?.length || 0}
+											{targetUrlsHealthStatus?.length ?? 0}
 										</span>
 									</div>
 									<div className="flex flex-col">
@@ -91,7 +91,7 @@ export default function CrawlerTargetsComponent() {
 										<span className="text-2xl font-bold text-green-600">
 											{
 												(
-													targetUrlsHealthStatus?.map((t: TargetUrlStatusDto) => t.status) || []
+													targetUrlsHealthStatus?.map((t: TargetUrlStatusDto) => t.status) ?? []
 												).filter((s: HealthStatusEnum) => s === HealthStatusEnum.AVAILABLE).length
 											}
 										</span>
@@ -101,7 +101,7 @@ export default function CrawlerTargetsComponent() {
 										<span className="text-2xl font-bold text-yellow-600">
 											{
 												(
-													targetUrlsHealthStatus?.map((t: TargetUrlStatusDto) => t.status) || []
+													targetUrlsHealthStatus?.map((t: TargetUrlStatusDto) => t.status) ?? []
 												).filter((s: HealthStatusEnum) => s === HealthStatusEnum.LIMITED).length
 											}
 										</span>
@@ -111,7 +111,7 @@ export default function CrawlerTargetsComponent() {
 										<span className="text-2xl font-bold text-red-600">
 											{
 												(
-													targetUrlsHealthStatus?.map((t: TargetUrlStatusDto) => t.status) || []
+													targetUrlsHealthStatus?.map((t: TargetUrlStatusDto) => t.status) ?? []
 												).filter((s: HealthStatusEnum) => s === HealthStatusEnum.DOWN).length
 											}
 										</span>
@@ -158,7 +158,7 @@ export default function CrawlerTargetsComponent() {
 																<TooltipTrigger asChild>
 																	<CollapsibleTrigger className="w-full flex items-center justify-between py-2 rounded-md hover:bg-muted/20 text-sm text-muted-foreground">
 																		<span>
-																			Schedules ({targetStatus.target.schedules?.length || 0})
+																			Schedules ({targetStatus.target.schedules?.length ?? 0})
 																		</span>
 																		<span className={`transition-transform duration-150`}>
 																			<ChevronDown className="w-4 h-4" />
@@ -177,7 +177,7 @@ export default function CrawlerTargetsComponent() {
 																		<Link
 																			key={`${s.namespace}-${s.name}-${i}`}
 																			to={`/schedules/${s.namespace}/${s.name}`}
-																			className="flex justify-between text-sm py-1 hover:bg-muted/10 rounded py-2"
+																			className="flex justify-between text-sm hover:bg-muted/10 rounded py-1"
 																		>
 																			<span className="font-medium">{s.name}</span>
 																			<span className="text-muted-foreground">{s.namespace}</span>
