@@ -3,6 +3,7 @@ import { ConfigModule } from '@nestjs/config';
 import { TypeOrmModule } from '@nestjs/typeorm';
 import { AppController } from './app.controller';
 import { AppService } from './app.service';
+import { ArgoSyncModule } from './argo-sync/argo-sync.module';
 import { AdminBootstrapService } from './auth/admin-bootstrap.service';
 import { AuthModule } from './auth/auth.module';
 import { CrawlerRunsModule } from './crawler-runs/crawler-runs.module';
@@ -35,6 +36,7 @@ import { UsersModule } from './users/users.module';
 		HealthModule,
 		TargetsModule,
 		KubernetesClientModule,
+		ArgoSyncModule,
 	],
 	controllers: [AppController],
 	providers: [AppService, AdminBootstrapService],
