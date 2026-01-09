@@ -8,6 +8,7 @@ import { UserEntity } from '../users/entity/user.entity';
 import { CreateScheduleDto } from './dto/create-schedule.dto';
 import { ScheduleDto, ScheduleParameterDto } from './dto/schedule.dto';
 import { ScheduleEntity } from './entity/schedule.entity';
+import { ScheduleErrorDetails, ScheduleErrorType } from './enums/schedule-error-type.enum';
 import type { IScheduleEngine } from './schedule-engine.interface';
 import { SCHEDULE_ENGINE } from './schedule-engine.interface';
 
@@ -39,6 +40,63 @@ export class SchedulesService {
 			return new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime();
 		});
 		return schedules;
+	}
+
+	/**
+	 * Get all schedule entites from the local database (for internal use)
+	 */
+	async getAllScheduleEntities(): Promise<ScheduleEntity[]> {
+		return this.scheduleRepository.find();
+	}
+
+	/**
+	 * Adds error to the activeErrors of a schedule
+	 * @param name The name of the Schedule
+	 * @param namespace The namespace of the Schedule
+	 * @param errorType The type of the error
+	 * @param details The details of the error
+	 */
+	async addScheduleError(
+		name: string,
+		namespace: string,
+		errorType: ScheduleErrorType,
+		details: ScheduleErrorDetails,
+	): Promise<void> {
+		const schedule = await this.scheduleRepository.findOne({ where: { name, namespace } });
+		if (!schedule) {
+			this.logger.warn(
+				`Cannot add error to non-existing schedule ${name} in namespace ${namespace}`,
+			);
+			return;
+		}
+
+		// Add or update the error
+		schedule.activeErrors[errorType] = details;
+		await this.scheduleRepository.save(schedule);
+	}
+
+	/**
+	 * Removes error from the activeErrors of a schedule
+	 * @param name The name of the Schedule
+	 * @param namespace The namespace of the Schedule
+	 * @param errorType The type of the error
+	 */
+	async removeScheduleError(
+		name: string,
+		namespace: string,
+		errorType: ScheduleErrorType,
+	): Promise<void> {
+		const schedule = await this.scheduleRepository.findOne({ where: { name, namespace } });
+		if (!schedule) {
+			this.logger.warn(
+				`Cannot remove error from non-existing schedule ${name} in namespace ${namespace}`,
+			);
+			return;
+		}
+
+		// Remove the error
+		delete schedule.activeErrors[errorType];
+		await this.scheduleRepository.save(schedule);
 	}
 
 	/**
