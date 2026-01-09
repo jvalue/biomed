@@ -10,6 +10,7 @@ import {
 } from 'typeorm';
 import { TargetEntity } from '../../health/targets/entity/target.entity';
 import { UserEntity } from '../../users/entity/user.entity';
+import { ScheduleErrorDetails, ScheduleErrorType } from '../enums/schedule-error-type.enum';
 
 // We store the schedules, which are created over our management service, in this table. It is not guaranteed, that
 // these are all schedules
@@ -48,4 +49,17 @@ export class ScheduleEntity {
 
 	@CreateDateColumn()
 	createdAt: Date;
+
+	/**
+	 * The last checked template version label (regarding parameter inconsistencies between schedule and template), to
+	 * avoid checking the same version multiple times
+	 */
+	@Column({ type: 'varchar', nullable: true })
+	lastCheckedTemplateVersionLabel?: string | null;
+
+	/**
+	 * A map of active errors for this schedule
+	 */
+	@Column({ type: 'jsonb', default: {} })
+	activeErrors: Record<ScheduleErrorType, ScheduleErrorDetails>;
 }
