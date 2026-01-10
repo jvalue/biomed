@@ -110,7 +110,9 @@ export class SchedulesService {
 	 * @returns The Schedule
 	 */
 	async getScheduleByNameAndNamespace(name: string, namespace: string): Promise<ScheduleDto> {
-		return this.argoClientService.getScheduleByNameAndNamespace(name, namespace);
+		const schedule = await this.argoClientService.getScheduleByNameAndNamespace(name, namespace);
+		await this.enrichScheduleDtoWithLocalData(schedule);
+		return schedule;
 	}
 
 	/**
