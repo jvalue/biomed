@@ -32,6 +32,10 @@ export class SchedulesService {
 	 */
 	async listSchedules(): Promise<ScheduleDto[]> {
 		const schedules = await this.argoClientService.listSchedules();
+
+		// Enrich schedules with local data
+		await Promise.all(schedules.map((schedule) => this.enrichScheduleDtoWithLocalData(schedule)));
+
 		// Sort schedules primary by suspended status, then by creation date (newest first)
 		schedules.sort((a, b) => {
 			if (a.suspended && !b.suspended) return 1;
@@ -317,5 +321,18 @@ export class SchedulesService {
 			}
 		}
 		return targetUrls;
+	}
+
+	/**
+	 * Enriches a scheduleDto with additional data from our local database (at the moment only the activeErrors)
+	 * @param scheduleDto The schedule to enrich
+	 */
+	async enrichScheduleDtoWithLocalData(scheduleDto: ScheduleDto): Promise<void> {
+		const scheduleEntity = await this.scheduleRepository.findOne({
+			where: { name: scheduleDto.name, namespace: scheduleDto.namespace },
+		});
+		if (scheduleEntity) {
+			scheduleDto.activeErrors = scheduleEntity.activeErrors;
+		}
 	}
 }
