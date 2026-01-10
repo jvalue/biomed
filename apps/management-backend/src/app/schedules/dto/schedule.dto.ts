@@ -1,6 +1,7 @@
 import { ApiProperty } from '@nestjs/swagger';
 import { Type } from 'class-transformer';
 import { IsArray, IsBoolean, IsDate, IsNumber, IsOptional, IsString } from 'class-validator';
+import { ScheduleErrorDetails, ScheduleErrorType } from '../enums/schedule-error-type.enum';
 import { RetryStrategyDto } from './create-schedule.dto';
 
 export class ScheduleParameterDto {
@@ -89,4 +90,22 @@ export class ScheduleDto {
 	})
 	@Type(() => ScheduleStatisticsDto)
 	statistics!: ScheduleStatisticsDto;
+
+	@ApiProperty({
+		type: 'object',
+		additionalProperties: {
+			type: 'object',
+			properties: {
+				details: { type: 'string', description: 'Details about the error' },
+				detectedAt: {
+					type: 'string',
+					format: 'date-time',
+					description: 'The time when the error was detected',
+				},
+			},
+		},
+		description: 'Active errors associated with the schedule, keyed by error type',
+	})
+	@IsOptional()
+	activeErrors?: Record<ScheduleErrorType, ScheduleErrorDetails>;
 }
