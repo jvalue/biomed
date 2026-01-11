@@ -1,4 +1,4 @@
-import { useEffect } from 'react';
+import { useLayoutEffect, useRef } from 'react';
 import { CrawlerRunDto, CrawlerRunPhaseEnum } from '@/src/app/api/dto/crawler-runs/crawler-run.dto';
 import {
 	Pagination,
@@ -20,12 +20,15 @@ import {
 import { useCrawlerRuns } from '../../api/hooks/useCrawlerRuns';
 
 const DEFAULT_PAGE_SIZE = 20;
+const TABLE_PAGINATION_SCROLL_KEY = '__table_pagination_scroll__';
 
 export interface CrawlerRunsTableProps {
 	page: number;
-	setPage: (page: number) => void;
+	setPage: (page: number, opts?: { scrollToTable?: boolean }) => void;
 	pageSize?: number;
 	scheduleName?: string;
+	/** enable scroll-back behavior for mid/bottom usages */
+	scrollOnPaginate?: boolean;
 }
 
 function getPhaseClass(phase?: CrawlerRunPhaseEnum | string) {
@@ -50,14 +53,12 @@ export default function CrawlerRunsTable({
 	setPage,
 	pageSize,
 	scheduleName,
+	scrollOnPaginate = false,
 }: CrawlerRunsTableProps) {
 	const effectivePageSize = pageSize ?? DEFAULT_PAGE_SIZE;
 	const offset = (page - 1) * effectivePageSize;
 
-	// Reset to first page when filter or page size changes
-	useEffect(() => {
-		setPage(1);
-	}, [scheduleName, effectivePageSize, setPage]);
+	const anchorRef = useRef<HTMLDivElement | null>(null);
 
 	const { data, isLoading } = useCrawlerRuns({
 		limit: effectivePageSize,
@@ -65,13 +66,22 @@ export default function CrawlerRunsTable({
 		scheduleName,
 	});
 
-	if (isLoading) {
-		return (
-			<div className="col-span-12 flex justify-center pt-6">
-				<Spinner className="size-10" />
-			</div>
-		);
-	}
+	useLayoutEffect(() => {
+		if (!scrollOnPaginate) return;
+
+		const shouldScroll = sessionStorage.getItem(TABLE_PAGINATION_SCROLL_KEY) === '1';
+		if (!shouldScroll) return;
+
+		// wait until data is there and anchor exists
+		if (isLoading) return;
+		if (!anchorRef.current) return;
+
+		sessionStorage.removeItem(TABLE_PAGINATION_SCROLL_KEY);
+
+		requestAnimationFrame(() => {
+			anchorRef.current?.scrollIntoView({ behavior: 'auto', block: 'start' });
+		});
+	}, [scrollOnPaginate, page, isLoading]);
 
 	const runs: CrawlerRunDto[] = data?.data ?? [];
 	const hasNextPage = !!data?.metadata?.hasMore;
@@ -79,7 +89,14 @@ export default function CrawlerRunsTable({
 
 	return (
 		<>
-			{runs.length > 0 ? (
+			{/* anchor for scrolling */}
+			<div ref={anchorRef} className="scroll-mt-24" />
+
+			{isLoading ? (
+				<div className="col-span-12 flex justify-center pt-6">
+					<Spinner className="size-10" />
+				</div>
+			) : runs.length > 0 ? (
 				<>
 					<Table className="m-4 mt-6">
 						<TableCaption>Crawler runs.</TableCaption>
@@ -139,7 +156,10 @@ export default function CrawlerRunsTable({
 											onClick={(e) => {
 												e.preventDefault();
 												if (!canPrev) return;
-												setPage(page - 1);
+												if (scrollOnPaginate) {
+													sessionStorage.setItem(TABLE_PAGINATION_SCROLL_KEY, '1');
+												}
+												setPage(page - 1, { scrollToTable: scrollOnPaginate });
 											}}
 										/>
 									</PaginationItem>
@@ -151,7 +171,10 @@ export default function CrawlerRunsTable({
 											onClick={(e) => {
 												e.preventDefault();
 												if (!hasNextPage) return;
-												setPage(page + 1);
+												if (scrollOnPaginate) {
+													sessionStorage.setItem(TABLE_PAGINATION_SCROLL_KEY, '1');
+												}
+												setPage(page + 1, { scrollToTable: scrollOnPaginate });
 											}}
 										/>
 									</PaginationItem>
