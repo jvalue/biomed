@@ -55,16 +55,20 @@ function RouteComponent() {
 	const page = search.page ?? 1;
 
 	const navigate = Route.useNavigate();
-	const setPage = (nextPage: number) => {
-		const p = Math.max(1, nextPage);
-		navigate({
-			search: (prev: { page?: number }) => ({
-				...prev,
-				// omit from URL on page 1
-				page: p >= 2 ? p : undefined,
-			}),
-		});
-	};
+	const setPage = React.useCallback(
+		(nextPage: number, opts?: { scrollToTable?: boolean }) => {
+			const p = Math.max(1, nextPage);
+
+			navigate({
+				search: (prev: { page?: number }) => ({
+					...prev,
+					page: p >= 2 ? p : undefined,
+				}),
+				resetScroll: !(opts?.scrollToTable === true),
+			});
+		},
+		[navigate],
+	);
 
 	const {
 		data: schedule,
@@ -216,7 +220,12 @@ function RouteComponent() {
 								<CardDescription>All crawler runs triggered by this schedule</CardDescription>
 							</CardHeader>
 							<CardContent className="pt-6">
-								<CrawlerRunsTable page={page} setPage={setPage} scheduleName={scheduleName} />
+								<CrawlerRunsTable
+									page={page}
+									setPage={setPage}
+									scheduleName={scheduleName}
+									scrollOnPaginate
+								/>
 							</CardContent>
 						</Card>
 					</Can>
