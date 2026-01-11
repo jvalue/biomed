@@ -20,14 +20,14 @@ import {
 import { useCrawlerRuns } from '../../api/hooks/useCrawlerRuns';
 
 const DEFAULT_PAGE_SIZE = 20;
-const TABLE_PAGINATION_SCROLL_KEY = '__table_pagination_scroll__';
+const TABLE_PAGINATION_SCROLL_KEY = '__crawler_runs_table_scroll__';
 
 export interface CrawlerRunsTableProps {
 	page: number;
 	setPage: (page: number, opts?: { scrollToTable?: boolean }) => void;
 	pageSize?: number;
 	scheduleName?: string;
-	/** enable scroll-back behavior for mid/bottom usages */
+	/** When enabled, scrolls back to the table top after pagination changes. Useful when the table appears in the middle or bottom of the page. */
 	scrollOnPaginate?: boolean;
 }
 
@@ -60,7 +60,7 @@ export default function CrawlerRunsTable({
 
 	const anchorRef = useRef<HTMLDivElement | null>(null);
 
-	const { data, isLoading } = useCrawlerRuns({
+	const { data, isLoading, error } = useCrawlerRuns({
 		limit: effectivePageSize,
 		offset,
 		scheduleName,
@@ -81,11 +81,20 @@ export default function CrawlerRunsTable({
 		requestAnimationFrame(() => {
 			anchorRef.current?.scrollIntoView({ behavior: 'auto', block: 'start' });
 		});
-	}, [scrollOnPaginate, page, isLoading]);
+	}, [scrollOnPaginate, page, isLoading, anchorRef]);
 
 	const runs: CrawlerRunDto[] = data?.data ?? [];
 	const hasNextPage = !!data?.metadata?.hasMore;
 	const canPrev = page > 1;
+
+	if (error) {
+		return (
+			<>
+				<div ref={anchorRef} className="scroll-mt-24" />
+				<p>Couldn’t load crawler runs right now. Please try again.</p>
+			</>
+		);
+	}
 
 	return (
 		<>
@@ -151,10 +160,8 @@ export default function CrawlerRunsTable({
 								<PaginationContent>
 									<PaginationItem>
 										<PaginationPrevious
-											href="#"
 											disabled={!canPrev}
-											onClick={(e) => {
-												e.preventDefault();
+											onClick={() => {
 												if (!canPrev) return;
 												if (scrollOnPaginate) {
 													sessionStorage.setItem(TABLE_PAGINATION_SCROLL_KEY, '1');
@@ -166,10 +173,8 @@ export default function CrawlerRunsTable({
 
 									<PaginationItem>
 										<PaginationNext
-											href="#"
 											disabled={!hasNextPage}
-											onClick={(e) => {
-												e.preventDefault();
+											onClick={() => {
 												if (!hasNextPage) return;
 												if (scrollOnPaginate) {
 													sessionStorage.setItem(TABLE_PAGINATION_SCROLL_KEY, '1');
