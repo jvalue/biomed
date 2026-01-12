@@ -7,10 +7,9 @@ import { ScheduleEntity } from '../schedules/entity/schedule.entity';
 import { ScheduleErrorType } from '../schedules/enums/schedule-error-type.enum';
 import { SchedulesService } from '../schedules/schedules.service';
 
-// TODO: add interface for abstracting orchestrator clients (Argo, others in future)
 @Injectable()
-export class ArgoSyncService implements OnModuleInit, OnModuleDestroy {
-	private readonly logger = new Logger(ArgoSyncService.name);
+export class OrchestratorSyncService implements OnModuleInit, OnModuleDestroy {
+	private readonly logger = new Logger(OrchestratorSyncService.name);
 	private readonly SYNC_INTERVAL = 5 * 60 * 1000; // 5 minutes
 	private readonly SCHEDULE_TEMPLATE_VALIDATION_INTERVAL = 10 * 60 * 1000; // 10 minutes
 	private readonly enabled: boolean;
@@ -22,19 +21,19 @@ export class ArgoSyncService implements OnModuleInit, OnModuleDestroy {
 
 	constructor(
 		configService: ConfigService,
-		private readonly argoClientService: ArgoClientService,
+		private readonly orchestratorClientService: ArgoClientService,
 		private readonly schedulesService: SchedulesService,
 	) {
 		this.enabled = configService.get<boolean>('ORCHESTRATOR_SYNC_ENABLED', false);
 	}
 
 	async onModuleInit(): Promise<void> {
-		this.logger.log('Starting ArgoSyncService');
+		this.logger.log('Starting OrchestratorSyncService');
 		if (!this.enabled) {
-			this.logger.log('ArgoSyncService is disabled via ARGO_SYNC_ENABLED=false');
+			this.logger.log('OrchestratorSyncService is disabled via ORCHESTRATOR_SYNC_ENABLED=false');
 			return;
 		}
-		this.logger.log('Starting ArgoSyncService timers');
+		this.logger.log('Starting OrchestratorSyncService timers');
 		this.syncTimer = setInterval(() => void this.syncCronWorkflows(), this.SYNC_INTERVAL);
 		this.templateCheckTimer = setInterval(
 			() => void this.checkTemplates(),
@@ -46,29 +45,29 @@ export class ArgoSyncService implements OnModuleInit, OnModuleDestroy {
 	}
 
 	async onModuleDestroy(): Promise<void> {
-		this.logger.log('Stopping ArgoSyncService timers');
+		this.logger.log('Stopping OrchestratorSyncService timers');
 		if (this.syncTimer) clearInterval(this.syncTimer);
 		if (this.templateCheckTimer) clearInterval(this.templateCheckTimer);
 	}
 
 	/**
-	 * Get all cron Workflows from Argo and send them to the SchedulesService to update the schedules table if needed
+	 * Get all schedules from Orchestrator and send them to the SchedulesService to update the schedules table if needed
 	 */
 	async syncCronWorkflows(): Promise<void> {
-		this.logger.log('Starting Argo CronWorkflows sync job');
+		this.logger.log('Starting Orchestrator Schedule sync job');
 		// Prevent overlapping runs: skip if a sync is already in progress
 		if (this.syncInProgress) {
-			this.logger.warn('Previous Argo sync still running, skipping this scheduled sync');
+			this.logger.warn('Previous sync still running, skipping this scheduled sync');
 			return;
 		}
 		this.syncInProgress = true;
 		try {
-			const scheduleDtos = await this.argoClientService.listSchedules();
+			const scheduleDtos = await this.orchestratorClientService.listSchedules();
 			await this.schedulesService.syncSchedulesFromOrchestrator(scheduleDtos);
-			this.logger.log('Finished Argo CronWorkflows sync job');
+			this.logger.log('Finished Orchestrator Schedule sync job');
 		} catch (err) {
 			const errMsg = err instanceof Error ? (err.stack ?? err.message) : String(err);
-			this.logger.error(`Error during Argo CronWorkflows sync job: ${errMsg}`);
+			this.logger.error(`Error during Orchestrator Schedule sync job: ${errMsg}`);
 		} finally {
 			this.syncInProgress = false;
 		}
@@ -78,10 +77,10 @@ export class ArgoSyncService implements OnModuleInit, OnModuleDestroy {
 	 * Checks for all schedules if the parameters provided by the schedule differs from the parameters expected by the referenced WorkflowTemplate.
 	 */
 	async checkTemplates(): Promise<void> {
-		this.logger.log('Starting Argo WorkflowTemplate check job');
+		this.logger.log('Starting Crawler Template check job');
 		if (this.checkInProgress) {
 			this.logger.warn(
-				'Previous Argo WorkflowTemplate check still running, skipping this scheduled check',
+				'Previous Crawler Template check still running, skipping this scheduled check',
 			);
 			return;
 		}
@@ -91,9 +90,9 @@ export class ArgoSyncService implements OnModuleInit, OnModuleDestroy {
 			for (const localSchedule of localSchedules) {
 				await this.handleScheduleTemplateCheck(localSchedule);
 			}
-			this.logger.log('Finished Argo WorkflowTemplate check job');
+			this.logger.log('Finished Crawler Template check job');
 		} catch (err) {
-			this.logger.error('Failed to check workflow templates', err);
+			this.logger.error('Failed to check crawler templates', err);
 		} finally {
 			this.checkInProgress = false;
 		}
@@ -106,7 +105,7 @@ export class ArgoSyncService implements OnModuleInit, OnModuleDestroy {
 			const templateNamespace = localSchedule.namespace;
 
 			// Lookup template
-			const template = await this.argoClientService.getCrawlerTemplateByNameAndNamespace(
+			const template = await this.orchestratorClientService.getCrawlerTemplateByNameAndNamespace(
 				templateName,
 				templateNamespace,
 			);
@@ -143,12 +142,13 @@ export class ArgoSyncService implements OnModuleInit, OnModuleDestroy {
 				return;
 			}
 
-			// Lookup schedule in Argo
-			const argoSchedule = await this.argoClientService.getScheduleByNameAndNamespace(
-				localSchedule.name,
-				localSchedule.namespace,
-			);
-			if (!argoSchedule) {
+			// Lookup schedule in orchestrator
+			const orchestratorSchedule =
+				await this.orchestratorClientService.getScheduleByNameAndNamespace(
+					localSchedule.name,
+					localSchedule.namespace,
+				);
+			if (!orchestratorSchedule) {
 				// schedule not found in orchestrator, skip as it will be removed by next sync
 				this.logger.warn(
 					`Schedule ${localSchedule.name} in namespace ${localSchedule.namespace} not found in orchestrator during template check, skipping`,
@@ -157,7 +157,7 @@ export class ArgoSyncService implements OnModuleInit, OnModuleDestroy {
 			}
 
 			// Compare and set/remove parameter mismatch errors as needed
-			await this.compareParamsAndUpdateErrors(localSchedule, template, argoSchedule);
+			await this.compareParamsAndUpdateErrors(localSchedule, template, orchestratorSchedule);
 		} catch (err) {
 			this.logger.error(
 				`Error checking template for schedule ${localSchedule?.name ?? '<unknown>'}`,
@@ -170,16 +170,16 @@ export class ArgoSyncService implements OnModuleInit, OnModuleDestroy {
 	 * Compare the parameters expected by the template with those provided by the schedule, and update errors accordingly
 	 * @param localSchedule
 	 * @param template
-	 * @param argoSchedule
+	 * @param orchestratorSchedule
 	 */
 	async compareParamsAndUpdateErrors(
 		localSchedule: ScheduleEntity,
 		template: CrawlerTemplateDto,
-		argoSchedule: ScheduleDto,
+		orchestratorSchedule: ScheduleDto,
 	): Promise<void> {
 		// Compare parameters expected by template with params provided by schedule
 		const expectedParams: string[] = template.parameters?.map((p) => p.name) ?? [];
-		const providedParamNames: string[] = argoSchedule.parameters?.map((p) => p.name) ?? [];
+		const providedParamNames: string[] = orchestratorSchedule.parameters?.map((p) => p.name) ?? [];
 
 		// Find missing and extra parameters
 		const missing = expectedParams.filter((p) => !providedParamNames.includes(p));

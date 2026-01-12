@@ -6,12 +6,12 @@ import { ScheduleDto } from '../schedules/dto/schedule.dto';
 import { ScheduleEntity } from '../schedules/entity/schedule.entity';
 import { ScheduleErrorType } from '../schedules/enums/schedule-error-type.enum';
 import { SchedulesService } from '../schedules/schedules.service';
-import { ArgoSyncService } from './argo-sync.service';
+import { OrchestratorSyncService } from './orchestrator-sync.service';
 
 type MockFn = ReturnType<typeof vi.fn>;
 
-describe('ArgoSyncService methods: handleScheduleTemplateCheck & compareParamsAndUpdateErrors', () => {
-	let service: ArgoSyncService;
+describe('OrchestratorSyncService methods: handleScheduleTemplateCheck & compareParamsAndUpdateErrors', () => {
+	let service: OrchestratorSyncService;
 	let argoClientMock: {
 		getCrawlerTemplateByNameAndNamespace: MockFn;
 		getScheduleByNameAndNamespace: MockFn;
@@ -39,7 +39,7 @@ describe('ArgoSyncService methods: handleScheduleTemplateCheck & compareParamsAn
 			get: vi.fn().mockReturnValue(true),
 		};
 
-		service = new ArgoSyncService(
+		service = new OrchestratorSyncService(
 			configServiceMock as unknown as ConfigService,
 			argoClientMock as unknown as ArgoClientService,
 			schedulesServiceMock as unknown as SchedulesService,
