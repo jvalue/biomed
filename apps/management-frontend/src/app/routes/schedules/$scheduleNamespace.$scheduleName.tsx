@@ -1,6 +1,6 @@
 import { Can } from '@casl/react';
 import { createFileRoute } from '@tanstack/react-router';
-import React from 'react';
+import React, { useMemo } from 'react';
 import { toast } from 'react-toastify';
 import {
 	useDeleteSchedule,
@@ -24,6 +24,7 @@ import DeleteScheduleDialogComponent from '@/src/app/components/schedules/delete
 import ScheduleConfigurationSectionComponent from '@/src/app/components/schedules/scheduleConfigurationSection.component';
 import { useAuth } from '@/src/app/contexts/AuthContext';
 import { formatCronReadable, getNextRunDate } from '@/src/app/utils/cron';
+import { createSetPageSearch } from '@/src/app/utils/set-page-search';
 import { Badge } from '../../components/design-components/badge';
 import { Switch } from '../../components/design-components/switch';
 import { AuthGuard } from '../../components/guards/auth-guard';
@@ -55,20 +56,7 @@ function RouteComponent() {
 	const page = search.page ?? 1;
 
 	const navigate = Route.useNavigate();
-	const setPage = React.useCallback(
-		(nextPage: number, opts?: { scrollToTable?: boolean }) => {
-			const p = Math.max(1, nextPage);
-
-			navigate({
-				search: (prev: { page?: number }) => ({
-					...prev,
-					page: p >= 2 ? p : undefined,
-				}),
-				resetScroll: !(opts?.scrollToTable === true),
-			});
-		},
-		[navigate],
-	);
+	const setPage = useMemo(() => createSetPageSearch(navigate), [navigate]);
 
 	const {
 		data: schedule,
