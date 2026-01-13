@@ -33,8 +33,15 @@ export class SchedulesService {
 	async listSchedules(): Promise<ScheduleDto[]> {
 		const schedules = await this.argoClientService.listSchedules();
 
-		// Enrich schedules with local data
-		await Promise.all(schedules.map((schedule) => this.enrichScheduleDtoWithLocalData(schedule)));
+		// Enrich schedules with local data — load all local schedules once to avoid N+1 queries
+		const localMap = await this.buildLocalMap();
+		for (const schedule of schedules) {
+			const key = `${schedule.name}||${schedule.namespace}`;
+			const local = localMap.get(key);
+			if (local) {
+				schedule.activeErrors = local.activeErrors;
+			}
+		}
 
 		// Sort schedules primary by suspended status, then by creation date (newest first)
 		schedules.sort((a, b) => {
@@ -252,7 +259,14 @@ export class SchedulesService {
 		localMap: Map<string, ScheduleEntity>,
 	): Promise<void> {
 		for (const schedule of orchestratorSchedules) {
-			await this.upsertScheduleFromOrchestrator(schedule, localMap);
+			try {
+				await this.upsertScheduleFromOrchestrator(schedule, localMap);
+			} catch (error) {
+				this.logger.error(
+					`Failed to upsert schedule ${schedule.name} in namespace ${schedule.namespace} from orchestrator.`,
+					error instanceof Error ? error.stack : undefined,
+				);
+			}
 		}
 	}
 
