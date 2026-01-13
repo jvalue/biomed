@@ -9,7 +9,6 @@ RUN pip install --upgrade pip \
 # Copy application and shared library from monorepo root context
 # Expect build context to be the monorepo root (see docker-compose.yml)
 COPY apps/crawler/pyproject.toml ./pyproject.toml
-COPY apps/crawler/README.md ./README.md
 COPY apps/crawler/crawler_general ./crawler_general
 COPY libs/crawler-common ./libs/crawler-common
 
