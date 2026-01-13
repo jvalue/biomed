@@ -1,8 +1,9 @@
 import { createFileRoute } from '@tanstack/react-router';
-import React from 'react';
+import { useMemo } from 'react';
 import CrawlerRunsTable from '@/src/app/components/crawler-runs/crawler-runs-table';
 import { AuthGuard } from '@/src/app/components/guards/auth-guard';
 import { PermissionGuard } from '@/src/app/components/guards/permission-guard';
+import { createSetPageSearch } from '@/src/app/utils/set-page-search';
 import { useAuth } from '../contexts/AuthContext';
 import { validatePageSearch } from '../utils/validate-page-search';
 
@@ -19,20 +20,7 @@ function RouteComponent() {
 
 	const navigate = Route.useNavigate();
 
-	const setPage = React.useCallback(
-		(nextPage: number, opts?: { scrollToTable?: boolean }) => {
-			const p = Math.max(1, nextPage);
-
-			navigate({
-				search: (prev: { page?: number }) => ({
-					...prev,
-					page: p >= 2 ? p : undefined,
-				}),
-				resetScroll: !(opts?.scrollToTable === true),
-			});
-		},
-		[navigate],
-	);
+	const setPage = useMemo(() => createSetPageSearch(navigate), [navigate]);
 
 	return (
 		<AuthGuard>
