@@ -47,7 +47,7 @@ export default function SchedulesTable({ schedules = [] }: ScheduleTableProps) {
 							router.navigate({ to: `/schedules/${schedule.namespace}/${schedule.name}` })
 						}
 					>
-						<TableCell className="flex items-center gap-2">{schedule.name}</TableCell>
+						<TableCell>{schedule.name}</TableCell>
 						{/* Error indicator column */}
 						<TableCell>
 							{schedule.activeErrors && Object.keys(schedule.activeErrors).length > 0 && (

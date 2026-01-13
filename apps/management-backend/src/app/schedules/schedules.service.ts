@@ -216,6 +216,23 @@ export class SchedulesService {
 	}
 
 	/**
+	 * Sets the last checked template version label for a schedule
+	 * @param name
+	 * @param namespace
+	 * @param versionLabel
+	 */
+	async setLastCheckedTemplateVersionLabel(
+		name: string,
+		namespace: string,
+		versionLabel: string,
+	): Promise<void> {
+		await this.scheduleRepository.update(
+			{ name, namespace },
+			{ lastCheckedTemplateVersionLabel: versionLabel },
+		);
+	}
+
+	/**
 	 * Loads all local schedules once and returns a map keyed by name||namespace
 	 */
 	private async buildLocalMap(): Promise<Map<string, ScheduleEntity>> {
@@ -290,6 +307,7 @@ export class SchedulesService {
 				`Inconsistency found for schedule ${schedule.name} in namespace ${schedule.namespace}: crawlerTemplateName differs (orchestrator: ${schedule.crawlerTemplateName}, local: ${existingSchedule.crawlerTemplateName}). Updating local database.`,
 			);
 			existingSchedule.crawlerTemplateName = schedule.crawlerTemplateName;
+			existingSchedule.lastCheckedTemplateVersionLabel = null; // reset version label on template change
 			needsUpdate = true;
 		}
 		if (existingSchedule.suspended !== (schedule.suspended ?? false)) {
@@ -299,12 +317,81 @@ export class SchedulesService {
 			existingSchedule.suspended = schedule.suspended;
 			needsUpdate = true;
 		}
+
+		// Sync targets based on parameters (create new targets, remove orphaned ones)
+		try {
+			await this.syncTargetsForExistingSchedule(existingSchedule, schedule.parameters);
+		} catch (err) {
+			this.logger.error(
+				`Failed to sync targets for schedule ${schedule.name} in namespace ${schedule.namespace}:`,
+				err,
+			);
+		}
+
 		if (needsUpdate) {
 			await this.scheduleRepository.save(existingSchedule);
 		}
 
 		// mark as processed by removing from map
 		localMap.delete(key);
+	}
+
+	/**
+	 * Synchronize targets of an existing local schedule with the provided parameters from the orchestrator
+	 * - creates targets that are newly referenced in parameters
+	 * - removes target relations that are no longer present and deletes targets if unreferenced
+	 */
+	async syncTargetsForExistingSchedule(
+		existingSchedule: ScheduleEntity,
+		newParams: ScheduleParameterDto[],
+	): Promise<void> {
+		// Ensure targets array exists
+		existingSchedule.targets = existingSchedule.targets ?? [];
+
+		const newTargetUrls = this.findAllTargetUrlsInScheduleParams(newParams);
+		const existingTargetUrls = existingSchedule.targets.map((t) => t.url);
+
+		// Determine added and removed URLs
+		const added = newTargetUrls.filter((u) => !existingTargetUrls.includes(u));
+		const removed = existingTargetUrls.filter((u) => !newTargetUrls.includes(u));
+
+		let changed = false;
+
+		// Add new targets
+		for (const url of added) {
+			try {
+				const target = await this.targetsService.createTargetIfNotExists(url);
+				if (target) {
+					existingSchedule.targets.push(target);
+					changed = true;
+				}
+			} catch (err) {
+				this.logger.error(`Failed to create target ${url}:`, err);
+			}
+		}
+
+		// Remove targets that are no longer referenced
+		if (removed.length > 0) {
+			const remainingTargets = existingSchedule.targets.filter((t) => !removed.includes(t.url));
+			if (remainingTargets.length !== existingSchedule.targets.length) {
+				existingSchedule.targets = remainingTargets;
+				changed = true;
+			}
+		}
+
+		// Persist changes to relation if anything changed
+		if (changed) {
+			await this.scheduleRepository.save(existingSchedule);
+		}
+
+		// Remove unreferenced targets
+		for (const url of removed) {
+			try {
+				await this.targetsService.deleteTargetIfUnreferenced(url);
+			} catch (err) {
+				this.logger.error(`Failed to delete unreferenced target ${url}:`, err);
+			}
+		}
 	}
 
 	/**
