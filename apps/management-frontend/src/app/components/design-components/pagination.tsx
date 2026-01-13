@@ -28,20 +28,21 @@ type PaginationLinkProps = {
 	isActive?: boolean;
 	disabled?: boolean;
 } & Pick<ButtonProps, 'size'> &
-	React.ComponentProps<'a'>;
+	React.ComponentProps<'button'>;
 
 const PaginationLink = ({
 	className,
 	isActive,
 	disabled,
 	size = 'icon',
-	href,
+	type = 'button',
 	...props
 }: PaginationLinkProps) => (
-	<a
+	<button
+		type={type}
 		aria-current={isActive ? 'page' : undefined}
 		aria-disabled={disabled ? true : undefined}
-		href={disabled ? undefined : href}
+		disabled={disabled}
 		className={cn(
 			buttonVariants({
 				variant: isActive ? 'outline' : 'ghost',
