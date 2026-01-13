@@ -5,7 +5,12 @@ from datetime import datetime, timezone
 
 from crawler_common import ftp_tools
 from crawler_common import ftp_conf
-from crawler_common.database import get_database_url_from_env, init_database, get_session, insert_ftp_nodes_to_database
+from crawler_common.database import (
+    get_database_url_from_env,
+    init_database,
+    get_session,
+    insert_ftp_nodes_to_database,
+)
 from crawler_common.models import FTPDiscoveryRun, FTPDiscoveryEntry, Base
 
 
@@ -23,10 +28,12 @@ def main():
 
     # Initialize database connection
     database_url = get_database_url_from_env(env_path)
-    print(f"Database URL: {database_url.replace(database_url.split('@')[0].split('://')[-1].split(':')[1], '****')}")
-    
+    print(
+        f"Database URL: {database_url.replace(database_url.split('@')[0].split('://')[-1].split(':')[1], '****')}"
+    )
+
     engine = init_database(database_url, echo=True)
-    
+
     # Create tables if they don't exist
     Base.metadata.create_all(engine)
     print("Database tables created/verified")
@@ -47,23 +54,25 @@ def main():
     # Save FTP structure to database
     print("\nSaving FTP structure to database...")
     session = get_session(engine)
-    
+
     try:
         # Create a new FTPDiscoveryRun for this crawl
         ftp_run = FTPDiscoveryRun(
             ftp_url=ftp_url,
             max_depth=max_depth,
             started_at=datetime.now(timezone.utc),
-            completed_at=datetime.now(timezone.utc)
+            completed_at=datetime.now(timezone.utc),
         )
         session.add(ftp_run)
         session.flush()  # Get the ID before adding entries
-        
+
         # Recursively insert FTP structure into database
         insert_ftp_nodes_to_database(root, ftp_run.id, session)
         session.commit()
-        print(f"FTP structure saved to database (Run ID: {ftp_run.id}, Max Depth: {max_depth})")
-        
+        print(
+            f"FTP structure saved to database (Run ID: {ftp_run.id}, Max Depth: {max_depth})"
+        )
+
     except Exception as e:
         session.rollback()
         print(f"Error saving FTP structure to database: {e}")

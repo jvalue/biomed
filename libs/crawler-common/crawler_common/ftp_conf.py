@@ -102,6 +102,8 @@ def load_database_config(dotenv_path: Path | str | None = None) -> dict[str, str
             f"Missing database configuration variables{location_hint}: {', '.join(missing)}"
         )
 
+    assert db_port_str is not None
+
     try:
         db_port = int(db_port_str)
     except ValueError:
