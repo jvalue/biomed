@@ -47,7 +47,7 @@ export class SchedulesService {
 	}
 
 	/**
-	 * Get all schedule entites from the local database (for internal use)
+	 * Get all schedule entities from the local database (for internal use)
 	 */
 	async getAllScheduleEntities(): Promise<ScheduleEntity[]> {
 		return this.scheduleRepository.find();
