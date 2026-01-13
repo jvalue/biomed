@@ -1,6 +1,6 @@
 import { BadRequestException, Injectable, Logger } from '@nestjs/common';
 import * as yaml from 'js-yaml';
-import { ArgoClientService } from '../../../argo-client/argo-client.service';
+import { ArgoClientService } from '../../../orchestrator-client/argo-client/argo-client.service';
 import { UserEntity } from '../../../users/entity/user.entity';
 import { CreateScheduleDto } from '../../dto/create-schedule.dto';
 import { IScheduleEngine } from '../../schedule-engine.interface';
@@ -12,7 +12,7 @@ import { ArgoCronWorkflowBuilder } from './argo-cron-workflow.builder';
  */
 @Injectable()
 export class ArgoScheduleEngine implements IScheduleEngine {
-	constructor(private readonly argoClientService: ArgoClientService) {}
+	constructor(private readonly orchestratorClientService: ArgoClientService) {}
 	private readonly logger = new Logger(ArgoScheduleEngine.name);
 
 	async createSchedule(dto: CreateScheduleDto, user: UserEntity): Promise<void> {
@@ -43,6 +43,9 @@ export class ArgoScheduleEngine implements IScheduleEngine {
 		this.logger.debug('Generated YAML:', yamlString);
 
 		// Send the YAML to Argo Workflows API
-		await this.argoClientService.createSchedule(workflowObject, dto.crawlerTemplateNamespace);
+		await this.orchestratorClientService.createSchedule(
+			workflowObject,
+			dto.crawlerTemplateNamespace,
+		);
 	}
 }

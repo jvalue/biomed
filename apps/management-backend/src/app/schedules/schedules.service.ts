@@ -1,9 +1,9 @@
 import { Inject, Injectable, Logger } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
-import { ArgoClientService } from '../argo-client/argo-client.service';
 import { TargetEntity } from '../health/targets/entity/target.entity';
 import { TargetsService } from '../health/targets/targets.service';
+import { ArgoClientService } from '../orchestrator-client/argo-client/argo-client.service';
 import { UserEntity } from '../users/entity/user.entity';
 import { CreateScheduleDto } from './dto/create-schedule.dto';
 import { ScheduleDto, ScheduleParameterDto } from './dto/schedule.dto';
@@ -21,7 +21,7 @@ export class SchedulesService {
 		private readonly scheduleRepository: Repository<ScheduleEntity>,
 		@Inject(SCHEDULE_ENGINE)
 		private readonly scheduleEngine: IScheduleEngine,
-		private readonly argoClientService: ArgoClientService,
+		private readonly orchestratorClientService: ArgoClientService,
 		private readonly targetsService: TargetsService,
 	) {}
 
@@ -31,7 +31,7 @@ export class SchedulesService {
 	 * Lists all Schedules
 	 */
 	async listSchedules(): Promise<ScheduleDto[]> {
-		const schedules = await this.argoClientService.listSchedules();
+		const schedules = await this.orchestratorClientService.listSchedules();
 
 		// Enrich schedules with local data
 		await Promise.all(schedules.map((schedule) => this.enrichScheduleDtoWithLocalData(schedule)));
@@ -110,7 +110,10 @@ export class SchedulesService {
 	 * @returns The Schedule
 	 */
 	async getScheduleByNameAndNamespace(name: string, namespace: string): Promise<ScheduleDto> {
-		const schedule = await this.argoClientService.getScheduleByNameAndNamespace(name, namespace);
+		const schedule = await this.orchestratorClientService.getScheduleByNameAndNamespace(
+			name,
+			namespace,
+		);
 		await this.enrichScheduleDtoWithLocalData(schedule);
 		return schedule;
 	}
@@ -162,7 +165,7 @@ export class SchedulesService {
 	 */
 	async deleteSchedule(name: string, namespace: string): Promise<void> {
 		// Delete schedule in the orchestrator
-		await this.argoClientService.deleteSchedule(name, namespace);
+		await this.orchestratorClientService.deleteSchedule(name, namespace);
 
 		// Delete schedule in the local database
 		// Get the schedule with its targets
@@ -186,7 +189,7 @@ export class SchedulesService {
 	 */
 	async suspendSchedule(name: string, namespace: string): Promise<void> {
 		// Suspend in the orchestrator
-		await this.argoClientService.suspendSchedule(name, namespace);
+		await this.orchestratorClientService.suspendSchedule(name, namespace);
 
 		// Update local database
 		await this.scheduleRepository.update({ name, namespace }, { suspended: true });
@@ -199,7 +202,7 @@ export class SchedulesService {
 	 */
 	async resumeSchedule(name: string, namespace: string): Promise<void> {
 		// Resume in the orchestrator
-		await this.argoClientService.resumeSchedule(name, namespace);
+		await this.orchestratorClientService.resumeSchedule(name, namespace);
 
 		// Update local database
 		await this.scheduleRepository.update({ name, namespace }, { suspended: false });

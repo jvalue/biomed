@@ -1,8 +1,8 @@
 import { ConfigService } from '@nestjs/config';
 import { afterEach, describe, expect, it, vi } from 'vitest';
-import { CrawlerRunDto } from '../crawler-runs/dto/crawler-run.dto';
-import { EnvironmentVariables } from '../env.validation';
-import { ScheduleDto } from '../schedules/dto/schedule.dto';
+import { CrawlerRunDto } from '../../crawler-runs/dto/crawler-run.dto';
+import { EnvironmentVariables } from '../../env.validation';
+import { ScheduleDto } from '../../schedules/dto/schedule.dto';
 import { ArgoAuthService } from './argo-auth/argo-auth.service';
 import { ArgoClientService } from './argo-client.service';
 import { ArgoCronWorkflowDto } from './dto/cron-workflows/argo-cron-workflow.dto';

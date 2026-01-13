@@ -1,7 +1,7 @@
 import { ConfigService } from '@nestjs/config';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
-import { ArgoClientService } from '../argo-client/argo-client.service';
 import { CrawlerTemplateDto } from '../crawler-templates/dto/crawler-template.dto';
+import { ArgoClientService } from '../orchestrator-client/argo-client/argo-client.service';
 import { ScheduleDto } from '../schedules/dto/schedule.dto';
 import { ScheduleEntity } from '../schedules/entity/schedule.entity';
 import { ScheduleErrorType } from '../schedules/enums/schedule-error-type.enum';

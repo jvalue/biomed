@@ -1,6 +1,6 @@
 import { Module } from '@nestjs/common';
-import { ArgoClientModule } from '../argo-client/argo-client.module';
 import { AbilityFactory } from '../auth/ability-factory';
+import { ArgoClientModule } from '../orchestrator-client/argo-client/argo-client.module';
 import { CrawlerRunsController } from './crawler-runs.controller';
 import { CrawlerRunsService } from './crawler-runs.service';
 
