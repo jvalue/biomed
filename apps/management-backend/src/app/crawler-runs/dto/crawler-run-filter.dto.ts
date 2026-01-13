@@ -1,7 +1,7 @@
 import { ApiProperty } from '@nestjs/swagger';
 import { Transform, Type } from 'class-transformer';
 import { IsArray, IsDate, IsEnum, IsOptional, IsString } from 'class-validator';
-import { WorkflowPhaseEnum } from '../../argo-client/enums/workflow-phase.enum';
+import { WorkflowPhaseEnum } from '../../orchestrator-client/argo-client/enums/workflow-phase.enum';
 
 export class CrawlerRunFilterDto {
 	@ApiProperty({ type: String, required: false, description: 'Kubernetes Namespace' })
