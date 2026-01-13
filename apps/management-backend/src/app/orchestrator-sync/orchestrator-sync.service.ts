@@ -158,6 +158,13 @@ export class OrchestratorSyncService implements OnModuleInit, OnModuleDestroy {
 
 			// Compare and set/remove parameter mismatch errors as needed
 			await this.compareParamsAndUpdateErrors(localSchedule, template, orchestratorSchedule);
+
+			// Set the last checked template version label
+			await this.schedulesService.setLastCheckedTemplateVersionLabel(
+				localSchedule.name,
+				localSchedule.namespace,
+				template.templateVersion,
+			);
 		} catch (err) {
 			this.logger.error(
 				`Error checking template for schedule ${localSchedule?.name ?? '<unknown>'}`,
