@@ -29,22 +29,28 @@ def create_postgres_url(
 
 def get_database_url_from_env(dotenv_path=None) -> str:
     """Get database connection URL from environment variables via ftp_conf loader.
-    
+
     Args:
         dotenv_path: Optional path to a .env file.
-    
+
     Returns:
         PostgreSQL connection URL.
     """
     from crawler_common.ftp_conf import load_database_config
-    
+
     config = load_database_config(dotenv_path)
-    return create_postgres_url(**config)
+    return create_postgres_url(
+        host=str(config["host"]),
+        port=int(config["port"]),
+        database=str(config["database"]),
+        user=str(config["user"]),
+        password=str(config["password"]),
+    )
 
 
 def init_database(database_url: str, echo: bool = False) -> Engine:
     """Initialize database engine.
-    
+
     Tables must be created manually or already exist.
 
     Args:
@@ -97,7 +103,7 @@ def insert_ftp_nodes_to_database(
     node: FTPNode, run_id: int, session: Session, current_depth: int = 0
 ) -> None:
     """Recursively insert FTP nodes and their children into the database.
-    
+
     Args:
         node: FTPNode to insert and traverse.
         run_id: The FTPDiscoveryRun ID to associate entries with.
@@ -106,8 +112,8 @@ def insert_ftp_nodes_to_database(
     """
     entry = FTPDiscoveryEntry.from_ftp_node(node, run_id, current_depth)
     session.add(entry)
-    
+
     # Recursively insert children if this is a directory
-    if hasattr(node, 'children') and node.children:
+    if hasattr(node, "children") and node.children:
         for child in node.children:
             insert_ftp_nodes_to_database(child, run_id, session, current_depth + 1)

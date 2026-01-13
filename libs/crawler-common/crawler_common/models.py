@@ -4,13 +4,23 @@ from datetime import datetime, timezone
 from typing import Optional, Protocol, TYPE_CHECKING
 
 from pydantic import BaseModel, field_serializer, HttpUrl
-from sqlalchemy import Column, Integer, BigInteger, String, Boolean, DateTime, Float, ForeignKey
-from sqlalchemy.orm import declarative_base, relationship
+from sqlalchemy import (
+    Column,
+    Integer,
+    BigInteger,
+    String,
+    Boolean,
+    DateTime,
+    ForeignKey,
+)
+from sqlalchemy.orm import DeclarativeBase, relationship, Mapped, mapped_column
 
 if TYPE_CHECKING:
     from crawler_common.ftp_node import FTPNode
 
-Base = declarative_base()
+
+class Base(DeclarativeBase):
+    pass
 
 
 class FTPNodeProtocol(Protocol):
@@ -54,12 +64,16 @@ class FTPDiscoveryRun(Base):
 
     __tablename__ = "ftp_discovery_runs"
 
-    id = Column(Integer, primary_key=True)
-    started_at = Column(DateTime(timezone=True), default=lambda: datetime.now(timezone.utc))
-    completed_at = Column(DateTime(timezone=True), nullable=True)
-    ftp_url = Column(String(255), nullable=False)
-    max_depth = Column(Integer, default=3)
-    entries = relationship("FTPDiscoveryEntry", back_populates="run")
+    id: Mapped[int] = mapped_column(primary_key=True)
+    started_at: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True), default=lambda: datetime.now(timezone.utc)
+    )
+    completed_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
+    ftp_url: Mapped[str] = mapped_column(String(255), nullable=False)
+    max_depth: Mapped[int] = mapped_column(Integer, default=3)
+    entries: Mapped[list["FTPDiscoveryEntry"]] = relationship(
+        "FTPDiscoveryEntry", back_populates="run"
+    )
 
 
 class FTPDiscoveryEntry(Base):
@@ -67,16 +81,23 @@ class FTPDiscoveryEntry(Base):
 
     __tablename__ = "ftp_discovery_entries"
 
-    id = Column(Integer, primary_key=True)
-    run_id = Column(Integer, ForeignKey("ftp_discovery_runs.id"), nullable=False)
-    path = Column(String(2048), nullable=False)
-    name = Column(String(255), nullable=False)
-    is_dir = Column(Boolean, nullable=False)
-    size = Column(BigInteger, nullable=True)  # Use BigInteger for large file sizes
-    modified = Column(DateTime(timezone=True), nullable=True)
-    depth = Column(Integer, nullable=False)
-    discovered_at = Column(DateTime(timezone=True), default=lambda: datetime.now(timezone.utc))
-    run = relationship("FTPDiscoveryRun", back_populates="entries")
+    id: Mapped[int] = mapped_column(primary_key=True)
+    run_id: Mapped[int] = mapped_column(
+        ForeignKey("ftp_discovery_runs.id"), nullable=False
+    )
+    path: Mapped[str] = mapped_column(String(2048), nullable=False)
+    is_dir: Mapped[bool] = mapped_column(Boolean, nullable=False)
+    size: Mapped[int | None] = mapped_column(BigInteger, nullable=True)
+    modified: Mapped[datetime | None] = mapped_column(
+        DateTime(timezone=True), nullable=True
+    )
+    depth: Mapped[int] = mapped_column(Integer, nullable=False)
+    discovered_at: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True), default=lambda: datetime.now(timezone.utc)
+    )
+    run: Mapped["FTPDiscoveryRun"] = relationship(
+        "FTPDiscoveryRun", back_populates="entries"
+    )
 
     @classmethod
     def from_ftp_node(

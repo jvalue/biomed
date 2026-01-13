@@ -113,52 +113,61 @@ def _traverse_ftp(
     if depth >= max_depth:
         return False
 
-    truncated = False
+    logger.info(f"Traversing: {current_path} (depth {depth}/{max_depth})")
 
+    # Try to change into the directory and list entries; return early on errors.
     try:
-        logger.info(f"Traversing: {current_path} (depth {depth}/{max_depth})")
         ftp.cwd(current_path)
-
         entries = list(ftp.mlsd())
         logger.debug(f"Found {len(entries)} entries in {current_path}")
-
-        for name, facts in entries:
-            if name in {".", ".."}:
-                continue
-
-            is_dir = facts.get("type") == "dir"
-            path = f"{current_path.rstrip('/')}/{name}"
-            node = FTPNode(name=name, is_dir=is_dir, path=path)
-            # Populate metadata from MLSD facts
-            f_size, f_modified = _extract_metadata_from_facts(facts)
-            node.size = f_size
-            node.modified = f_modified
-
-            # Fallbacks for files when facts are missing
-            if not is_dir and (node.size is None or node.modified is None):
-                fetched_size, fetched_modified = _fetch_file_metadata(ftp, path)
-                if node.size is None:
-                    node.size = fetched_size
-                if node.modified is None:
-                    node.modified = fetched_modified
-            parent.children.append(node)
-
-            if is_dir:
-                if depth < max_depth - 1:
-                    child_truncated = _traverse_ftp(
-                        ftp, node, path, depth + 1, max_depth
-                    )
-                    if child_truncated:
-                        truncated = True
-                else:
-                    # We found a directory at the boundary; deeper content won't be crawled
-                    truncated = True
-                    logger.debug(f"Max depth reached at {path}; not descending further")
     except ftplib.error_perm:
-        # Skip directories without permissionpass
+        # Skip directories without permission
         logger.warning(f"Permission denied: {current_path}")
+        return False
     except ftplib.all_errors as exc:  # pragma: no cover - network dependent
         print(f"Error traversing {current_path}: {exc}")
+        return False
+
+    truncated = False
+
+    # Helper: build a node from MLSD entry facts
+    def _build_node(name: str, facts: dict, path: str) -> FTPNode:
+        node = FTPNode(name=name, is_dir=(facts.get("type") == "dir"), path=path)
+        f_size, f_modified = _extract_metadata_from_facts(facts)
+        node.size = f_size
+        node.modified = f_modified
+        return node
+
+    # Helper: ensure file metadata using SIZE/MDTM fallbacks when necessary
+    def _ensure_file_metadata(node: FTPNode, path: str) -> None:
+        if node.is_dir:
+            return
+        if node.size is None or node.modified is None:
+            fetched_size, fetched_modified = _fetch_file_metadata(ftp, path)
+            if node.size is None:
+                node.size = fetched_size
+            if node.modified is None:
+                node.modified = fetched_modified
+
+    for name, facts in entries:
+        if name in {".", ".."}:
+            continue
+
+        path = f"{current_path.rstrip('/')}/{name}"
+        node = _build_node(name, facts, path)
+        _ensure_file_metadata(node, path)
+        parent.children.append(node)
+
+        # If it's a directory, decide whether to descend or mark as truncated.
+        if not node.is_dir:
+            continue
+
+        if depth < max_depth - 1:
+            if _traverse_ftp(ftp, node, path, depth + 1, max_depth):
+                truncated = True
+        else:
+            truncated = True
+            logger.debug(f"Max depth reached at {path}; not descending further")
 
     return truncated
 
