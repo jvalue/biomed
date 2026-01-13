@@ -74,7 +74,7 @@ export class OrchestratorSyncService implements OnModuleInit, OnModuleDestroy {
 	}
 
 	/**
-	 * Checks for all schedules if the parameters provided by the schedule differs from the parameters expected by the referenced WorkflowTemplate.
+	 * Checks for all schedules if the parameters provided by the schedule differ from the parameters expected by the referenced WorkflowTemplate.
 	 */
 	async checkTemplates(): Promise<void> {
 		this.logger.log('Starting Crawler Template check job');
