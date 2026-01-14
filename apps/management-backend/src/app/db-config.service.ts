@@ -9,6 +9,7 @@ import { Demo1763983398209 } from './migrations/1763983398209-Demo';
 import { User1765788929734 } from './migrations/1765788929734-User';
 import { ScheduleTargets1767693181905 } from './migrations/1767693181905-ScheduleTargets';
 import { ScheduleSuspendedFlag1767695540110 } from './migrations/1767695540110-ScheduleSuspendedFlag';
+import { ScheduleErrors1767956657626 } from './migrations/1767956657626-ScheduleErrors';
 import { ScheduleEntity } from './schedules/entity/schedule.entity';
 import { UserEntity } from './users/entity/user.entity';
 
@@ -38,6 +39,7 @@ export class DbConfigService implements TypeOrmOptionsFactory {
 				User1765788929734,
 				ScheduleTargets1767693181905,
 				ScheduleSuspendedFlag1767695540110,
+				ScheduleErrors1767956657626,
 			],
 			logging: true,
 			logger: 'debug',
