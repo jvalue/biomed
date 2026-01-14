@@ -1,3 +1,8 @@
+import {
+	ScheduleErrorDetails,
+	ScheduleErrorType,
+} from '@/src/app/api/dto/schedule/schedule-error-type.enum';
+
 export class ScheduleParameterDto {
 	name!: string;
 
@@ -40,4 +45,7 @@ export class ScheduleDto {
 	createdAt!: Date;
 
 	statistics!: ScheduleStatisticsDto;
+
+	// Optional field to represent any active errors associated with the schedule
+	activeErrors?: Record<ScheduleErrorType, ScheduleErrorDetails>;
 }

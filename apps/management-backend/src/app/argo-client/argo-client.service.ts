@@ -188,6 +188,42 @@ export class ArgoClientService implements IOrchestratorClient {
 	}
 
 	/**
+	 * Get a workflow template by name and namespace
+	 * @param name Name of the workflow template
+	 * @param namespace Namespace of the workflow template
+	 * @return The workflow template as CrawlerTemplateDto
+	 */
+	async getCrawlerTemplateByNameAndNamespace(
+		name: string,
+		namespace: string,
+	): Promise<CrawlerTemplateDto | null> {
+		this.logger.log(
+			`Getting workflow template ${name} from namespace ${namespace} from Argo Workflows API`,
+		);
+
+		const url = `/workflow-templates/${namespace}/${name}`;
+
+		try {
+			const res = await this.http.get(url);
+			const templateResponse: ArgoWorkflowTemplateDto = res.data;
+			this.logger.debug('Argo Workflows API response for workflow template:', templateResponse);
+
+			// Map ArgoWorkflowTemplateDto to CrawlerTemplateDto
+			return mapArgoWorkflowTemplateDtoToWorkflowTemplateDto(templateResponse);
+		} catch (err) {
+			if (err.response && err.response.status === 404) {
+				this.logger.log(`Workflow template ${name} in namespace ${namespace} not found`);
+				return null;
+			}
+			this.logger.error(
+				`Error getting workflow template ${name} from namespace ${namespace}:`,
+				err,
+			);
+			throw err;
+		}
+	}
+
+	/**
 	 * Submit a new workflow based on a workflow template
 	 * @param crawlerTemplateName Name of the workflow template to use
 	 * @param crawlerTemplateNamespace Namespace of the workflow template
