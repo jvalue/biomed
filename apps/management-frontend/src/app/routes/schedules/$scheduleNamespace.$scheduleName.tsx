@@ -1,8 +1,7 @@
 import { Can } from '@casl/react';
 import { createFileRoute } from '@tanstack/react-router';
-import React from 'react';
+import React, { useMemo } from 'react';
 import { toast } from 'react-toastify';
-import { useCrawlerRuns } from '@/src/app/api/hooks/useCrawlerRuns';
 import {
 	useDeleteSchedule,
 	useResumeSchedule,
@@ -18,13 +17,6 @@ import {
 	CardHeader,
 	CardTitle,
 } from '@/src/app/components/design-components/card';
-import {
-	Pagination,
-	PaginationContent,
-	PaginationItem,
-	PaginationNext,
-	PaginationPrevious,
-} from '@/src/app/components/design-components/pagination';
 import ParameterSectionComponent from '@/src/app/components/design-components/parameterSection.component';
 import { Spinner } from '@/src/app/components/design-components/spinner';
 import { PermissionGuard } from '@/src/app/components/guards/permission-guard';
@@ -33,21 +25,14 @@ import ScheduleErrorsComponent from '@/src/app/components/schedules/schedule-err
 import ScheduleConfigurationSectionComponent from '@/src/app/components/schedules/scheduleConfigurationSection.component';
 import { useAuth } from '@/src/app/contexts/AuthContext';
 import { formatCronReadable, getNextRunDate } from '@/src/app/utils/cron';
+import { createSetPageSearch } from '@/src/app/utils/set-page-search';
 import { Badge } from '../../components/design-components/badge';
 import { Switch } from '../../components/design-components/switch';
 import { AuthGuard } from '../../components/guards/auth-guard';
-
-const PAGE_SIZE = 20;
+import { validatePageSearch } from '../../utils/validate-page-search';
 
 export const Route = createFileRoute('/schedules/$scheduleNamespace/$scheduleName')({
-	validateSearch: (search: Record<string, unknown>) => {
-		const raw = search.page;
-		const n = typeof raw === 'string' || typeof raw === 'number' ? Number(raw) : NaN;
-
-		const page = Number.isFinite(n) && n >= 2 ? Math.floor(n) : undefined;
-
-		return { page } as { page?: number };
-	},
+	validateSearch: validatePageSearch,
 	component: RouteComponent,
 });
 
@@ -70,35 +55,15 @@ function RouteComponent() {
 
 	const search = Route.useSearch();
 	const page = search.page ?? 1;
-	const offset = (page - 1) * PAGE_SIZE;
 
 	const navigate = Route.useNavigate();
-	const setPage = (nextPage: number) => {
-		const p = Math.max(1, nextPage);
-		navigate({
-			search: (prev: { page?: number }) => ({
-				...prev,
-				// omit from URL on page 1
-				page: p >= 2 ? p : undefined,
-			}),
-		});
-	};
+	const setPage = useMemo(() => createSetPageSearch(navigate), [navigate]);
 
 	const {
 		data: schedule,
 		isLoading: scheduleQueryIsLoading,
 		error: scheduleQueryError,
 	} = useScheduleByNameAndNamespace(scheduleName, scheduleNamespace);
-	const { data: runsQueryData, isLoading: runsQueryIsLoading } = useCrawlerRuns({
-		scheduleName,
-		limit: PAGE_SIZE,
-		offset,
-	});
-
-	const runs = runsQueryData?.data || [];
-	const hasNextPage = !!runsQueryData?.metadata?.hasMore;
-	const canPrev = page > 1;
-	const showPagination = canPrev || hasNextPage;
 
 	if (scheduleQueryIsLoading) {
 		return (
@@ -249,48 +214,12 @@ function RouteComponent() {
 								<CardDescription>All crawler runs triggered by this schedule</CardDescription>
 							</CardHeader>
 							<CardContent className="pt-6">
-								{runsQueryIsLoading ? (
-									<div className="flex min-h-[200px] items-center justify-center">
-										<Spinner className="size-10" />
-									</div>
-								) : runs.length > 0 ? (
-									<>
-										<CrawlerRunsTable runs={runs}></CrawlerRunsTable>
-										{showPagination && (
-											<div className="mt-4">
-												<Pagination>
-													<PaginationContent>
-														<PaginationItem>
-															<PaginationPrevious
-																href="#"
-																disabled={!canPrev}
-																onClick={(e) => {
-																	e.preventDefault();
-																	if (!canPrev) return;
-																	setPage(page - 1);
-																}}
-															/>
-														</PaginationItem>
-
-														<PaginationItem>
-															<PaginationNext
-																href="#"
-																disabled={!hasNextPage}
-																onClick={(e) => {
-																	e.preventDefault();
-																	if (!hasNextPage) return;
-																	setPage(page + 1);
-																}}
-															/>
-														</PaginationItem>
-													</PaginationContent>
-												</Pagination>
-											</div>
-										)}
-									</>
-								) : (
-									<p className="text-sm text-muted-foreground">No runs found for this schedule</p>
-								)}
+								<CrawlerRunsTable
+									page={page}
+									setPage={setPage}
+									scheduleName={scheduleName}
+									scrollOnPaginate
+								/>
 							</CardContent>
 						</Card>
 					</Can>
