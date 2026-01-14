@@ -16,10 +16,10 @@ import { ScheduleErrorDetails, ScheduleErrorType } from '../enums/schedule-error
 // these are all schedules
 @Entity('schedules')
 export class ScheduleEntity {
-	@PrimaryColumn()
+	@PrimaryColumn({ type: 'varchar' })
 	name: string;
 
-	@PrimaryColumn()
+	@PrimaryColumn({ type: 'varchar' })
 	namespace: string;
 
 	@Column({ type: 'varchar' })

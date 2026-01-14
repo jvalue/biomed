@@ -1,18 +1,14 @@
 import { createFileRoute } from '@tanstack/react-router';
-import CrawlerRunList from '@/src/app/components/crawler-runs/crawler-run-list';
+import { useMemo } from 'react';
+import CrawlerRunsTable from '@/src/app/components/crawler-runs/crawler-runs-table';
 import { AuthGuard } from '@/src/app/components/guards/auth-guard';
 import { PermissionGuard } from '@/src/app/components/guards/permission-guard';
+import { createSetPageSearch } from '@/src/app/utils/set-page-search';
 import { useAuth } from '../contexts/AuthContext';
+import { validatePageSearch } from '../utils/validate-page-search';
 
 export const Route = createFileRoute('/crawler-runs')({
-	validateSearch: (search: Record<string, unknown>) => {
-		const raw = search.page;
-		const n = typeof raw === 'string' || typeof raw === 'number' ? Number(raw) : NaN;
-
-		const page = Number.isFinite(n) && n >= 2 ? Math.floor(n) : undefined;
-
-		return { page } as { page?: number };
-	},
+	validateSearch: validatePageSearch,
 	component: RouteComponent,
 });
 
@@ -24,17 +20,7 @@ function RouteComponent() {
 
 	const navigate = Route.useNavigate();
 
-	const setPage = (nextPage: number) => {
-		const p = Math.max(1, nextPage);
-
-		navigate({
-			search: (prev: { page?: number }) => ({
-				...prev,
-				// omit from URL on page 1
-				page: p >= 2 ? p : undefined,
-			}),
-		});
-	};
+	const setPage = useMemo(() => createSetPageSearch(navigate), [navigate]);
 
 	return (
 		<AuthGuard>
@@ -43,7 +29,11 @@ function RouteComponent() {
 				required={[{ action: 'read', subject: 'crawler-run', label: 'read crawler runs' }]}
 			>
 				<h1>Crawler Runs</h1>
-				<CrawlerRunList page={page} setPage={setPage} />
+				<p>
+					In the following table you can see all runs (finished and still running) sorted by
+					starting date.
+				</p>
+				<CrawlerRunsTable page={page} setPage={setPage} />
 			</PermissionGuard>
 		</AuthGuard>
 	);
