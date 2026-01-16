@@ -1,5 +1,5 @@
 import { Module } from '@nestjs/common';
-import { ArgoClientModule } from '../argo-client/argo-client.module';
+import { ArgoClientModule } from '../orchestrator-client/argo-client/argo-client.module';
 import { SchedulesModule } from '../schedules/schedules.module';
 import { OrchestratorSyncService } from './orchestrator-sync.service';
 

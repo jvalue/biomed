@@ -2,10 +2,10 @@
  * Mapper functions for argo
  */
 
-import { CrawlerRunDto } from '../../crawler-runs/dto/crawler-run.dto';
-import { CrawlerTemplateDto } from '../../crawler-templates/dto/crawler-template.dto';
-import { CursorBasedPaginationResponseDto } from '../../pagination/dto/cursor-based-pagination-response.dto';
-import { ScheduleDto } from '../../schedules/dto/schedule.dto';
+import { CrawlerRunDto } from '../../../crawler-runs/dto/crawler-run.dto';
+import { CrawlerTemplateDto } from '../../../crawler-templates/dto/crawler-template.dto';
+import { CursorBasedPaginationResponseDto } from '../../../pagination/dto/cursor-based-pagination-response.dto';
+import { ScheduleDto } from '../../../schedules/dto/schedule.dto';
 import { ArgoCursorPaginatedListDto } from '../dto/argo-cursor-paginated-list-dto';
 import { ArgoCronWorkflowDto } from '../dto/cron-workflows/argo-cron-workflow.dto';
 import { ArgoWorkflowRunDto } from '../dto/workflow-runs/argo-workflow-run.dto';

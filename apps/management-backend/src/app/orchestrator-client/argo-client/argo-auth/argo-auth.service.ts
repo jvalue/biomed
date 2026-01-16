@@ -1,7 +1,7 @@
 import { Injectable, Logger } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import * as fs from 'fs';
-import { EnvironmentVariables } from '../../env.validation';
+import { EnvironmentVariables } from '../../../env.validation';
 
 /**
  * Service to provide authentication token for Argo Client
