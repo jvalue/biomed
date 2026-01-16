@@ -29,7 +29,9 @@ For details on the shared FTP helpers and configuration, see [../../libs/crawler
 
 ```bash
 # From repository root, using the shared venv:
-uv run apps/crawler/crawler_general/main.py
+uv run apps/crawler/crawler_general/src/main.py
+
+uv run apps/crawler/crawler_dummy/src/main.py
 
 # Or activate the venv and run directly:
 source .venv/bin/activate
@@ -40,10 +42,12 @@ python apps/crawler/crawler_general/main.py
 - Build an image from the monorepo root (Dockerfile expects repo root context):
 
 ```zsh
-docker compose build biomed-crawler
+docker compose build crawler-general
+docker compose build crawler-dummy
 
 # run the container
-docker compose up biomed-crawler
+docker compose up crawler-general
+docker compose up crawler-dummy
 ```
 
 The `Dockerfile` installs `uv`, the shared `crawler-common` library and the app, then runs the sample script with `uv`:
