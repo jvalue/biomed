@@ -1,5 +1,5 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest';
-import { ArgoClientService } from '../../../argo-client/argo-client.service';
+import { ArgoClientService } from '../../../orchestrator-client/argo-client/argo-client.service';
 import { UserEntity } from '../../../users/entity/user.entity';
 import { CreateScheduleDto } from '../../dto/create-schedule.dto';
 import { ArgoScheduleEngine } from './argo-schedule.engine';

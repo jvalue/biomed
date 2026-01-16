@@ -1,9 +1,9 @@
 import 'reflect-metadata';
 import type { Repository } from 'typeorm';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
-import type { ArgoClientService } from '../argo-client/argo-client.service';
 import { TargetEntity } from '../health/targets/entity/target.entity';
 import type { TargetsService } from '../health/targets/targets.service';
+import { ArgoClientService } from '../orchestrator-client/argo-client/argo-client.service';
 import type { ScheduleParameterDto } from './dto/schedule.dto';
 import { ScheduleEntity } from './entity/schedule.entity';
 import type { IScheduleEngine } from './schedule-engine.interface';

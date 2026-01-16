@@ -1,7 +1,7 @@
 import { ApiProperty } from '@nestjs/swagger';
 import { Type } from 'class-transformer';
 import { IsDate, IsEnum, IsOptional, IsString } from 'class-validator';
-import { WorkflowPhaseEnum } from '../../argo-client/enums/workflow-phase.enum';
+import { WorkflowPhaseEnum } from '../../orchestrator-client/argo-client/enums/workflow-phase.enum';
 
 export class CrawlerRunDto {
 	@ApiProperty({ type: String, description: 'The name/id of the crawler run' })
