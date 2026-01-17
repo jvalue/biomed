@@ -1,5 +1,6 @@
-import { Column, Entity, JoinColumn, ManyToOne, PrimaryColumn } from 'typeorm';
+import { Column, Entity, JoinColumn, ManyToOne, OneToMany, PrimaryColumn } from 'typeorm';
 import { ScheduleEntity } from '../../../schedules/entity/schedule.entity';
+import { CrawlerRunEventEntity } from './crawler-run-event.entity';
 
 @Entity('crawler_run_metrics')
 export class CrawlerRunMetricEntity {
@@ -31,4 +32,11 @@ export class CrawlerRunMetricEntity {
 		comment: 'Number of cache hits during this crawler run (regarding datasets)',
 	})
 	cacheHits?: number;
+
+	@OneToMany(
+		() => CrawlerRunEventEntity,
+		(e) => e.run,
+		{ eager: false },
+	)
+	events?: CrawlerRunEventEntity[];
 }
