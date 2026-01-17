@@ -1,0 +1,18 @@
+import { ApiProperty } from '@nestjs/swagger';
+import { IsDateString, IsEnum, IsString } from 'class-validator';
+import { CrawlerRunEventTypeEnum } from '../../enums/crawler-run-event-type.enum';
+
+export class CrawlerRunEventIncomingDto {
+	@ApiProperty({ description: 'Type of the crawler run event' })
+	@IsEnum(CrawlerRunEventTypeEnum)
+	type!: CrawlerRunEventTypeEnum;
+
+	@ApiProperty({ description: 'Detailed message about the event' })
+	@IsString()
+	message!: string;
+
+	// TODO: test if it should be IsDateString
+	@ApiProperty({ description: 'Timestamp of the event' })
+	@IsDateString()
+	timestamp!: string;
+}
