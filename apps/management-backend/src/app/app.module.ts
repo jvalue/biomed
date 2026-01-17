@@ -13,6 +13,7 @@ import { validate } from './env.validation';
 import { HealthModule } from './health/health.module';
 import { TargetsModule } from './health/targets/targets.module';
 import { KubernetesClientModule } from './kubernetes-client/kubernetes-client.module';
+import { CrawlerRunMetricsModule } from './metrics/crawler-run-metrics/crawler-run-metrics.module';
 import { OrchestratorSyncModule } from './orchestrator-sync/orchestrator-sync.module';
 import { SchedulesModule } from './schedules/schedules.module';
 import { UsersModule } from './users/users.module';
@@ -37,6 +38,7 @@ import { UsersModule } from './users/users.module';
 		TargetsModule,
 		KubernetesClientModule,
 		OrchestratorSyncModule,
+		CrawlerRunMetricsModule,
 	],
 	controllers: [AppController],
 	providers: [AppService, AdminBootstrapService],
