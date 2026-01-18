@@ -36,6 +36,13 @@ export class CrawlerRunMetricEntity {
 	})
 	cacheHits?: number;
 
+	@Column({
+		type: 'int',
+		nullable: true,
+		comment: 'Progress of the crawler run (0-100)',
+	})
+	progress?: number;
+
 	@OneToMany(
 		() => CrawlerRunEventEntity,
 		(e) => e.run,

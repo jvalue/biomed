@@ -15,6 +15,7 @@ import { ScheduleErrors1767956657626 } from './migrations/1767956657626-Schedule
 import { RunMetrics1768636545550 } from './migrations/1768636545550-RunMetrics';
 import { RunEvents1768638111874 } from './migrations/1768638111874-RunEvents';
 import { RunIdentifierChange1768738597094 } from './migrations/1768738597094-RunIdentifierChange';
+import { AddedProgressToRunMetrics1768745187921 } from './migrations/1768745187921-AddedProgressToRunMetrics';
 import { ScheduleEntity } from './schedules/entity/schedule.entity';
 import { UserEntity } from './users/entity/user.entity';
 
@@ -56,6 +57,7 @@ export class DbConfigService implements TypeOrmOptionsFactory {
 				RunMetrics1768636545550,
 				RunEvents1768638111874,
 				RunIdentifierChange1768738597094,
+				AddedProgressToRunMetrics1768745187921,
 			],
 			logging: true,
 			logger: 'debug',
