@@ -1,0 +1,83 @@
+import { createFileRoute } from '@tanstack/react-router';
+import { useCrawlerRun } from '@/src/app/api/hooks/useCrawlerRun';
+import {
+	useCrawlerRunEvents,
+	useCrawlerRunMetrics,
+} from '@/src/app/api/hooks/useCrawlerRunMetrics';
+import { RunEventsSectionComponent } from '@/src/app/components/crawler-runs/run-events-section.component';
+import { RunInfoCardsComponent } from '@/src/app/components/crawler-runs/run-info-cards.component';
+import { RunMetricsSectionComponent } from '@/src/app/components/crawler-runs/run-metrics-section.component';
+import { Badge } from '@/src/app/components/design-components/badge';
+import { Spinner } from '@/src/app/components/design-components/spinner';
+import { getPhaseClass } from '../../components/crawler-runs/crawler-runs-utils';
+
+export const Route = createFileRoute('/crawler-runs/$crawlerRunNamespace/$crawlerRunId')({
+	component: RouteComponent,
+});
+
+function RouteComponent() {
+	const { crawlerRunNamespace, crawlerRunId } = Route.useParams();
+	const {
+		data: run,
+		isLoading: isLoadingRun,
+		error: runError,
+	} = useCrawlerRun(crawlerRunId, crawlerRunNamespace);
+	const {
+		data: metrics,
+		isLoading: isLoadingMetrics,
+		error: metricsError,
+	} = useCrawlerRunMetrics(crawlerRunId, crawlerRunNamespace);
+	const {
+		data: events,
+		isLoading: isLoadingEvents,
+		error: eventsError,
+	} = useCrawlerRunEvents(crawlerRunId, crawlerRunNamespace);
+
+	if (isLoadingRun) {
+		return (
+			<div className="flex min-h-[400px] items-center justify-center">
+				<Spinner className="size-10" />
+			</div>
+		);
+	}
+
+	if (runError || !run) {
+		return (
+			<div className="text-red-600">
+				Error loading crawler run: {runError?.message ?? 'Unknown error'}
+			</div>
+		);
+	}
+
+	return (
+		<div className="grid gap-8">
+			<div className="flex flex-col md:flex-row justify-between items-start gap-4">
+				<div>
+					<h1>{run.name}</h1>
+					<div className="mt-2 flex items-center gap-2">
+						<Badge variant="outline" className="text-xs font-medium">
+							{run.namespace}
+						</Badge>
+						<Badge className={`text-xs font-medium ${getPhaseClass(run.phase)}`}>{run.phase}</Badge>
+					</div>
+				</div>
+			</div>
+
+			<RunInfoCardsComponent
+				namespace={run.namespace}
+				crawlerTemplateName={run.crawlerTemplateName}
+				scheduleName={run.scheduleName}
+				startedAt={run.startedAt}
+				finishedAt={run.finishedAt}
+			/>
+
+			<RunMetricsSectionComponent
+				metrics={metrics}
+				isLoading={isLoadingMetrics}
+				error={metricsError}
+			/>
+
+			<RunEventsSectionComponent events={events} isLoading={isLoadingEvents} error={eventsError} />
+		</div>
+	);
+}
