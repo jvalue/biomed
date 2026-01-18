@@ -18,4 +18,9 @@ export const crawlerRunService = {
 		const { data } = await managementBackendClient.get(path);
 		return data;
 	},
+
+	getCrawlerRun: async (runId: string, runNamespace: string): Promise<CrawlerRunDto> => {
+		const { data } = await managementBackendClient.get(`crawler-runs/${runNamespace}/${runId}`);
+		return data;
+	},
 };
