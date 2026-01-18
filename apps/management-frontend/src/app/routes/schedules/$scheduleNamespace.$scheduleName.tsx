@@ -65,7 +65,7 @@ function RouteComponent() {
 		error: scheduleQueryError,
 	} = useScheduleByNameAndNamespace(scheduleName, scheduleNamespace);
 
-	if (scheduleQueryIsLoading) {
+	if (scheduleQueryIsLoading && !scheduleQueryError) {
 		return (
 			<div className="flex min-h-[400px] items-center justify-center">
 				<Spinner className="size-10" />
@@ -73,6 +73,15 @@ function RouteComponent() {
 		);
 	}
 	if (scheduleQueryError) {
+		// it has a response property with status
+		// @ts-expect-error
+		if (scheduleQueryError?.response?.status === 404) {
+			return (
+				<div className="text-red-600">
+					Schedule "{scheduleName}" in namespace "{scheduleNamespace}" not found.
+				</div>
+			);
+		}
 		return (
 			<div className="text-red-600">Error loading schedules: {scheduleQueryError.message}</div>
 		);
