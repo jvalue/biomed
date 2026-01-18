@@ -10,12 +10,18 @@ export class CrawlerRunEventEntity {
 	@Column({ name: 'run_id', type: 'varchar' })
 	runId!: string;
 
+	@Column({ name: 'run_namespace', type: 'varchar' })
+	runNamespace!: string;
+
 	@ManyToOne(
 		() => CrawlerRunMetricEntity,
 		(r) => r.events,
 		{ nullable: false, onDelete: 'CASCADE', eager: false },
 	)
-	@JoinColumn({ name: 'run_id', referencedColumnName: 'runId' })
+	@JoinColumn([
+		{ name: 'run_id', referencedColumnName: 'runId' },
+		{ name: 'run_namespace', referencedColumnName: 'runNamespace' },
+	])
 	run!: CrawlerRunMetricEntity;
 
 	// Type of the crawler run event

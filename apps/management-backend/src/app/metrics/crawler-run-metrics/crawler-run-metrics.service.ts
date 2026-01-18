@@ -21,13 +21,19 @@ export class CrawlerRunMetricsService {
 	/**
 	 * Save crawler run metric.
 	 * @param runId The ID of the crawler run.
+	 * @param runNamespace The namespace of the crawler run.
 	 * @param metric The metrics to save.
 	 */
-	async saveCrawlerRunMetric(runId: string, metric: CrawlerRunMetricsIncomingDto): Promise<void> {
-		this.logger.log(`Saving metrics for crawler run ${runId}`);
+	async saveCrawlerRunMetric(
+		runId: string,
+		runNamespace: string,
+		metric: CrawlerRunMetricsIncomingDto,
+	): Promise<void> {
+		this.logger.log(`Saving metrics for crawler run ${runId} in namespace ${runNamespace}`);
 		try {
 			await this.crawlerRunMetricsRepository.save({
 				runId,
+				runNamespace,
 				scheduleName: metric.scheduleName,
 				scheduleNamespace: metric.scheduleNamespace,
 				crawledDataSets: metric.crawledDataSets,
@@ -37,11 +43,13 @@ export class CrawlerRunMetricsService {
 			// If error is because of schedule foreign key not existing, throw a bad request error
 			if (error.code === '23503') {
 				this.logger.error(
-					`Failed to save metrics for crawler run ${runId}: Schedule with name ${metric.scheduleName} and namespace ${metric.scheduleNamespace} does not exist`,
+					`Failed to save metrics for crawler run ${runId} in namespace ${runNamespace}: Schedule with name ${metric.scheduleName} and namespace ${metric.scheduleNamespace} does not exist`,
 				);
 				throw new BadRequestException('Schedule does not exist');
 			}
-			this.logger.error(`Failed to save metrics for crawler run ${runId}: ${error.message}`);
+			this.logger.error(
+				`Failed to save metrics for crawler run ${runId} in namespace ${runNamespace}: ${error.message}`,
+			);
 			throw error;
 		}
 	}
@@ -49,23 +57,33 @@ export class CrawlerRunMetricsService {
 	/**
 	 * Get metrics by crawler run ID.
 	 * @param runId The ID of the crawler run.
+	 * @param runNamespace The namespace of the crawler run.
 	 * @returns The metrics for the specified crawler run, or null if not found.
 	 */
-	async getMetricsByRunId(runId: string): Promise<CrawlerRunMetricEntity | null> {
-		return this.crawlerRunMetricsRepository.findOne({ where: { runId } });
+	async getMetricsByRunId(
+		runId: string,
+		runNamespace: string,
+	): Promise<CrawlerRunMetricEntity | null> {
+		return this.crawlerRunMetricsRepository.findOne({ where: { runId, runNamespace } });
 	}
 
 	/**
 	 * Saves a crawler run event
 	 * @param runId The ID of the crawler run
+	 * @param runNamespace The namespace of the crawler run
 	 * @param event The event to store for the crawler run
 	 */
-	async saveCrawlerRunEvent(runId: string, event: CrawlerRunEventIncomingDto) {
-		this.logger.log(`Saving event for crawler run ${runId}`);
+	async saveCrawlerRunEvent(
+		runId: string,
+		runNamespace: string,
+		event: CrawlerRunEventIncomingDto,
+	) {
+		this.logger.log(`Saving event for crawler run ${runId} in namespace ${runNamespace}`);
 		// Ensure run already exists
-		await this.createEmptyCrawlerRunMetricIfDoesntExist(runId);
+		await this.createEmptyCrawlerRunMetricIfDoesntExist(runId, runNamespace);
 		await this.crawlerRunEventEntityRepository.save({
 			runId,
+			runNamespace,
 			type: event.type,
 			timestamp: event.timestamp,
 			message: event.message,
@@ -75,11 +93,15 @@ export class CrawlerRunMetricsService {
 	/**
 	 * Gets all events for a crawler run ordered by latest first
 	 * @param runId The ID of the crawler run
+	 * @param runNamespace The namespace of the crawler run
 	 * @returns The events for the specified crawler run
 	 */
-	async getCrawlerRunEvents(runId: string): Promise<CrawlerRunEventOutgoingDto[]> {
+	async getCrawlerRunEvents(
+		runId: string,
+		runNamespace: string,
+	): Promise<CrawlerRunEventOutgoingDto[]> {
 		const events = await this.crawlerRunEventEntityRepository.find({
-			where: { runId },
+			where: { runId, runNamespace },
 			order: { timestamp: 'DESC' },
 		});
 		// Map to outgoing DTO
@@ -93,19 +115,21 @@ export class CrawlerRunMetricsService {
 	/**
 	 * Creates an empty crawler run metric if it doesn't already exist
 	 * @param runId
+	 * @param runNamespace
 	 * @private
 	 */
-	private async createEmptyCrawlerRunMetricIfDoesntExist(runId: string) {
+	private async createEmptyCrawlerRunMetricIfDoesntExist(runId: string, runNamespace: string) {
 		try {
 			await this.crawlerRunMetricsRepository.insert({
 				runId,
+				runNamespace,
 			});
 		} catch (error) {
 			// If error is because of duplicate primary key error -> ignore as then the entity already exists, which
 			// is fine
 			if (error.code !== '23505') {
 				this.logger.error(
-					`Failed to create empty crawler run metric for run ID ${runId}: ${error.message}`,
+					`Failed to create empty crawler run metric for run ID ${runId} in namespace ${runNamespace}: ${error.message}`,
 				);
 				throw error;
 			}
