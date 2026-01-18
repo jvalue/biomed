@@ -8,6 +8,7 @@ import { RunEventsSectionComponent } from '@/src/app/components/crawler-runs/run
 import { RunInfoCardsComponent } from '@/src/app/components/crawler-runs/run-info-cards.component';
 import { RunMetricsSectionComponent } from '@/src/app/components/crawler-runs/run-metrics-section.component';
 import { Badge } from '@/src/app/components/design-components/badge';
+import ParameterSectionComponent from '@/src/app/components/design-components/parameterSection.component';
 import { Spinner } from '@/src/app/components/design-components/spinner';
 import { getPhaseClass } from '../../components/crawler-runs/crawler-runs-utils';
 
@@ -70,6 +71,8 @@ function RouteComponent() {
 				startedAt={run.startedAt}
 				finishedAt={run.finishedAt}
 			/>
+
+			<ParameterSectionComponent parameters={run.parameters} />
 
 			<RunMetricsSectionComponent
 				metrics={metrics}

@@ -1,3 +1,4 @@
+import { ParameterDto } from '@/src/app/api/dto/crawler-runs/parameter.dto';
 import {
 	Card,
 	CardContent,
@@ -6,12 +7,7 @@ import {
 	CardTitle,
 } from '@/src/app/components/design-components/card';
 
-type Parameter = {
-	name: string;
-	value: string;
-};
-
-export default function ParameterSectionComponent({ parameters }: { parameters?: Parameter[] }) {
+export default function ParameterSectionComponent({ parameters }: { parameters?: ParameterDto[] }) {
 	return (
 		<Card className="shadow-lg">
 			<CardHeader className="border-b">
