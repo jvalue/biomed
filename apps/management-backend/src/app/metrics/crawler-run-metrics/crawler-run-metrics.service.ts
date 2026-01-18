@@ -1,6 +1,7 @@
 import { BadRequestException, Injectable, Logger } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
+import { CrawlerRunMetricDto } from '../../../../../management-frontend/src/app/api/dto/crawler-runs/metrics/crawler-run-metric.dto';
 import { CrawlerRunEventIncomingDto } from './dto/incoming/crawler-run-event-incoming.dto';
 import { CrawlerRunMetricsIncomingDto } from './dto/incoming/crawler-run-metrics-incoming.dto';
 import { CrawlerRunEventOutgoingDto } from './dto/outgoing/crawler-run-event-outgoing.dto';
@@ -36,6 +37,7 @@ export class CrawlerRunMetricsService {
 				runNamespace,
 				scheduleName: metric.scheduleName,
 				scheduleNamespace: metric.scheduleNamespace,
+				progress: metric.progress,
 				crawledDataSets: metric.crawledDataSets,
 				cacheHits: metric.cacheHits,
 			});
@@ -63,7 +65,7 @@ export class CrawlerRunMetricsService {
 	async getMetricsByRunId(
 		runId: string,
 		runNamespace: string,
-	): Promise<CrawlerRunMetricEntity | null> {
+	): Promise<CrawlerRunMetricDto | null> {
 		return this.crawlerRunMetricsRepository.findOne({ where: { runId, runNamespace } });
 	}
 
