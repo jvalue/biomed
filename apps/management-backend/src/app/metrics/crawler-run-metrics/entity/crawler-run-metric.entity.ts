@@ -4,8 +4,11 @@ import { CrawlerRunEventEntity } from './crawler-run-event.entity';
 
 @Entity('crawler_run_metrics')
 export class CrawlerRunMetricEntity {
-	@PrimaryColumn()
+	@PrimaryColumn({ type: 'varchar' })
 	runId!: string;
+
+	@PrimaryColumn({ type: 'varchar' })
+	runNamespace!: string;
 
 	@Column({ type: 'varchar', nullable: true, name: 'schedule_name' })
 	scheduleName?: string;

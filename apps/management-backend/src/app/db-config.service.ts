@@ -14,6 +14,7 @@ import { ScheduleSuspendedFlag1767695540110 } from './migrations/1767695540110-S
 import { ScheduleErrors1767956657626 } from './migrations/1767956657626-ScheduleErrors';
 import { RunMetrics1768636545550 } from './migrations/1768636545550-RunMetrics';
 import { RunEvents1768638111874 } from './migrations/1768638111874-RunEvents';
+import { RunIdentifierChange1768738597094 } from './migrations/1768738597094-RunIdentifierChange';
 import { ScheduleEntity } from './schedules/entity/schedule.entity';
 import { UserEntity } from './users/entity/user.entity';
 
@@ -54,6 +55,7 @@ export class DbConfigService implements TypeOrmOptionsFactory {
 				ScheduleErrors1767956657626,
 				RunMetrics1768636545550,
 				RunEvents1768638111874,
+				RunIdentifierChange1768738597094,
 			],
 			logging: true,
 			logger: 'debug',
