@@ -147,10 +147,44 @@ export class ArgoClientService implements IOrchestratorClient {
 		);
 
 		// Enrich workflow runs started by cron workflows with the workflow template name
-		mappedResponse.data = await this.enrichWorkflowRunsWithCronWorkflowTemplateName(
-			mappedResponse.data,
+		mappedResponse.data = await Promise.all(
+			mappedResponse.data.map((run) => this.enrichWorkflowRunWithCronWorkflowTemplateName(run)),
 		);
 		return mappedResponse;
+	}
+
+	/**
+	 * Get a workflow run by name and namespace
+	 * @param name Name of the workflow run
+	 * @param namespace Namespace of the workflow run
+	 * @return The workflow run as CrawlerRunDto
+	 */
+	async getCrawlerRunByNameAndNamespace(
+		name: string,
+		namespace: string,
+	): Promise<CrawlerRunDto | null> {
+		this.logger.log(`Getting workflow ${name} from namespace ${namespace} from Argo Workflows API`);
+
+		const url = `/workflows/${namespace}/${name}`;
+
+		try {
+			const res = await this.http.get(url);
+			const workflowResponse: ArgoWorkflowRunDto = res.data;
+			this.logger.debug('Argo Workflows API response for workflow:', workflowResponse);
+
+			// Map ArgoWorkflowRunDto to CrawlerRunDto
+			const mappedRun = mapArgoWorkflowRunDtoToWorkflowRunDto(workflowResponse);
+
+			// Enrich single workflow run started by cron workflow with the workflow template name
+			return await this.enrichWorkflowRunWithCronWorkflowTemplateName(mappedRun);
+		} catch (err) {
+			if (err.response && err.response.status === 404) {
+				this.logger.log(`Workflow ${name} in namespace ${namespace} not found`);
+				return null;
+			}
+			this.logger.error(`Error getting workflow ${name} from namespace ${namespace}:`, err);
+			throw err;
+		}
 	}
 
 	/**
@@ -432,26 +466,17 @@ export class ArgoClientService implements IOrchestratorClient {
 	}
 
 	/**
-	 * Cron Workflows start workflow runs without setting the workflow template name label.
-	 * This method enriches the workflow runs with the correct workflow template name by looking up the cron
-	 * workflow for all of those cron workflow runs which haven't added the workflow template name by custom label.
-	 * @param runs Workflow runs to enrich
+	 * Enrich a single workflow run with the crawler template name by looking up the originating cron workflow
+	 * if the run originated from a cron workflow and doesn't already have the crawlerTemplateName set.
+	 * @param run single workflow run to enrich
 	 */
-	async enrichWorkflowRunsWithCronWorkflowTemplateName(
-		runs: CrawlerRunDto[],
-	): Promise<CrawlerRunDto[]> {
-		const enrichedRuns: CrawlerRunDto[] = [];
-
-		for (const run of runs) {
-			if (!run.crawlerTemplateName && run.scheduleName) {
-				const schedule = await this.getScheduleByNameAndNamespace(run.scheduleName, run.namespace);
-				if (schedule) {
-					run.crawlerTemplateName = schedule.crawlerTemplateName;
-				}
+	async enrichWorkflowRunWithCronWorkflowTemplateName(run: CrawlerRunDto): Promise<CrawlerRunDto> {
+		if (!run.crawlerTemplateName && run.scheduleName) {
+			const schedule = await this.getScheduleByNameAndNamespace(run.scheduleName, run.namespace);
+			if (schedule) {
+				run.crawlerTemplateName = schedule.crawlerTemplateName;
 			}
-			enrichedRuns.push(run);
 		}
-
-		return enrichedRuns;
+		return run;
 	}
 }
