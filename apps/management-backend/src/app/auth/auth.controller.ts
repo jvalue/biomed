@@ -1,5 +1,6 @@
 import { Body, Controller, Get, Post, Res, UseGuards } from '@nestjs/common';
 import {
+	ApiBody,
 	ApiConflictResponse,
 	ApiCreatedResponse,
 	ApiForbiddenResponse,
@@ -13,8 +14,10 @@ import { UserEntity } from '../users/entity/user.entity';
 import { AbilityFactory } from './ability-factory';
 import { AuthService } from './auth.service';
 import { CurrentUser } from './decorators/current-user.decorator';
+import { RequirePermission } from './decorators/require-permission.decorator';
 import { LoginDataDto } from './dto/login-data.dto';
 import { JwtAuthGuard } from './guards/jwt-auth.guard';
+import { PermissionsGuard } from './guards/permissions.guard';
 
 @Controller('auth')
 export class AuthController {
@@ -63,5 +66,18 @@ export class AuthController {
 			},
 			abilityRules: this.abilityFactory.serializeAbility(user),
 		};
+	}
+
+	@ApiOperation({ summary: 'Generate a new API Key for Machines' })
+	@ApiCreatedResponse({
+		description: 'API Key generated successfully, Please store the key safely',
+	})
+	@ApiForbiddenResponse({ description: 'Insufficient permissions' })
+	@UseGuards(JwtAuthGuard, PermissionsGuard)
+	@RequirePermission('create', 'user')
+	@Post('apiKey')
+	@ApiBody({ schema: { type: 'object', properties: { description: { type: 'string' } } } })
+	async generateApiKey(@Body('description') description: string, @CurrentUser() user: UserEntity) {
+		return this.authService.createApiKey(user, description);
 	}
 }

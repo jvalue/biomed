@@ -2,6 +2,7 @@ import { Injectable } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import { TypeOrmModuleOptions, TypeOrmOptionsFactory } from '@nestjs/typeorm';
 import { DataSourceOptions } from 'typeorm';
+import { ApiKeyEntity } from './auth/entity/api-key.entity';
 import { DemoEntity } from './demo/entity/demo.entity';
 import { EnvironmentVariables } from './env.validation';
 import { TargetEntity } from './health/targets/entity/target.entity';
@@ -16,6 +17,7 @@ import { RunMetrics1768636545550 } from './migrations/1768636545550-RunMetrics';
 import { RunEvents1768638111874 } from './migrations/1768638111874-RunEvents';
 import { RunIdentifierChange1768738597094 } from './migrations/1768738597094-RunIdentifierChange';
 import { AddedProgressToRunMetrics1768745187921 } from './migrations/1768745187921-AddedProgressToRunMetrics';
+import { ApiKeys1768820430974 } from './migrations/1768820430974-ApiKeys';
 import { ScheduleEntity } from './schedules/entity/schedule.entity';
 import { UserEntity } from './users/entity/user.entity';
 
@@ -42,7 +44,7 @@ export class DbConfigService implements TypeOrmOptionsFactory {
 				TargetEntity,
 				CrawlerRunMetricEntity,
 				CrawlerRunEventEntity,
-				CrawlerRunEventEntity,
+				ApiKeyEntity,
 			],
 			metadataTableName: 'typeorm_metadata_biomed',
 
@@ -58,6 +60,7 @@ export class DbConfigService implements TypeOrmOptionsFactory {
 				RunEvents1768638111874,
 				RunIdentifierChange1768738597094,
 				AddedProgressToRunMetrics1768745187921,
+				ApiKeys1768820430974,
 			],
 			logging: true,
 			logger: 'debug',
