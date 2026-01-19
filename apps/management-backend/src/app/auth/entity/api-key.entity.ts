@@ -1,4 +1,11 @@
-import { Column, CreateDateColumn, Entity, JoinColumn, ManyToOne, PrimaryGeneratedColumn, } from 'typeorm';
+import {
+	Column,
+	CreateDateColumn,
+	Entity,
+	JoinColumn,
+	ManyToOne,
+	PrimaryGeneratedColumn,
+} from 'typeorm';
 import { UserEntity } from '../../users/entity/user.entity';
 
 @Entity('api_keys')
@@ -24,7 +31,7 @@ export class ApiKeyEntity {
 	@Column({ nullable: true, type: 'timestamp' })
 	lastUsedAt: Date;
 
-	@Column({ name: 'created_by_id' , type: 'varchar'})
+	@Column({ name: 'created_by_id', type: 'varchar' })
 	createdById: string;
 
 	@ManyToOne(() => UserEntity, { nullable: true, onDelete: 'NO ACTION' })
