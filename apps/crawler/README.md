@@ -1,19 +1,34 @@
-**Crawler Apps**
+# Crawler Apps
 
-Two Python apps share the `crawler-common` library:
-- `crawler_general` (FTP-focused demo)
-- `crawler_dummy` (minimal skeleton for experiments)
+Two Python crawler applications that share the `crawler-common` library:
+- **crawler_general** - FTP-focused demo crawler for biomedical data sources
+- **crawler_dummy** - Minimal skeleton for experiments
 
-Shared helpers live in ../../libs/crawler-common.
+Both apps use shared FTP helpers and configuration from `libs/crawler-common`.
 
-**Setup**
+## Biomedical Data Sources
 
-From repo root, create the shared venv and install all members:
+- [NCBI FTP Site](https://ftp.ncbi.nlm.nih.gov/)
+- [EBI Data Services](https://www.ebi.ac.uk/services)
+- [NCBI E-utilities API](https://www.ncbi.nlm.nih.gov/books/NBK25501/)
+- [UniProt REST API](https://www.uniprot.org/help/api)
+
+## Setup
+
+From repository root, create the shared venv and install all workspace members:
+
 ```bash
 uv sync
 ```
 
-**Run locally**
+This creates a shared `.venv/` at the workspace root containing:
+- `crawler-common` (shared library from `libs/crawler-common`)
+- `crawler_general` and `crawler_dummy` (crawler apps)
+- All Python dependencies for the projects
+
+For details on shared FTP helpers and configuration, see [libs/crawler-common/README.md](../../libs/crawler-common/README.md).
+
+## Run Locally
 
 ```bash
 # crawler_general
@@ -23,9 +38,12 @@ uv run apps/crawler/crawler_general/src/main.py
 uv run apps/crawler/crawler_dummy/src/main.py
 ```
 
-**Docker**
+The `crawler_general` app loads credentials from `.env` and lists root folders from the configured FTP server.
+
+## Docker
 
 Build and run each service from the repo root (Dockerfiles expect root context):
+
 ```bash
 # crawler_general
 docker compose build --no-cache crawler-general
@@ -36,16 +54,27 @@ docker compose build --no-cache crawler-dummy
 docker compose up crawler-dummy
 ```
 
-Containers mount libs/crawler-common for live code changes; crawler_general also mounts its app directory. If you prefer immutable images, remove the volume mounts in ../../docker-compose.yml.
+Containers mount `libs/crawler-common` for live code changes; `crawler_general` also mounts its app directory. If you prefer immutable images, remove the volume mounts in `docker-compose.yml`.
 
-**Tests**
+The Dockerfiles install `uv`, the shared `crawler-common` library, and the apps system-wide (no venv inside containers for isolation).
+
+## Tests
 
 ```bash
-uv run pytest libs/crawler-common/tests
+# Test the crawler apps
 uv run pytest apps/crawler/tests
+
+# Test the shared library
+uv run pytest libs/crawler-common/tests
+
+# With coverage
+uv run pytest apps/crawler/tests --cov
 ```
 
-**Notes**
-- Python 3.13 via uv workspace; run uv sync after changing dependencies.
-- Entrypoints: crawler_general/src/main.py, crawler_dummy/src/main.py.
-- Docker images install deps system-wide (no venv inside containers).
+## Notes
+
+- **Python 3.13** via uv workspace - `uv` automatically downloads and manages the correct Python version
+- Run `uv sync` from repo root whenever dependencies change in any `pyproject.toml`
+- Entrypoints: `crawler_general/src/main.py`, `crawler_dummy/src/main.py`
+- Root `pyproject.toml` defines workspace members and pins Python version
+- Docker images install packages system-wide for container isolation
