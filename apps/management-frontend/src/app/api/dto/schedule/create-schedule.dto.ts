@@ -1,4 +1,5 @@
-import { RetryStrategyDto, ScheduleParameterDto } from './schedule.dto';
+import { ParameterDto } from '@/src/app/api/dto/crawler-runs/parameter.dto';
+import { RetryStrategyDto } from './schedule.dto';
 
 export class CreateScheduleDto {
 	name!: string;
@@ -9,7 +10,7 @@ export class CreateScheduleDto {
 
 	crawlerTemplateName!: string;
 
-	parameters?: ScheduleParameterDto[];
+	parameters?: ParameterDto[];
 
 	retryStrategy?: RetryStrategyDto;
 }
