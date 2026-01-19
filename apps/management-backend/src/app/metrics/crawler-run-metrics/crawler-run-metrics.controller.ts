@@ -5,8 +5,10 @@ import {
 	ApiOkResponse,
 	ApiOperation,
 	ApiParam,
+	ApiSecurity,
 } from '@nestjs/swagger';
 import { RequirePermission } from '../../auth/decorators/require-permission.decorator';
+import { ApiKeyAuthGuard } from '../../auth/guards/api-key-auth.guard';
 import { JwtAuthGuard } from '../../auth/guards/jwt-auth.guard';
 import { PermissionsGuard } from '../../auth/guards/permissions.guard';
 import { CrawlerRunMetricsService } from './crawler-run-metrics.service';
@@ -15,7 +17,6 @@ import { CrawlerRunMetricsIncomingDto } from './dto/incoming/crawler-run-metrics
 import { CrawlerRunEventOutgoingDto } from './dto/outgoing/crawler-run-event-outgoing.dto';
 import { CrawlerRunMetricsOutgoingDto } from './dto/outgoing/crawler-run-metrics-outgoing.dto';
 
-// TODO: how to deal with auth here
 @Controller('metrics/crawler-run')
 export class CrawlerRunMetricsController {
 	constructor(private readonly crawlerRunMetricsService: CrawlerRunMetricsService) {}
@@ -26,6 +27,8 @@ export class CrawlerRunMetricsController {
 	@ApiParam({ name: 'crawlerRunNamespace', description: 'The namespace of the crawler run' })
 	@ApiBody({ type: CrawlerRunMetricsIncomingDto })
 	@Post(':crawlerRunNamespace/:crawlerRunId')
+	@ApiSecurity('api-key')
+	@UseGuards(ApiKeyAuthGuard)
 	async saveCrawlerRunMetrics(
 		@Param('crawlerRunId') crawlerRunId: string,
 		@Param('crawlerRunNamespace') runNamespace: string,
@@ -57,6 +60,8 @@ export class CrawlerRunMetricsController {
 	@ApiParam({ name: 'crawlerRunNamespace', description: 'The namespace of the crawler run' })
 	@ApiBody({ type: CrawlerRunEventIncomingDto })
 	@Post(':crawlerRunNamespace/:crawlerRunId/event')
+	@ApiSecurity('api-key')
+	@UseGuards(ApiKeyAuthGuard)
 	async saveCrawlerRunEvent(
 		@Param('crawlerRunId') crawlerRunId: string,
 		@Param('crawlerRunNamespace') runNamespace: string,
