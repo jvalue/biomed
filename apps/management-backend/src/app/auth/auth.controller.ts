@@ -1,4 +1,4 @@
-import { Body, Controller, Get, Post, Res, UseGuards } from '@nestjs/common';
+import { Body, Controller, Delete, Get, Param, Post, Res, UseGuards } from '@nestjs/common';
 import {
 	ApiBody,
 	ApiConflictResponse,
@@ -7,6 +7,7 @@ import {
 	ApiNotFoundResponse,
 	ApiOkResponse,
 	ApiOperation,
+	ApiParam,
 	ApiUnauthorizedResponse,
 } from '@nestjs/swagger';
 import type { Response } from 'express';
@@ -15,6 +16,7 @@ import { AbilityFactory } from './ability-factory';
 import { AuthService } from './auth.service';
 import { CurrentUser } from './decorators/current-user.decorator';
 import { RequirePermission } from './decorators/require-permission.decorator';
+import { ApiKeySafeDto } from './dto/api-key-safe.dto';
 import { LoginDataDto } from './dto/login-data.dto';
 import { JwtAuthGuard } from './guards/jwt-auth.guard';
 import { PermissionsGuard } from './guards/permissions.guard';
@@ -75,9 +77,30 @@ export class AuthController {
 	@ApiForbiddenResponse({ description: 'Insufficient permissions' })
 	@UseGuards(JwtAuthGuard, PermissionsGuard)
 	@RequirePermission('create', 'user')
-	@Post('apiKey')
+	@Post('apikeys')
 	@ApiBody({ schema: { type: 'object', properties: { description: { type: 'string' } } } })
 	async generateApiKey(@Body('description') description: string, @CurrentUser() user: UserEntity) {
 		return this.authService.createApiKey(user, description);
+	}
+
+	@ApiOperation({ summary: 'Revoke an existing API Key' })
+	@ApiOkResponse({ description: 'API Key revoked successfully' })
+	@ApiForbiddenResponse({ description: 'Insufficient permissions' })
+	@ApiParam({ name: 'id', description: 'API Key ID to revoke' })
+	@UseGuards(JwtAuthGuard, PermissionsGuard)
+	@RequirePermission('block', 'user')
+	@Delete('apikeys/:id')
+	async revokeApiKey(@Param('id') apiKeyId: string) {
+		return this.authService.deactivateApiKey(apiKeyId);
+	}
+
+	@ApiOperation({ summary: 'List all API Keys' })
+	@ApiOkResponse({ description: 'List of API Keys retrieved successfully', type: [ApiKeySafeDto] })
+	@ApiForbiddenResponse({ description: 'Insufficient permissions' })
+	@UseGuards(JwtAuthGuard, PermissionsGuard)
+	@RequirePermission('read', 'user')
+	@Get('apikeys')
+	async listApiKeys() {
+		return this.authService.getAllApiKeys();
 	}
 }

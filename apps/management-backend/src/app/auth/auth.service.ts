@@ -13,6 +13,7 @@ import { Repository } from 'typeorm';
 import { UserEntity } from '../users/entity/user.entity';
 import { UsersService } from '../users/users.service';
 import { AbilityFactory } from './ability-factory';
+import { ApiKeySafeDto } from './dto/api-key-safe.dto';
 import { AuthResponseDto } from './dto/auth-response.dto';
 import { LoginDataDto } from './dto/login-data.dto';
 import { ApiKeyEntity } from './entity/api-key.entity';
@@ -109,7 +110,7 @@ export class AuthService {
 
 		const prefix = rawKey.substring(0, 15);
 
-		const apiKey = this.apiKeyRepository.create({
+		await this.apiKeyRepository.save({
 			hash: hash,
 			prefix: prefix,
 			description,
@@ -118,9 +119,31 @@ export class AuthService {
 			lastUsedAt: new Date(),
 		});
 
-		await this.apiKeyRepository.save(apiKey);
-
 		return rawKey;
+	}
+
+	/**
+	 * Deactivates an API key
+	 * @param apiKeyId
+	 */
+	async deactivateApiKey(apiKeyId: string): Promise<void> {
+		await this.apiKeyRepository.update(apiKeyId, { isActive: false });
+	}
+
+	/**
+	 * Get all API Keys safely (only prefixes)
+	 */
+	async getAllApiKeys(): Promise<ApiKeySafeDto[]> {
+		const apiKeys = await this.apiKeyRepository.find();
+		return apiKeys.map((key) => ({
+			id: key.id,
+			prefix: key.prefix,
+			description: key.description,
+			isActive: key.isActive,
+			createdAt: key.createdAt,
+			lastUsedAt: key.lastUsedAt,
+			createdBy: key.createdBy,
+		}));
 	}
 
 	/**
