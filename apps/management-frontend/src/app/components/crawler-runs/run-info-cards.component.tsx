@@ -1,4 +1,5 @@
 import { useNavigate } from '@tanstack/react-router';
+import { formatDurationSeconds } from '@/src/app/utils/formatDuration';
 import { Card, CardDescription, CardHeader, CardTitle } from '../design-components/card';
 
 interface RunInfoCardsProps {
@@ -77,7 +78,9 @@ export function RunInfoCardsComponent({
 								<CardDescription className="text-xs uppercase tracking-wide">
 									Duration
 								</CardDescription>
-								<CardTitle className="text-xl font-semibold">{duration} seconds</CardTitle>
+								<CardTitle className="text-xl font-semibold">
+									{formatDurationSeconds(duration)}
+								</CardTitle>
 							</div>
 						)}
 					</div>

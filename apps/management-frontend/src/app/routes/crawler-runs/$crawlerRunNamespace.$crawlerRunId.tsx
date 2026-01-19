@@ -34,6 +34,11 @@ function RouteComponent() {
 		error: eventsError,
 	} = useCrawlerRunEvents(crawlerRunId, crawlerRunNamespace);
 
+	const durationSeconds =
+		run?.finishedAt && run?.startedAt
+			? Math.round((new Date(run.finishedAt).getTime() - new Date(run.startedAt).getTime()) / 1000)
+			: undefined;
+
 	if (isLoadingRun) {
 		return (
 			<div className="flex min-h-[400px] items-center justify-center">
@@ -75,6 +80,7 @@ function RouteComponent() {
 			<ParameterSectionComponent parameters={run.parameters} />
 
 			<RunMetricsSectionComponent
+				durationSeconds={durationSeconds}
 				metrics={metrics}
 				isLoading={isLoadingMetrics}
 				error={metricsError}

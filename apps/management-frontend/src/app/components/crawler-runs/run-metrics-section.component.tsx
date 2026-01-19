@@ -15,12 +15,18 @@ interface MetricsData {
 }
 
 interface RunMetricsSectionProps {
+	durationSeconds?: number;
 	metrics?: MetricsData;
 	isLoading: boolean;
 	error: Error | null;
 }
 
-export function RunMetricsSectionComponent({ metrics, isLoading, error }: RunMetricsSectionProps) {
+export function RunMetricsSectionComponent({
+	durationSeconds,
+	metrics,
+	isLoading,
+	error,
+}: RunMetricsSectionProps) {
 	if (isLoading) {
 		return (
 			<Card className="shadow-lg">
@@ -104,6 +110,16 @@ export function RunMetricsSectionComponent({ metrics, isLoading, error }: RunMet
 								Cache Hits
 							</p>
 							<p className="text-xl font-semibold">{metrics.cacheHits}</p>
+						</div>
+					)}
+					{durationSeconds && metrics.crawledDataSets !== undefined && (
+						<div>
+							<p className="text-xs uppercase tracking-wide text-muted-foreground mb-2">
+								Data Sets per Second
+							</p>
+							<p className="text-xl font-semibold">
+								{(metrics.crawledDataSets / durationSeconds).toFixed(2)}
+							</p>
 						</div>
 					)}
 					{metrics.cacheHits !== undefined && metrics.crawledDataSets !== undefined && (
