@@ -12,12 +12,13 @@ services:
   crawler-general:
     build:
       context: .
-      dockerfile: apps/crawler/Dockerfile
-    working_dir: /app
-    command: python crawler_general/main.py
-    volumes:
-      - ./apps/crawler:/app
-      - ./libs/crawler-common:/app/libs/crawler-common
+      dockerfile: apps/crawler/crawler_general/Dockerfile
+
+  crawler-dummy:
+    build:
+      context: .
+      dockerfile: apps/crawler/crawler_dummy/Dockerfile
+
 
   management-backend:
     image: management-backend
