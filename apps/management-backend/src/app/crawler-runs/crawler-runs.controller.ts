@@ -102,7 +102,7 @@ export class CrawlerRunsController {
 	@ApiParam({ name: 'runId', description: 'The ID of the crawler run' })
 	@ApiParam({ name: 'runNamespace', description: 'The namespace of the crawler run' })
 	@ApiBody({ type: CrawlerRunEventIncomingDto })
-	@Post(':runNamespace/:runId/event')
+	@Post(':runNamespace/:runId/events')
 	@ApiSecurity('api-key')
 	@UseGuards(ApiKeyAuthGuard)
 	async saveCrawlerRunEvent(
