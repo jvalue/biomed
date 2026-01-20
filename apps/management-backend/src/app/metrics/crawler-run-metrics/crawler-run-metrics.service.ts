@@ -1,7 +1,7 @@
 import { Injectable, Logger } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
-import { GetScheduleHistoricalMetricsQueryDto } from '../../schedules/dto/get-schedule-historical-metrics-query.dto';
+import { HistoricalMetricsQueryDto } from '../../schedules/dto/historical-metrics-query.dto';
 import { ScheduleHistoricalMetricsItemDto } from '../../schedules/dto/schedule-historical-metrics-item.dto';
 import { CrawlerRunEventIncomingDto } from './dto/incoming/crawler-run-event-incoming.dto';
 import { CrawlerRunMetricsIncomingDto } from './dto/incoming/crawler-run-metrics-incoming.dto';
@@ -121,7 +121,7 @@ export class CrawlerRunMetricsService {
 	async getHistoricalScheduleMetrics(
 		scheduleName: string,
 		scheduleNamespace: string,
-		queryDto: GetScheduleHistoricalMetricsQueryDto,
+		queryDto: HistoricalMetricsQueryDto,
 	): Promise<ScheduleHistoricalMetricsItemDto[]> {
 		const { from, to } = queryDto;
 		const endDate = to ? new Date(to) : new Date();
