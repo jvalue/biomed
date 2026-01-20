@@ -3,6 +3,7 @@ import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
 import { HistoricalMetricsQueryDto } from '../../schedules/dto/historical-metrics-query.dto';
 import { ScheduleHistoricalMetricsItemDto } from '../../schedules/dto/schedule-historical-metrics-item.dto';
+import { ScheduleOverallMetricsDto } from '../../schedules/dto/schedule-overall-metrics.dto';
 import { CrawlerRunEventIncomingDto } from './dto/incoming/crawler-run-event-incoming.dto';
 import { CrawlerRunMetricsIncomingDto } from './dto/incoming/crawler-run-metrics-incoming.dto';
 import { CrawlerRunEventOutgoingDto } from './dto/outgoing/crawler-run-event-outgoing.dto';
@@ -167,6 +168,36 @@ export class CrawlerRunMetricsService {
 				newDatasetsPercentage: Number(percentage.toFixed(4)),
 			};
 		});
+	}
+
+	/**
+	 * Get overall aggregated metrics for a schedule across all time.
+	 * @param scheduleName The name of the schedule.
+	 * @param scheduleNamespace The namespace of the schedule.
+	 * @returns The overall metrics for the schedule.
+	 */
+	async getOverallScheduleMetrics(
+		scheduleName: string,
+		scheduleNamespace: string,
+	): Promise<ScheduleOverallMetricsDto> {
+		const qb = this.crawlerRunMetricsRepository
+			.createQueryBuilder('m')
+			.select('SUM(COALESCE(m.crawledDataSets, 0))', 'totalCrawled')
+			.addSelect('SUM(COALESCE(m.cacheHits, 0))', 'totalCacheHits')
+			.where('m.schedule_name = :name', { name: scheduleName })
+			.andWhere('m.schedule_namespace = :namespace', { namespace: scheduleNamespace });
+
+		const raw = await qb.getRawOne();
+		const totalCrawled = Number(raw?.totalcrawled || raw?.totalCrawled || 0);
+		const totalCacheHits = Number(raw?.totalcachehits || raw?.totalCacheHits || 0);
+		const totalNew = Math.max(0, totalCrawled - totalCacheHits);
+		const percentage = totalCrawled > 0 ? totalNew / totalCrawled : 0;
+
+		return {
+			totalCrawledDataSets: totalCrawled,
+			totalNewDataSets: totalNew,
+			totalNewDataSetsPercentage: Number(percentage.toFixed(4)),
+		};
 	}
 
 	/**
