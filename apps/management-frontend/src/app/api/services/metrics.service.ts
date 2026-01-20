@@ -5,13 +5,13 @@ import { managementBackendClient } from '../management-backend-client';
 export const metricsService = {
 	getCrawlerRunMetrics: async (runId: string, runNamespace: string) => {
 		return managementBackendClient
-			.get<CrawlerRunMetricDto>(`/metrics/crawler-run/${runNamespace}/${runId}`)
+			.get<CrawlerRunMetricDto>(`/crawler-runs/${runNamespace}/${runId}/metrics`)
 			.then((response) => response.data);
 	},
 
 	getCrawlerRunEvents: async (runId: string, runNamespace: string) => {
 		return managementBackendClient
-			.get<CrawlerRunEventDto[]>(`/metrics/crawler-run/${runNamespace}/${runId}/events`)
+			.get<CrawlerRunEventDto[]>(`/crawler-runs/${runNamespace}/${runId}/events`)
 			.then((response) => response.data);
 	},
 };
