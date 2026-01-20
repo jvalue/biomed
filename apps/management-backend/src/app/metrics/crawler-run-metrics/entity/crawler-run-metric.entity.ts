@@ -43,6 +43,12 @@ export class CrawlerRunMetricEntity {
 	})
 	progress?: number;
 
+	@Column({
+		type: 'timestamp',
+		nullable: true,
+	})
+	runStartedAt?: Date;
+
 	@OneToMany(
 		() => CrawlerRunEventEntity,
 		(e) => e.run,
