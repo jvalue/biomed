@@ -65,7 +65,7 @@ export function RunMetricsSectionComponent({
 			</CardHeader>
 			<CardContent className="pt-6">
 				<div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-6">
-					{metrics.progress !== undefined && (
+					{(metrics.progress || metrics.progress === 0) && (
 						<div>
 							<p className="text-xs uppercase tracking-wide text-muted-foreground mb-3">
 								Discovery Progress
@@ -96,7 +96,7 @@ export function RunMetricsSectionComponent({
 					</div>
 				</div>
 				<div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-					{metrics.crawledDataSets !== undefined && (
+					{(metrics.crawledDataSets || metrics.crawledDataSets === 0) && (
 						<div>
 							<p className="text-xs uppercase tracking-wide text-muted-foreground mb-2">
 								Crawled Data Sets
@@ -104,7 +104,7 @@ export function RunMetricsSectionComponent({
 							<p className="text-xl font-semibold">{metrics.crawledDataSets}</p>
 						</div>
 					)}
-					{metrics.cacheHits !== undefined && (
+					{(metrics.cacheHits || metrics.cacheHits === 0) && (
 						<div>
 							<p className="text-xs uppercase tracking-wide text-muted-foreground mb-2">
 								Cache Hits
@@ -112,26 +112,29 @@ export function RunMetricsSectionComponent({
 							<p className="text-xl font-semibold">{metrics.cacheHits}</p>
 						</div>
 					)}
-					{durationSeconds && metrics.crawledDataSets !== undefined && (
-						<div>
-							<p className="text-xs uppercase tracking-wide text-muted-foreground mb-2">
-								Data Sets per Second
-							</p>
-							<p className="text-xl font-semibold">
-								{(metrics.crawledDataSets / durationSeconds).toFixed(2)}
-							</p>
-						</div>
-					)}
-					{metrics.cacheHits !== undefined && metrics.crawledDataSets !== undefined && (
-						<div>
-							<p className="text-xs uppercase tracking-wide text-muted-foreground mb-2">
-								New discovered Data Sets
-							</p>
-							<p className="text-xl font-semibold text-primary">
-								{metrics.crawledDataSets - metrics.cacheHits}
-							</p>
-						</div>
-					)}
+					{durationSeconds &&
+						durationSeconds !== 0 &&
+						(metrics.crawledDataSets || metrics.crawledDataSets === 0) && (
+							<div>
+								<p className="text-xs uppercase tracking-wide text-muted-foreground mb-2">
+									Data Sets per Second
+								</p>
+								<p className="text-xl font-semibold">
+									{(metrics.crawledDataSets / durationSeconds).toFixed(2)}
+								</p>
+							</div>
+						)}
+					{(metrics.crawledDataSets || metrics.crawledDataSets === 0) &&
+						(metrics.cacheHits || metrics.cacheHits === 0) && (
+							<div>
+								<p className="text-xs uppercase tracking-wide text-muted-foreground mb-2">
+									New discovered Data Sets
+								</p>
+								<p className="text-xl font-semibold text-primary">
+									{metrics.crawledDataSets - metrics.cacheHits}
+								</p>
+							</div>
+						)}
 				</div>
 			</CardContent>
 		</Card>
