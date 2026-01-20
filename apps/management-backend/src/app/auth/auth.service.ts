@@ -134,7 +134,10 @@ export class AuthService {
 	 * Get all API Keys safely (only prefixes)
 	 */
 	async getAllApiKeys(): Promise<ApiKeySafeDto[]> {
-		const apiKeys = await this.apiKeyRepository.find();
+		// Find with select to avoid returning sensitive data
+		const apiKeys = await this.apiKeyRepository.find({
+			select: ['id', 'prefix', 'description', 'isActive', 'createdAt', 'lastUsedAt'],
+		});
 		return apiKeys.map((key) => ({
 			id: key.id,
 			prefix: key.prefix,
@@ -142,7 +145,6 @@ export class AuthService {
 			isActive: key.isActive,
 			createdAt: key.createdAt,
 			lastUsedAt: key.lastUsedAt,
-			createdBy: key.createdBy,
 		}));
 	}
 

@@ -77,7 +77,6 @@ export class CrawlerRunMetricsController {
 		description: 'Events retrieved successfully for the crawler run',
 		type: [CrawlerRunEventOutgoingDto],
 	})
-	@ApiOperation({ summary: 'Get events for a specific crawler run' })
 	@UseGuards(JwtAuthGuard, PermissionsGuard)
 	@RequirePermission('read', 'crawler-run')
 	@Get(':crawlerRunNamespace/:crawlerRunId/events')

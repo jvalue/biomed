@@ -157,7 +157,7 @@ export class ArgoClientService implements IOrchestratorClient {
 	 * Get a workflow run by name and namespace
 	 * @param name Name of the workflow run
 	 * @param namespace Namespace of the workflow run
-	 * @return The workflow run as CrawlerRunDto
+	 * @return The workflow run as CrawlerRunDto or null if not found
 	 */
 	async getCrawlerRunByNameAndNamespace(
 		name: string,

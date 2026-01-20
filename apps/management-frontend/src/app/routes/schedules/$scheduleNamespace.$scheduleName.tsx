@@ -1,5 +1,6 @@
 import { Can } from '@casl/react';
 import { createFileRoute } from '@tanstack/react-router';
+import { AxiosError } from 'axios';
 import React, { useMemo } from 'react';
 import { toast } from 'react-toastify';
 import {
@@ -74,8 +75,7 @@ function RouteComponent() {
 	}
 	if (scheduleQueryError) {
 		// it has a response property with status
-		// @ts-expect-error
-		if (scheduleQueryError?.response?.status === 404) {
+		if (scheduleQueryError instanceof AxiosError && scheduleQueryError.response?.status === 404) {
 			return (
 				<div className="text-red-600">
 					Schedule "{scheduleName}" in namespace "{scheduleNamespace}" not found.
