@@ -25,7 +25,7 @@ export default function ScheduleMetricsSummaryComponent({
 
 	if (isLoading) {
 		return (
-			<Card className="shadow-sm">
+			<Card className="shadow-lg">
 				<CardHeader className="pb-3">
 					<CardTitle className="text-xl">Metrics Overview</CardTitle>
 					<CardDescription>Overall statistics across all crawler runs</CardDescription>
@@ -39,7 +39,7 @@ export default function ScheduleMetricsSummaryComponent({
 
 	if (error || !metrics || metrics.totalCrawledDataSets === 0) {
 		return (
-			<Card className="shadow-sm">
+			<Card className="shadow-lg">
 				<CardHeader className="pb-3">
 					<CardTitle className="text-xl">Metrics Overview</CardTitle>
 					<CardDescription>Overall statistics across all crawler runs</CardDescription>
@@ -54,7 +54,7 @@ export default function ScheduleMetricsSummaryComponent({
 	const percentageFormatted = (metrics.totalNewDataSetsPercentage * 100).toFixed(1);
 
 	return (
-		<Card className="shadow-sm">
+		<Card className="shadow-lg">
 			<CardHeader className="pb-3">
 				<CardTitle className="text-xl">Metrics Overview</CardTitle>
 				<CardDescription>Overall statistics across all crawler runs</CardDescription>
