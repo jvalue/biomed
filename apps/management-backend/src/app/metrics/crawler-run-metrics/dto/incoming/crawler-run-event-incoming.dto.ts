@@ -11,7 +11,6 @@ export class CrawlerRunEventIncomingDto {
 	@IsString()
 	message!: string;
 
-	// TODO: test if it should be IsDateString
 	@ApiProperty({ description: 'Timestamp of the event' })
 	@IsDateString()
 	timestamp!: string;

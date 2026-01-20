@@ -1,5 +1,3 @@
-import { UserEntity } from '../../users/entity/user.entity';
-
 // Contains all non-sensitive information about an API key
 export class ApiKeySafeDto {
 	id: string;
@@ -8,5 +6,4 @@ export class ApiKeySafeDto {
 	isActive: boolean;
 	createdAt: Date;
 	lastUsedAt: Date | null;
-	createdBy: UserEntity;
 }

@@ -1,10 +1,10 @@
-import { BadRequestException, Injectable, Logger } from '@nestjs/common';
+import { Injectable, Logger } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
-import { CrawlerRunMetricDto } from '../../../../../management-frontend/src/app/api/dto/crawler-runs/metrics/crawler-run-metric.dto';
 import { CrawlerRunEventIncomingDto } from './dto/incoming/crawler-run-event-incoming.dto';
 import { CrawlerRunMetricsIncomingDto } from './dto/incoming/crawler-run-metrics-incoming.dto';
 import { CrawlerRunEventOutgoingDto } from './dto/outgoing/crawler-run-event-outgoing.dto';
+import { CrawlerRunMetricsOutgoingDto } from './dto/outgoing/crawler-run-metrics-outgoing.dto';
 import { CrawlerRunEventEntity } from './entity/crawler-run-event.entity';
 import { CrawlerRunMetricEntity } from './entity/crawler-run-metric.entity';
 
@@ -42,13 +42,6 @@ export class CrawlerRunMetricsService {
 				cacheHits: metric.cacheHits,
 			});
 		} catch (error) {
-			// If error is because of schedule foreign key not existing, throw a bad request error
-			if (error.code === '23503') {
-				this.logger.error(
-					`Failed to save metrics for crawler run ${runId} in namespace ${runNamespace}: Schedule with name ${metric.scheduleName} and namespace ${metric.scheduleNamespace} does not exist`,
-				);
-				throw new BadRequestException('Schedule does not exist');
-			}
 			this.logger.error(
 				`Failed to save metrics for crawler run ${runId} in namespace ${runNamespace}: ${error.message}`,
 			);
@@ -65,7 +58,7 @@ export class CrawlerRunMetricsService {
 	async getMetricsByRunId(
 		runId: string,
 		runNamespace: string,
-	): Promise<CrawlerRunMetricDto | null> {
+	): Promise<CrawlerRunMetricsOutgoingDto | null> {
 		return this.crawlerRunMetricsRepository.findOne({ where: { runId, runNamespace } });
 	}
 
@@ -121,20 +114,15 @@ export class CrawlerRunMetricsService {
 	 * @private
 	 */
 	private async createEmptyCrawlerRunMetricIfDoesntExist(runId: string, runNamespace: string) {
-		try {
-			await this.crawlerRunMetricsRepository.insert({
+		if (await this.crawlerRunMetricsRepository.findOneBy({ runId, runNamespace })) {
+			return;
+		}
+		await this.crawlerRunMetricsRepository.upsert(
+			{
 				runId,
 				runNamespace,
-			});
-		} catch (error) {
-			// If error is because of duplicate primary key error -> ignore as then the entity already exists, which
-			// is fine
-			if (error.code !== '23505') {
-				this.logger.error(
-					`Failed to create empty crawler run metric for run ID ${runId} in namespace ${runNamespace}: ${error.message}`,
-				);
-				throw error;
-			}
-		}
+			},
+			['runId', 'runNamespace'],
+		);
 	}
 }
