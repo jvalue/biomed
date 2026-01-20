@@ -69,9 +69,9 @@ export class CrawlerRunsController {
 	@ApiParam({ name: 'runId', description: 'The ID of the crawler run' })
 	@ApiParam({ name: 'runNamespace', description: 'The namespace of the crawler run' })
 	@ApiBody({ type: CrawlerRunMetricsIncomingDto })
-	@Post(':runNamespace/:runId/metrics')
 	@ApiSecurity('api-key')
 	@UseGuards(ApiKeyAuthGuard)
+	@Post(':runNamespace/:runId/metrics')
 	async saveCrawlerRunMetrics(
 		@Param('runId') crawlerRunId: string,
 		@Param('runNamespace') runNamespace: string,

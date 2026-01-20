@@ -31,8 +31,7 @@ export const useCrawlerRunMetrics = (
 					return false; // Do not retry on non-retryable errors
 				}
 			}
-			const data = query.state.data;
-			if (!data) return false;
+
 			return runPhase && activePhases.includes(runPhase) ? 5000 : false;
 		},
 		// Handled by the refetchInterval logic
@@ -63,8 +62,7 @@ export const useCrawlerRunEvents = (
 					return false; // Do not retry on non-retryable errors
 				}
 			}
-			const data = query.state.data;
-			if (!data) return false;
+
 			return runPhase && activePhases.includes(runPhase) ? 5000 : false;
 		},
 		// Handled by the refetchInterval logic
