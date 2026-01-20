@@ -23,6 +23,7 @@ import { Spinner } from '@/src/app/components/design-components/spinner';
 import { PermissionGuard } from '@/src/app/components/guards/permission-guard';
 import DeleteScheduleDialogComponent from '@/src/app/components/schedules/delete-schedule-dialog.component';
 import ScheduleErrorsComponent from '@/src/app/components/schedules/schedule-errors.component';
+import ScheduleMetricsSummaryComponent from '@/src/app/components/schedules/schedule-metrics-summary.component';
 import ScheduleConfigurationSectionComponent from '@/src/app/components/schedules/scheduleConfigurationSection.component';
 import { useAuth } from '@/src/app/contexts/AuthContext';
 import { formatCronReadable, getNextRunDate } from '@/src/app/utils/cron';
@@ -210,6 +211,11 @@ function RouteComponent() {
 					<ScheduleErrorsComponent
 						crawlerTemplateName={schedule?.crawlerTemplateName}
 						activeErrors={schedule?.activeErrors}
+					/>
+
+					<ScheduleMetricsSummaryComponent
+						scheduleName={scheduleName}
+						scheduleNamespace={scheduleNamespace}
 					/>
 
 					<ParameterSectionComponent parameters={schedule?.parameters} />
