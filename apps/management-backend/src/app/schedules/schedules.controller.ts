@@ -23,7 +23,7 @@ import { PermissionsGuard } from '../auth/guards/permissions.guard';
 import { CrawlerRunMetricsService } from '../metrics/crawler-run-metrics/crawler-run-metrics.service';
 import { UserEntity } from '../users/entity/user.entity';
 import { CreateScheduleDto } from './dto/create-schedule.dto';
-import { GetScheduleHistoricalMetricsQueryDto } from './dto/get-schedule-historical-metrics-query.dto';
+import { HistoricalMetricsQueryDto } from './dto/historical-metrics-query.dto';
 import { ScheduleDto } from './dto/schedule.dto';
 import { ScheduleHistoricalMetricsItemDto } from './dto/schedule-historical-metrics-item.dto';
 import { SchedulesService } from './schedules.service';
@@ -167,7 +167,7 @@ export class SchedulesController {
 	async getScheduleHistoricalMetrics(
 		@Param('namespace') namespace: string,
 		@Param('name') name: string,
-		@Query() query: GetScheduleHistoricalMetricsQueryDto,
+		@Query() query: HistoricalMetricsQueryDto,
 	): Promise<ScheduleHistoricalMetricsItemDto[]> {
 		return this.crawlerRunMetricsService.getHistoricalScheduleMetrics(name, namespace, query);
 	}

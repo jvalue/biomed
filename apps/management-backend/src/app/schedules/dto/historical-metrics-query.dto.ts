@@ -1,7 +1,7 @@
 import { ApiPropertyOptional } from '@nestjs/swagger';
 import { IsDateString, IsOptional } from 'class-validator';
 
-export class GetScheduleHistoricalMetricsQueryDto {
+export class HistoricalMetricsQueryDto {
 	@ApiPropertyOptional({
 		description: 'Start date for the history (ISO 8601). Defaults to 1 year ago.',
 		example: '2025-01-01T00:00:00.000Z',
