@@ -11,6 +11,7 @@ import {
 } from '@nestjs/common';
 import {
 	ApiCreatedResponse,
+	ApiForbiddenResponse,
 	ApiOkResponse,
 	ApiOperation,
 	ApiParam,
@@ -26,6 +27,7 @@ import { CreateScheduleDto } from './dto/create-schedule.dto';
 import { HistoricalMetricsQueryDto } from './dto/historical-metrics-query.dto';
 import { ScheduleDto } from './dto/schedule.dto';
 import { ScheduleHistoricalMetricsItemDto } from './dto/schedule-historical-metrics-item.dto';
+import { ScheduleOverallMetricsDto } from './dto/schedule-overall-metrics.dto';
 import { SchedulesService } from './schedules.service';
 
 @Controller('schedules')
@@ -156,10 +158,7 @@ export class SchedulesController {
 		type: [ScheduleHistoricalMetricsItemDto],
 		description: 'Historical metrics list',
 	})
-	@ApiResponse({
-		status: 403,
-		description: 'You do not have permission to access schedules',
-	})
+	@ApiForbiddenResponse({ description: 'You do not have permission to access schedule metrics' })
 	@RequirePermission('read', 'schedule')
 	@ApiParam({ name: 'namespace', description: 'The namespace of the Schedule' })
 	@ApiParam({ name: 'name', description: 'The name of the Schedule' })
@@ -170,5 +169,19 @@ export class SchedulesController {
 		@Query() query: HistoricalMetricsQueryDto,
 	): Promise<ScheduleHistoricalMetricsItemDto[]> {
 		return this.crawlerRunMetricsService.getHistoricalScheduleMetrics(name, namespace, query);
+	}
+
+	@ApiOperation({ summary: 'Get overall metrics for a Schedule (all time)' })
+	@ApiOkResponse({ type: ScheduleOverallMetricsDto, description: 'Aggregated overall metrics' })
+	@ApiForbiddenResponse({ description: 'You do not have permission to access schedule metrics' })
+	@RequirePermission('read', 'schedule')
+	@ApiParam({ name: 'namespace', description: 'The namespace of the Schedule' })
+	@ApiParam({ name: 'name', description: 'The name of the Schedule' })
+	@Get(':namespace/:name/metrics/aggregated')
+	async getScheduleOverallMetrics(
+		@Param('namespace') namespace: string,
+		@Param('name') name: string,
+	): Promise<ScheduleOverallMetricsDto> {
+		return this.crawlerRunMetricsService.getOverallScheduleMetrics(name, namespace);
 	}
 }
