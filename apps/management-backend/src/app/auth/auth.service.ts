@@ -13,6 +13,7 @@ import { Repository } from 'typeorm';
 import { UserEntity } from '../users/entity/user.entity';
 import { UsersService } from '../users/users.service';
 import { AbilityFactory } from './ability-factory';
+import { ApiKeyCreationResponseDto } from './dto/api-key-creation-response.dto';
 import { ApiKeySafeDto } from './dto/api-key-safe.dto';
 import { AuthResponseDto } from './dto/auth-response.dto';
 import { LoginDataDto } from './dto/login-data.dto';
@@ -101,16 +102,21 @@ export class AuthService {
 	 * Creates a new API key (used for crawlers only)
 	 * @param createdBy
 	 * @param description
+	 * @return ApiKeyCreationResponseDto with rawKey only shown once
 	 */
-	async createApiKey(createdBy: UserEntity, description: string): Promise<string> {
-		// Generate randomString
+	async createApiKey(
+		createdBy: UserEntity,
+		description: string,
+	): Promise<ApiKeyCreationResponseDto> {
+		// Generate cryptographically strong random string
 		const rawKey = crypto.randomBytes(32).toString('hex');
 
+		// Hash the key before persisting
 		const hash = crypto.createHash('sha256').update(rawKey).digest('hex');
 
 		const prefix = rawKey.substring(0, 15);
 
-		await this.apiKeyRepository.save({
+		const created = await this.apiKeyRepository.save({
 			hash: hash,
 			prefix: prefix,
 			description,
@@ -119,7 +125,12 @@ export class AuthService {
 			lastUsedAt: new Date(),
 		});
 
-		return rawKey;
+		// Build response DTO. rawKey must only be returned once; do not log it.
+		return {
+			id: created.id,
+			prefix: prefix,
+			rawKey: rawKey,
+		};
 	}
 
 	/**

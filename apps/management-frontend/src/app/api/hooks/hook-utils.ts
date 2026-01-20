@@ -1,7 +1,7 @@
 import { AxiosError } from 'axios';
 
 /**
- * Determines if an error occured and if it is retryable.
+ * Determines if an error occurred and if it is retryable.
  * @param error
  */
 export function isRetryableError(error: Error): boolean {

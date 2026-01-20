@@ -16,6 +16,7 @@ import { AbilityFactory } from './ability-factory';
 import { AuthService } from './auth.service';
 import { CurrentUser } from './decorators/current-user.decorator';
 import { RequirePermission } from './decorators/require-permission.decorator';
+import { ApiKeyCreationResponseDto } from './dto/api-key-creation-response.dto';
 import { ApiKeySafeDto } from './dto/api-key-safe.dto';
 import { LoginDataDto } from './dto/login-data.dto';
 import { JwtAuthGuard } from './guards/jwt-auth.guard';
@@ -73,6 +74,7 @@ export class AuthController {
 	@ApiOperation({ summary: 'Generate a new API Key for Machines' })
 	@ApiCreatedResponse({
 		description: 'API Key generated successfully, Please store the key safely',
+		type: ApiKeyCreationResponseDto,
 	})
 	@ApiForbiddenResponse({ description: 'Insufficient permissions' })
 	@UseGuards(JwtAuthGuard, PermissionsGuard)
