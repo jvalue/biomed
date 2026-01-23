@@ -76,14 +76,14 @@ export const scheduleService = {
 	): Promise<ScheduleHistoricalMetricsItemDto[]> => {
 		const path = `schedules/${encodeURIComponent(namespace)}/${encodeURIComponent(name)}/metrics/history`;
 		const params: {
-			fromDate?: string;
-			toDate?: string;
+			from?: string;
+			to?: string;
 		} = {};
 		if (fromDate) {
-			params.fromDate = fromDate.toISOString();
+			params.from = fromDate.toISOString();
 		}
 		if (toDate) {
-			params.toDate = toDate.toISOString();
+			params.to = toDate.toISOString();
 		}
 		const { data } = await managementBackendClient.get(path, { params });
 		return data;
