@@ -142,7 +142,7 @@ if (ability.can('update', 'user')) {
 }
 ```
 ### Api Keys for Crawler
-There is an endpoint which allows to create API keys for the crawler service.
+There is an endpoint which allows to create API keys for the crawler service. (/api/v1/auth/apikeys)
 These API keys can be used to authenticate requests from the crawler to the management backend.
 The API keys can only be created and managed by users with the needed user permissions.
 
