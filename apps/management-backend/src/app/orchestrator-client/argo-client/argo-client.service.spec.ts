@@ -46,65 +46,59 @@ describe('ArgoClientService.filterCronWorkflowsReferencingWorkflowTemplates', ()
 	});
 });
 
-describe('ArgoClientService.enrichWorkflowRunsWithCronWorkflowTemplateName', () => {
+describe('ArgoClientService.enrichWorkflowRunWithCronWorkflowTemplateName', () => {
 	it(
 		'sets workflowTemplateName when run has scheduleName and schedule exists but workflowTemplateName is' +
 			' undefined',
 		async () => {
-			const runs = [{ name: 'r1', namespace: 'ns1', scheduleName: 's1' }] as CrawlerRunDto[];
+			const run = { name: 'r1', namespace: 'ns1', scheduleName: 's1' } as CrawlerRunDto;
 
 			vi.spyOn(service, 'getScheduleByNameAndNamespace').mockResolvedValueOnce({
 				crawlerTemplateName: 'awesome-dragon',
 			} as unknown as ScheduleDto);
 
-			const result = await service.enrichWorkflowRunsWithCronWorkflowTemplateName(runs);
+			const result = await service.enrichWorkflowRunWithCronWorkflowTemplateName(run);
 
 			expect(service.getScheduleByNameAndNamespace).toHaveBeenCalledWith('s1', 'ns1');
-			expect(result).toHaveLength(1);
-			expect(result[0].crawlerTemplateName).toBe('awesome-dragon');
+			expect(result.crawlerTemplateName).toBe('awesome-dragon');
 		},
 	);
 
 	it('doesnt call the lookup when schedule name is undefined', async () => {
-		const runs = [{ name: 'r2', namespace: 'ns2', scheduleName: undefined }] as CrawlerRunDto[];
+		const run = { name: 'r2', namespace: 'ns2', scheduleName: undefined } as CrawlerRunDto;
 
 		const spy = vi.spyOn(service, 'getScheduleByNameAndNamespace').mockResolvedValueOnce(null);
 
-		const result = await service.enrichWorkflowRunsWithCronWorkflowTemplateName(runs);
+		const result = await service.enrichWorkflowRunWithCronWorkflowTemplateName(run);
 
 		expect(spy).not.toHaveBeenCalled();
-		expect(result).toHaveLength(1);
-		expect(result[0].crawlerTemplateName).toBeUndefined();
+		expect(result.crawlerTemplateName).toBeUndefined();
 	});
 
 	it('keeps workflowTemplateName undefined when schedule lookup returns null', async () => {
-		const runs = [
-			{ name: 'r3', namespace: 'ns3', scheduleName: 'missing-schedule' },
-		] as CrawlerRunDto[];
+		const run = { name: 'r3', namespace: 'ns3', scheduleName: 'missing-schedule' } as CrawlerRunDto;
 
 		vi.spyOn(service, 'getScheduleByNameAndNamespace').mockResolvedValueOnce(null);
 
-		const result = await service.enrichWorkflowRunsWithCronWorkflowTemplateName(runs);
+		const result = await service.enrichWorkflowRunWithCronWorkflowTemplateName(run);
 
 		expect(service.getScheduleByNameAndNamespace).toHaveBeenCalledWith('missing-schedule', 'ns3');
-		expect(result[0].crawlerTemplateName).toBeUndefined();
+		expect(result.crawlerTemplateName).toBeUndefined();
 	});
 
 	it('keeps workflowTemplateName when set', async () => {
-		const runs = [
-			{
-				name: 'r4',
-				namespace: 'ns4',
-				scheduleName: 's4',
-				crawlerTemplateName: 'predefined-template',
-			},
-		] as CrawlerRunDto[];
+		const run = {
+			name: 'r4',
+			namespace: 'ns4',
+			scheduleName: 's4',
+			crawlerTemplateName: 'predefined-template',
+		} as CrawlerRunDto;
 
 		const spy = vi.spyOn(service, 'getScheduleByNameAndNamespace');
 
-		const result = await service.enrichWorkflowRunsWithCronWorkflowTemplateName(runs);
+		const result = await service.enrichWorkflowRunWithCronWorkflowTemplateName(run);
 
 		expect(spy).not.toHaveBeenCalled();
-		expect(result[0].crawlerTemplateName).toBe('predefined-template');
+		expect(result.crawlerTemplateName).toBe('predefined-template');
 	});
 });
