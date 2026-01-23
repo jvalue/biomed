@@ -1,5 +1,6 @@
 import { Type } from 'class-transformer';
 import { IsArray, IsBoolean, IsDate, IsNumber, IsOptional, IsString } from 'class-validator';
+import { ArgoParameterDto } from '../argo-parameter.dto';
 
 class ArgoCronWorkflowMetadataDto {
 	@IsString()
@@ -12,18 +13,10 @@ class ArgoCronWorkflowMetadataDto {
 	creationTimestamp!: Date;
 }
 
-class ArgoCronWorkflowSpecWorkflowSpecArgumentsParameterDto {
-	@IsString()
-	name!: string;
-
-	@IsString()
-	value!: string;
-}
-
 class ArgoCronWorkflowSpecWorkflowSpecArgumentsDto {
 	@IsOptional()
-	@Type(() => ArgoCronWorkflowSpecWorkflowSpecArgumentsParameterDto)
-	parameters?: ArgoCronWorkflowSpecWorkflowSpecArgumentsParameterDto[];
+	@Type(() => ArgoParameterDto)
+	parameters?: ArgoParameterDto[];
 }
 
 class ArgoCronWorkflowSpecWorkflowSpecWorkflowTemplateRefDto {

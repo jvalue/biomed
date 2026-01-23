@@ -26,6 +26,7 @@ export function mapArgoWorkflowRunDtoToWorkflowRunDto(run: ArgoWorkflowRunDto): 
 	workflowRun.phase = run.status.phase;
 	workflowRun.startedAt = run.status.startedAt;
 	workflowRun.finishedAt = run.status.finishedAt;
+	workflowRun.parameters = run.spec.arguments.parameters;
 	return workflowRun;
 }
 

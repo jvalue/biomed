@@ -1,13 +1,8 @@
+import { ParameterDto } from '@/src/app/api/dto/crawler-runs/parameter.dto';
 import {
 	ScheduleErrorDetails,
 	ScheduleErrorType,
 } from '@/src/app/api/dto/schedule/schedule-error-type.enum';
-
-export class ScheduleParameterDto {
-	name!: string;
-
-	value!: string;
-}
 
 class ScheduleStatisticsDto {
 	successfulRuns!: number;
@@ -34,7 +29,7 @@ export class ScheduleDto {
 
 	namespace!: string;
 
-	parameters!: ScheduleParameterDto[];
+	parameters!: ParameterDto[];
 
 	schedule!: string;
 

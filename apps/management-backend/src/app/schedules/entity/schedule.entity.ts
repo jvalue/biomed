@@ -6,9 +6,11 @@ import {
 	JoinTable,
 	ManyToMany,
 	ManyToOne,
+	OneToMany,
 	PrimaryColumn,
 } from 'typeorm';
 import { TargetEntity } from '../../health/targets/entity/target.entity';
+import { CrawlerRunMetricEntity } from '../../metrics/crawler-run-metrics/entity/crawler-run-metric.entity';
 import { UserEntity } from '../../users/entity/user.entity';
 import { ScheduleErrorDetails, ScheduleErrorType } from '../enums/schedule-error-type.enum';
 
@@ -62,4 +64,12 @@ export class ScheduleEntity {
 	 */
 	@Column({ type: 'jsonb', default: {} })
 	activeErrors: Record<ScheduleErrorType, ScheduleErrorDetails>;
+
+	// All metrics related to runs of this schedule
+	@OneToMany(
+		() => CrawlerRunMetricEntity,
+		(m) => m.schedule,
+		{ eager: false },
+	)
+	metrics?: CrawlerRunMetricEntity[];
 }

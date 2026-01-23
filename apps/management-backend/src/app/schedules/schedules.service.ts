@@ -1,4 +1,4 @@
-import { Inject, Injectable, Logger } from '@nestjs/common';
+import { Inject, Injectable, Logger, NotFoundException } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
 import { TargetEntity } from '../health/targets/entity/target.entity';
@@ -121,6 +121,11 @@ export class SchedulesService {
 			name,
 			namespace,
 		);
+		if (!schedule) {
+			throw new NotFoundException(
+				`Schedule ${name} in namespace ${namespace} not found in orchestrator.`,
+			);
+		}
 		await this.enrichScheduleDtoWithLocalData(schedule);
 		return schedule;
 	}

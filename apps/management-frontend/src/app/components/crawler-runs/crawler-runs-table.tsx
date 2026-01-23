@@ -1,5 +1,7 @@
+import { useNavigate } from '@tanstack/react-router';
 import { useLayoutEffect, useRef } from 'react';
-import { CrawlerRunDto, CrawlerRunPhaseEnum } from '@/src/app/api/dto/crawler-runs/crawler-run.dto';
+import { CrawlerRunDto } from '@/src/app/api/dto/crawler-runs/crawler-run.dto';
+import { getPhaseClass } from '@/src/app/components/crawler-runs/crawler-runs-utils';
 import {
 	Pagination,
 	PaginationContent,
@@ -31,23 +33,6 @@ export interface CrawlerRunsTableProps {
 	scrollOnPaginate?: boolean;
 }
 
-function getPhaseClass(phase?: CrawlerRunPhaseEnum | string) {
-	switch (phase) {
-		case CrawlerRunPhaseEnum.PENDING:
-			return 'bg-yellow-100 text-yellow-800';
-		case CrawlerRunPhaseEnum.RUNNING:
-			return 'bg-blue-100 text-blue-800';
-		case CrawlerRunPhaseEnum.SUCCEEDED:
-			return 'bg-green-100 text-green-800';
-		case CrawlerRunPhaseEnum.FAILED:
-			return 'bg-red-100 text-red-800';
-		case CrawlerRunPhaseEnum.ERROR:
-			return 'bg-rose-100 text-rose-800';
-		default:
-			return '';
-	}
-}
-
 export default function CrawlerRunsTable({
 	page,
 	setPage,
@@ -59,6 +44,7 @@ export default function CrawlerRunsTable({
 	const offset = (page - 1) * effectivePageSize;
 
 	const anchorRef = useRef<HTMLDivElement | null>(null);
+	const navigate = useNavigate();
 
 	const { data, isLoading, error } = useCrawlerRuns({
 		limit: effectivePageSize,
@@ -124,7 +110,16 @@ export default function CrawlerRunsTable({
 
 						<TableBody>
 							{runs.map((run) => (
-								<TableRow key={run.name}>
+								<TableRow
+									key={run.name}
+									className="cursor-pointer hover:bg-gray-50"
+									onClick={() =>
+										navigate({
+											to: '/crawler-runs/$crawlerRunNamespace/$crawlerRunId',
+											params: { crawlerRunNamespace: run.namespace, crawlerRunId: run.name },
+										})
+									}
+								>
 									<TableCell>{run.name}</TableCell>
 									<TableCell>{run.namespace}</TableCell>
 									<TableCell>{run.crawlerTemplateName}</TableCell>

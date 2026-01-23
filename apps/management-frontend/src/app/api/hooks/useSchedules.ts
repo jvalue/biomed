@@ -1,6 +1,7 @@
 import { UseQueryResult, useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { CreateScheduleDto } from '@/src/app/api/dto/schedule/create-schedule.dto';
 import { ScheduleDto } from '@/src/app/api/dto/schedule/schedule.dto';
+import { isRetryableError } from '@/src/app/api/hooks/hook-utils';
 import { scheduleService } from '@/src/app/api/services/schedule.service';
 
 export const useSchedules = (): UseQueryResult<ScheduleDto[]> => {
@@ -18,7 +19,18 @@ export const useScheduleByNameAndNamespace = (
 	return useQuery({
 		queryKey: ['schedules', name, namespace],
 		queryFn: () => scheduleService.getScheduleByNameAndNamespace(name, namespace),
-		refetchInterval: 30000, // Auto-refresh
+		refetchInterval: (query) => {
+			if (query.state.error) {
+				if (isRetryableError(query.state.error)) {
+					return 60000; // Retry every minute on retryable errors
+				} else {
+					return false; // Do not retry on non-retryable errors
+				}
+			}
+			return 30000;
+		},
+		// Retry is handled by refetchInterval logic
+		retry: false,
 	});
 };
 

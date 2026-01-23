@@ -35,6 +35,7 @@ export class AbilityFactory {
 
 			// User Management Permissions
 			[UserPermission.USER_READ]: () => can('read', 'user'),
+			[UserPermission.USER_CREATE]: () => can('create', 'user'),
 			[UserPermission.USER_UPDATE]: () => can('update', 'user'),
 			[UserPermission.USER_DELETE]: () => can('delete', 'user'),
 			[UserPermission.USER_APPROVE]: () => can('approve', 'user'),

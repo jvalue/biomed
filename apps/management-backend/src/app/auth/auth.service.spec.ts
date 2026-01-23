@@ -2,10 +2,12 @@ import { ConflictException, ForbiddenException, UnauthorizedException } from '@n
 import { JwtService } from '@nestjs/jwt';
 import * as bcrypt from 'bcrypt';
 import type { Response } from 'express';
+import { Repository } from 'typeorm';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { UsersService } from '../users/users.service';
 import { AbilityFactory } from './ability-factory';
 import { AuthService } from './auth.service';
+import { ApiKeyEntity } from './entity/api-key.entity';
 import { UserStatus } from './enums/user-status.enum';
 
 // Mock bcrypt
@@ -41,6 +43,7 @@ describe('AuthService', () => {
 		};
 
 		service = new AuthService(
+			{} as Repository<ApiKeyEntity>, // mock of ApiKeyRepository
 			mockUsersService as unknown as UsersService,
 			mockJwtService as unknown as JwtService,
 			mockAbilityFactory as unknown as AbilityFactory,

@@ -7,7 +7,7 @@ A React + TypeScript frontend using Vite and Tailwind, organized for modular dev
 - `'src/app/components/design-components/'`: All reusable design components (atoms/molecules), e.g. `'button.tsx'`, `'table.tsx'`. These are generic and should not include domain logic.
 - `'src/app/components/crawler-runs/'`: Non-reusable domain-specific components for crawler-runs. Create a dedicated 
   folder per domain (e.g. `'crawler-runs'`, `'users'`), and place components there when they are not reusable across domains.
-- `'src/app/routes/'`: Page-level route components (e.g. `'index.tsx'`, `'crawler-runs.tsx'`). These represent pages and integrate domain components and services.
+- `'src/app/routes/'`: Page-level route components (e.g. `'index.tsx'`). These represent pages and integrate domain components and services.
 - `'src/app/api/dto/'`: Data Transfer Objects (DTOs) describing API payloads and responses. Subfolders per domain (e.g. `'crawler-runs/'`, `'pagination/'`).
 - `'src/app/api/services/'`: Service layer that orchestrates API calls and business logic (e.g. `'crawler-run.service.ts'`).
 - `'src/app/api/management-backend-client.ts'`: HTTP client configuration and helpers to talk to the backend.
