@@ -1,5 +1,13 @@
-import { useLayoutEffect, useRef } from 'react';
+import { useLayoutEffect, useRef, useState } from 'react';
 import { CrawlerRunDto, CrawlerRunPhaseEnum } from '@/src/app/api/dto/crawler-runs/crawler-run.dto';
+import { Button } from '@/src/app/components/design-components/button';
+import {
+	DropdownMenu,
+	DropdownMenuCheckboxItem,
+	DropdownMenuContent,
+	DropdownMenuTrigger,
+} from '@/src/app/components/design-components/dropdown-menu';
+import { Input } from '@/src/app/components/design-components/input';
 import {
 	Pagination,
 	PaginationContent,
@@ -55,6 +63,12 @@ export default function CrawlerRunsTable({
 	scheduleName,
 	scrollOnPaginate = false,
 }: CrawlerRunsTableProps) {
+	const [namespace, setNamespace] = useState('');
+	const [crawlerTemplateName, setCrawlerTemplateName] = useState('');
+	const [startedAfter, setStartedAfter] = useState<Date | undefined>();
+	const [finishedBefore, setFinishedBefore] = useState<Date | undefined>();
+	const [phases, setPhases] = useState<CrawlerRunPhaseEnum[]>([]);
+
 	const effectivePageSize = pageSize ?? DEFAULT_PAGE_SIZE;
 	const offset = (page - 1) * effectivePageSize;
 
@@ -64,6 +78,11 @@ export default function CrawlerRunsTable({
 		limit: effectivePageSize,
 		offset,
 		scheduleName,
+		namespace: namespace || undefined,
+		crawlerTemplateName: crawlerTemplateName || undefined,
+		startedAfter: startedAfter || undefined,
+		finishedBefore: finishedBefore || undefined,
+		phases: phases.length ? phases : undefined,
 	});
 
 	useLayoutEffect(() => {
@@ -101,6 +120,74 @@ export default function CrawlerRunsTable({
 			{/* anchor for scrolling */}
 			<div ref={anchorRef} className="scroll-mt-24" />
 
+			{/* filter bar */}
+			<div className="flex flex-wrap gap-4 m-4">
+				<Input
+					placeholder="Namespace"
+					value={namespace}
+					onChange={(e) => setNamespace(e.target.value)}
+					className="w-48"
+				/>
+
+				<Input
+					placeholder="Workflow Template"
+					value={crawlerTemplateName}
+					onChange={(e) => setCrawlerTemplateName(e.target.value)}
+					className="w-48"
+				/>
+
+				<Input
+					type="datetime-local"
+					value={startedAfter ? new Date(startedAfter).toISOString().slice(0, 16) : ''}
+					onChange={(e) => setStartedAfter(e.target.value ? new Date(e.target.value) : undefined)}
+					className="w-56"
+				/>
+
+				<Input
+					type="datetime-local"
+					value={finishedBefore ? new Date(finishedBefore).toISOString().slice(0, 16) : ''}
+					onChange={(e) => setFinishedBefore(e.target.value ? new Date(e.target.value) : undefined)}
+					className="w-56"
+				/>
+
+				<DropdownMenu>
+					<DropdownMenuTrigger asChild>
+						<Button variant="outline" className="w-48 justify-between">
+							{phases.length > 0 ? phases.join(', ') : 'Filter by phase'}
+						</Button>
+					</DropdownMenuTrigger>
+					<DropdownMenuContent className="w-48">
+						{Object.values(CrawlerRunPhaseEnum).map((phase) => (
+							<DropdownMenuCheckboxItem
+								key={phase}
+								checked={phases.includes(phase)}
+								onCheckedChange={(checked) => {
+									setPhases((prev) =>
+										checked ? [...prev, phase] : prev.filter((p) => p !== phase),
+									);
+								}}
+							>
+								{phase}
+							</DropdownMenuCheckboxItem>
+						))}
+					</DropdownMenuContent>
+				</DropdownMenu>
+
+				<Button
+					variant="outline"
+					onClick={() => {
+						setNamespace('');
+						setCrawlerTemplateName('');
+						setStartedAfter(undefined);
+						setFinishedBefore(undefined);
+						setPhases([]);
+					}}
+				>
+					Clear filters
+				</Button>
+			</div>
+
+			{/* TABLE */}
 			{isLoading ? (
 				<div className="col-span-12 flex justify-center pt-6">
 					<Spinner className="size-10" />
