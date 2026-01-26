@@ -62,118 +62,124 @@ export function RunMetricsSectionComponent({
 				<CardDescription>Performance and progress metrics for this run</CardDescription>
 			</CardHeader>
 			<CardContent className="pt-6">
-				<div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-6">
-					{(metrics.progress || metrics.progress === 0) && (
-						<div>
-							<p className="text-xs uppercase tracking-wide text-muted-foreground mb-3">
-								Discovery Progress
-							</p>
-							<div className="flex items-center gap-3">
-								<Progress
-									value={metrics.progress}
-									className="bg-muted"
-									color={metrics.progress === 100 ? 'bg-green-800' : 'bg-primary'}
-								/>
-								<p
-									className={`text-md font-medium ${metrics.progress === 100 ? 'text-green-800' : 'text-primary'}`}
-								>
-									{metrics.progress}%
-								</p>
-							</div>
-						</div>
-					)}
-					{downloadProgress !== undefined && (
-						<div className="pb-2">
-							<p className="text-xs uppercase tracking-wide text-muted-foreground mb-3">
-								Download Progress
-							</p>
-							<div className="flex items-center gap-3">
-								<Progress
-									value={downloadProgress}
-									className="bg-muted"
-									color={downloadProgress === 100 ? 'bg-green-800' : 'bg-primary'}
-								/>
-								<p
-									className={`text-md font-medium ${downloadProgress === 100 ? 'text-green-800' : 'text-primary'}`}
-								>
-									{metrics.progress}%
-								</p>
-							</div>
-						</div>
-					)}
-				</div>
-				<div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-					{(metrics.crawledDataSets || metrics.crawledDataSets === 0) && (
-						<div>
-							<p className="text-xs uppercase tracking-wide text-muted-foreground mb-2">
-								Crawled Data Sets
-							</p>
-							<p className="text-xl font-semibold">{metrics.crawledDataSets}</p>
-						</div>
-					)}
-					{(metrics.cacheHits || metrics.cacheHits === 0) && (
-						<div>
-							<p className="text-xs uppercase tracking-wide text-muted-foreground mb-2">
-								Cache Hits
-							</p>
-							<p className="text-xl font-semibold">{metrics.cacheHits}</p>
-						</div>
-					)}
-					{durationSeconds &&
-						durationSeconds !== 0 &&
-						(metrics.crawledDataSets || metrics.crawledDataSets === 0) && (
+				<div className="grid grid-cols-1 lg:grid-cols-2 gap-y-8 gap-x-12">
+					<div className="flex flex-col gap-6 lg:border-r lg:pr-12 border-border">
+						{(metrics.progress || metrics.progress === 0) && (
 							<div>
-								<p className="text-xs uppercase tracking-wide text-muted-foreground mb-2">
-									Data Sets per Second
+								<p className="text-xs uppercase tracking-wide text-muted-foreground mb-3">
+									Discovery Progress
 								</p>
-								<p className="text-xl font-semibold">
-									{(metrics.crawledDataSets / durationSeconds).toFixed(2)}
-								</p>
+								<div className="flex items-center gap-3">
+									<Progress
+										value={metrics.progress}
+										className="bg-muted"
+										color={metrics.progress === 100 ? 'bg-green-800' : 'bg-primary'}
+									/>
+									<p
+										className={`text-md font-medium ${metrics.progress === 100 ? 'text-green-800' : 'text-primary'}`}
+									>
+										{metrics.progress}%
+									</p>
+								</div>
 							</div>
 						)}
-					{(metrics.crawledDataSets || metrics.crawledDataSets === 0) &&
-						(metrics.cacheHits || metrics.cacheHits === 0) && (
-							<div>
-								<p className="text-xs uppercase tracking-wide text-muted-foreground mb-2">
-									New discovered Data Sets
+						<div className="grid grid-cols-1 sm:grid-cols-2 gap-6">
+							{(metrics.crawledDataSets || metrics.crawledDataSets === 0) && (
+								<div>
+									<p className="text-xs uppercase tracking-wide text-muted-foreground mb-2">
+										Crawled Data Sets
+									</p>
+									<p className="text-xl font-semibold">{metrics.crawledDataSets}</p>
+								</div>
+							)}
+							{(metrics.cacheHits || metrics.cacheHits === 0) && (
+								<div>
+									<p className="text-xs uppercase tracking-wide text-muted-foreground mb-2">
+										Cache Hits
+									</p>
+									<p className="text-xl font-semibold">{metrics.cacheHits}</p>
+								</div>
+							)}
+							{durationSeconds &&
+								durationSeconds !== 0 &&
+								(metrics.crawledDataSets || metrics.crawledDataSets === 0) && (
+									<div>
+										<p className="text-xs uppercase tracking-wide text-muted-foreground mb-2">
+											Data Sets per Second
+										</p>
+										<p className="text-xl font-semibold">
+											{(metrics.crawledDataSets / durationSeconds).toFixed(2)}
+										</p>
+									</div>
+								)}
+							{(metrics.crawledDataSets || metrics.crawledDataSets === 0) &&
+								(metrics.cacheHits || metrics.cacheHits === 0) && (
+									<div>
+										<p className="text-xs uppercase tracking-wide text-muted-foreground mb-2">
+											New discovered Data Sets
+										</p>
+										<p className="text-xl font-semibold text-primary">
+											{metrics.crawledDataSets - metrics.cacheHits}
+										</p>
+									</div>
+								)}
+						</div>
+					</div>
+					<div className="flex flex-col gap-6">
+						{downloadProgress !== undefined && (
+							<div className="pb-2">
+								<p className="text-xs uppercase tracking-wide text-muted-foreground mb-3">
+									Download Progress
 								</p>
-								<p className="text-xl font-semibold text-primary">
-									{metrics.crawledDataSets - metrics.cacheHits}
-								</p>
+								<div className="flex items-center gap-3">
+									<Progress
+										value={downloadProgress}
+										className="bg-muted"
+										color={downloadProgress === 100 ? 'bg-green-800' : 'bg-primary'}
+									/>
+									<p
+										className={`text-md font-medium ${downloadProgress === 100 ? 'text-green-800' : 'text-primary'}`}
+									>
+										{Math.round(downloadProgress)}%
+									</p>
+								</div>
 							</div>
 						)}
-					{(metrics.totalDatasetsToDownload || metrics.totalDatasetsToDownload === 0) && (
-						<div className="col-start-1">
-							<p className="text-xs uppercase tracking-wide text-muted-foreground mb-2">
-								Total Data Sets to Download
-							</p>
-							<p className="text-xl font-semibold">{metrics.totalDatasetsToDownload}</p>
+						<div className="grid grid-cols-1 sm:grid-cols-2 gap-6">
+							{(metrics.totalDatasetsToDownload || metrics.totalDatasetsToDownload === 0) && (
+								<div className="col-start-1">
+									<p className="text-xs uppercase tracking-wide text-muted-foreground mb-2">
+										Total Data Sets to Download
+									</p>
+									<p className="text-xl font-semibold">{metrics.totalDatasetsToDownload}</p>
+								</div>
+							)}
+							{(metrics.downloadedDatasets || metrics.downloadedDatasets === 0) && (
+								<div>
+									<p className="text-xs uppercase tracking-wide text-muted-foreground mb-2">
+										Downloaded Data Sets
+									</p>
+									<p className="text-xl font-semibold text-primary">{metrics.downloadedDatasets}</p>
+								</div>
+							)}
+							{(metrics.totalGBToDownload || metrics.totalGBToDownload === 0) && (
+								<div>
+									<p className="text-xs uppercase tracking-wide text-muted-foreground mb-2">
+										Total GB to Download
+									</p>
+									<p className="text-xl font-semibold">{metrics.totalGBToDownload} GB</p>
+								</div>
+							)}
+							{(metrics.downloadedGB || metrics.downloadedGB === 0) && (
+								<div>
+									<p className="text-xs uppercase tracking-wide text-muted-foreground mb-2">
+										Downloaded GB
+									</p>
+									<p className="text-xl font-semibold text-primary">{metrics.downloadedGB} GB</p>
+								</div>
+							)}
 						</div>
-					)}
-					{(metrics.downloadedDatasets || metrics.downloadedDatasets === 0) && (
-						<div>
-							<p className="text-xs uppercase tracking-wide text-muted-foreground mb-2">
-								Downloaded Data Sets
-							</p>
-							<p className="text-xl font-semibold text-primary">{metrics.downloadedDatasets}</p>
-						</div>
-					)}
-					{(metrics.totalGBToDownload || metrics.totalGBToDownload === 0) && (
-						<div>
-							<p className="text-xs uppercase tracking-wide text-muted-foreground mb-2">
-								Total GB to Download
-							</p>
-							<p className="text-xl font-semibold">{metrics.totalGBToDownload} GB</p>
-						</div>
-					)}
-					{(metrics.downloadedGB || metrics.downloadedGB === 0) && (
-						<div>
-							<p className="text-xs uppercase tracking-wide text-muted-foreground mb-2">
-								Downloaded GB
-							</p>
-							<p className="text-xl font-semibold text-primary">{metrics.downloadedGB} GB</p>
-						</div>
-					)}
+					</div>
 				</div>
 			</CardContent>
 		</Card>
