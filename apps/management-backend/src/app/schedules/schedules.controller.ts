@@ -12,6 +12,7 @@ import {
 import {
 	ApiCreatedResponse,
 	ApiForbiddenResponse,
+	ApiNotFoundResponse,
 	ApiOkResponse,
 	ApiOperation,
 	ApiParam,
@@ -57,6 +58,7 @@ export class SchedulesController {
 		status: 403,
 		description: 'You do not have permission to access schedules or templates',
 	})
+	@ApiNotFoundResponse({ description: 'Schedule with given name in given namespace not found' })
 	@RequirePermission('read', 'schedule')
 	@RequirePermission('read', 'crawler-template')
 	@ApiParam({ name: 'namespace', description: 'The namespace of the Schedule' })

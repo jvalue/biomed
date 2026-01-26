@@ -1,4 +1,4 @@
-import { Injectable } from '@nestjs/common';
+import { Injectable, NotFoundException } from '@nestjs/common';
 import { ArgoClientService } from '../orchestrator-client/argo-client/argo-client.service';
 import { CursorBasedPaginationRequestDto } from '../pagination/dto/cursor-based-pagination-request.dto';
 import { CursorBasedPaginationResponseDto } from '../pagination/dto/cursor-based-pagination-response.dto';
@@ -27,6 +27,15 @@ export class CrawlerRunsService {
 	 * @param runNamespace The namespace of the Crawler Run.
 	 */
 	async getCrawlerRun(runId: string, runNamespace: string): Promise<CrawlerRunDto> {
-		return this.orchestratorClientService.getCrawlerRunByNameAndNamespace(runId, runNamespace);
+		const run = await this.orchestratorClientService.getCrawlerRunByNameAndNamespace(
+			runId,
+			runNamespace,
+		);
+		if (!run) {
+			throw new NotFoundException(
+				`Run ${runId} in namespace ${runNamespace} not found in orchestrator.`,
+			);
+		}
+		return run;
 	}
 }
