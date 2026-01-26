@@ -21,4 +21,40 @@ export class CrawlerRunMetricsOutgoingDto {
 	@IsOptional()
 	@IsNumber()
 	cacheHits?: number;
+
+	@ApiProperty({
+		description: 'Total number of datasets to download',
+		required: false,
+	})
+	@IsOptional()
+	@IsNumber()
+	@Min(0)
+	totalDatasetsToDownload?: number;
+
+	@ApiProperty({
+		description: 'Number of datasets successfully downloaded',
+		required: false,
+	})
+	@IsOptional()
+	@IsNumber()
+	@Min(0)
+	downloadedDatasets?: number;
+
+	@ApiProperty({
+		description: 'Total number of gigabytes to download',
+		required: false,
+	})
+	@IsOptional()
+	@IsNumber()
+	@Min(0)
+	totalGBToDownload?: number;
+
+	@ApiProperty({
+		description: 'Number of gigabytes successfully downloaded',
+		required: false,
+	})
+	@IsOptional()
+	@IsNumber()
+	@Min(0)
+	downloadedGB?: number;
 }
