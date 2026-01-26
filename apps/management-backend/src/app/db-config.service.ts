@@ -21,6 +21,7 @@ import { ApiKeys1768820430974 } from './migrations/1768820430974-ApiKeys';
 import { RunStartedAt1768916293714 } from './migrations/1768916293714-RunStartedAt';
 import { RunTimezone1769439239264 } from './migrations/1769439239264-RunTimezone';
 import { TimezoneAdjustments1769440475465 } from './migrations/1769440475465-TimezoneAdjustments';
+import { DownloadMetrics1769445294205 } from './migrations/1769445294205-DownloadMetrics';
 import { ScheduleEntity } from './schedules/entity/schedule.entity';
 import { UserEntity } from './users/entity/user.entity';
 
@@ -67,6 +68,7 @@ export class DbConfigService implements TypeOrmOptionsFactory {
 				RunStartedAt1768916293714,
 				RunTimezone1769439239264,
 				TimezoneAdjustments1769440475465,
+				DownloadMetrics1769445294205,
 			],
 			logging: true,
 			logger: 'debug',
