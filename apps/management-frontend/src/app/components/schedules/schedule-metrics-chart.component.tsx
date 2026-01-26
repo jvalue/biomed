@@ -91,16 +91,10 @@ export default function ScheduleMetricsChartComponent({
 			}),
 		);
 
-		//TODO: adjust colors to match design system
-		const COLOR_FOREGROUND = 'rgba(2,8,23,1)'; // --foreground #020817
-		const COLOR_MUTED_FOREGROUND = 'rgba(100,116,139,1)'; // --muted-foreground #64748b
-		const COLOR_BORDER = 'rgba(226,232,240,1)'; // --border #e2e8f0
-		const COLOR_BACKGROUND = 'rgba(255,255,255,1)'; // --background #ffffff
-
 		let metricData: number[];
 		let metricName: string;
 		let metricColor: string;
-		// provide safe defaults so we don't need non-null assertions later
+
 		let areaStartColor: string = 'rgba(0,0,0,0)';
 		let areaEndColor: string = 'rgba(0,0,0,0)';
 		let yAxisConfig: Record<string, unknown> = {};
@@ -110,21 +104,15 @@ export default function ScheduleMetricsChartComponent({
 			case 'crawledDataSets':
 				metricData = sortedData.map((item) => item.crawledDataSets ?? 0);
 				metricName = 'Crawled Datasets';
-				metricColor = 'rgba(37,99,235,1)';
-				areaStartColor = 'rgba(37,99,235,0.30)'; // 30% opacity
-				areaEndColor = 'rgba(37,99,235,0.05)'; // 5% opacity
+				metricColor = 'rgba(37, 99, 235,1)';
+				areaStartColor = 'rgba(37, 99, 235,0.3)';
+				areaEndColor = 'rgba(37, 99, 235,0.05)';
 				yAxisConfig = {
 					type: 'value',
 					name: 'Datasets',
 					position: 'left',
-					axisLine: {
-						lineStyle: {
-							color: COLOR_MUTED_FOREGROUND,
-						},
-					},
 					splitLine: {
 						lineStyle: {
-							color: COLOR_BORDER,
 							type: 'dashed',
 						},
 					},
@@ -133,21 +121,15 @@ export default function ScheduleMetricsChartComponent({
 			case 'newDatasets':
 				metricData = sortedData.map((item) => item.newDatasets ?? 0);
 				metricName = 'New Datasets';
-				metricColor = 'rgba(42,157,144,1)';
-				areaStartColor = 'rgba(42,157,144,0.30)';
-				areaEndColor = 'rgba(42,157,144,0.05)';
+				metricColor = 'rgba(22, 163, 74,1)';
+				areaStartColor = 'rgba(22, 163, 74,0.3)';
+				areaEndColor = 'rgba(22, 163, 74,0.05)';
 				yAxisConfig = {
 					type: 'value',
 					name: 'Datasets',
 					position: 'left',
-					axisLine: {
-						lineStyle: {
-							color: COLOR_MUTED_FOREGROUND,
-						},
-					},
 					splitLine: {
 						lineStyle: {
-							color: COLOR_BORDER,
 							type: 'dashed',
 						},
 					},
@@ -155,9 +137,7 @@ export default function ScheduleMetricsChartComponent({
 				break;
 			case 'newDatasetsPercentage':
 				metricData = sortedData.map((item) =>
-					item.newDatasetsPercentage != null
-						? Number((item.newDatasetsPercentage * 100).toFixed(1))
-						: 0,
+					item.newDatasetsPercentage ? Number((item.newDatasetsPercentage * 100).toFixed(1)) : 0,
 				);
 				metricName = 'New Datasets Percentage';
 				metricColor = 'rgba(244,164,98,1)';
@@ -168,11 +148,6 @@ export default function ScheduleMetricsChartComponent({
 					type: 'value',
 					name: 'Percentage',
 					position: 'left',
-					axisLine: {
-						lineStyle: {
-							color: COLOR_MUTED_FOREGROUND,
-						},
-					},
 					axisLabel: {
 						formatter: '{value}%',
 					},
@@ -180,7 +155,6 @@ export default function ScheduleMetricsChartComponent({
 					max: 100,
 					splitLine: {
 						lineStyle: {
-							color: COLOR_BORDER,
 							type: 'dashed',
 						},
 					},
@@ -191,16 +165,8 @@ export default function ScheduleMetricsChartComponent({
 		return {
 			tooltip: {
 				trigger: 'axis',
-				backgroundColor: COLOR_BACKGROUND,
-				borderColor: COLOR_BORDER,
-				textStyle: {
-					color: COLOR_FOREGROUND,
-				},
 				axisPointer: {
 					type: 'cross',
-					crossStyle: {
-						color: COLOR_MUTED_FOREGROUND,
-					},
 				},
 				formatter: (params: unknown) => {
 					if (!params || !Array.isArray(params) || params.length === 0) return '';
@@ -219,26 +185,18 @@ export default function ScheduleMetricsChartComponent({
 			legend: {
 				data: [metricName],
 				bottom: 0,
-				textStyle: {
-					color: COLOR_FOREGROUND,
-				},
 			},
 			grid: {
 				left: '3%',
 				right: '4%',
 				bottom: '60px',
-				top: '20px',
+				top: '40px',
 				containLabel: true,
 			},
 			xAxis: {
 				type: 'category',
 				boundaryGap: false,
 				data: dates,
-				axisLine: {
-					lineStyle: {
-						color: COLOR_MUTED_FOREGROUND,
-					},
-				},
 			},
 			yAxis: yAxisConfig,
 			series: [
@@ -269,7 +227,7 @@ export default function ScheduleMetricsChartComponent({
 					emphasis: {
 						focus: 'series',
 					},
-					connectNulls: true, // Changed to true to connect lines over potential gaps if any
+					connectNulls: true, // No gaps for null data points
 				},
 			],
 			animation: false,
@@ -315,7 +273,7 @@ export default function ScheduleMetricsChartComponent({
 							value={selectedMetric}
 							onValueChange={(value) => setSelectedMetric(value as MetricType)}
 						>
-							<SelectTrigger className="w-[200px]">
+							<SelectTrigger className="w-[220px]">
 								<SelectValue placeholder="Select metric" />
 							</SelectTrigger>
 							<SelectContent>
@@ -351,7 +309,8 @@ export default function ScheduleMetricsChartComponent({
 					<ReactECharts
 						key={`${selectedMetric}-${dateRange}`} // Force re-render on changes to avoid interpolation errors
 						option={chartOption}
-						style={{ height: '450px', width: '100%' }}
+						style={{ height: '500px', width: '100%' }} // className could cause sizing
+						// issues
 						notMerge={true}
 					/>
 				)}
