@@ -4,6 +4,7 @@ import { Repository } from 'typeorm';
 import { HistoricalMetricsQueryDto } from '../../schedules/dto/historical-metrics-query.dto';
 import { ScheduleHistoricalMetricsItemDto } from '../../schedules/dto/schedule-historical-metrics-item.dto';
 import { ScheduleOverallMetricsDto } from '../../schedules/dto/schedule-overall-metrics.dto';
+import { CrawlerRunDownloadMetricsIncomingDto } from './dto/incoming/crawler-run-download-metrics-incoming.dto';
 import { CrawlerRunEventIncomingDto } from './dto/incoming/crawler-run-event-incoming.dto';
 import { CrawlerRunMetricsIncomingDto } from './dto/incoming/crawler-run-metrics-incoming.dto';
 import { CrawlerRunEventOutgoingDto } from './dto/outgoing/crawler-run-event-outgoing.dto';
@@ -48,6 +49,40 @@ export class CrawlerRunMetricsService {
 		} catch (error) {
 			this.logger.error(
 				`Failed to save metrics for crawler run ${runId} in namespace ${runNamespace}: ${error.message}`,
+			);
+			throw error;
+		}
+	}
+
+	/**
+	 * Save crawler run download metric.
+	 * @param runId The ID of the crawler run.
+	 * @param runNamespace The namespace of the crawler run.
+	 * @param metric The download metrics to save.
+	 */
+	async saveCrawlerRunDownloadMetric(
+		runId: string,
+		runNamespace: string,
+		metric: CrawlerRunDownloadMetricsIncomingDto,
+	): Promise<void> {
+		this.logger.log(
+			`Saving download metrics for crawler run ${runId} in namespace ${runNamespace}`,
+		);
+		try {
+			await this.crawlerRunMetricsRepository.save({
+				runId,
+				runNamespace,
+				scheduleName: metric.scheduleName,
+				scheduleNamespace: metric.scheduleNamespace,
+				totalDatasetsToDownload: metric.totalDatasetsToDownload,
+				downloadedDatasets: metric.downloadedDatasets,
+				totalGBToDownload: metric.totalGBToDownload,
+				downloadedGB: metric.downloadedGB,
+				runStartedAt: new Date(metric.runStartedAt),
+			});
+		} catch (error) {
+			this.logger.error(
+				`Failed to save download metrics for crawler run ${runId} in namespace ${runNamespace}: ${error.message}`,
 			);
 			throw error;
 		}
