@@ -131,6 +131,20 @@ export class SchedulesService {
 	}
 
 	/**
+	 * Returns if a schedule with the given name and namespace exists
+	 * @param name The name of the Schedule
+	 * @param namespace The namespace of the Schedule
+	 * @returns True if the Schedule exists, false otherwise
+	 */
+	async scheduleNameAlreadyExists(name: string, namespace: string): Promise<boolean> {
+		const schedule = await this.orchestratorClientService.getScheduleByNameAndNamespace(
+			name,
+			namespace,
+		);
+		return schedule !== null;
+	}
+
+	/**
 	 * Create a new Schedule
 	 * @param createScheduleDto The Schedule to create
 	 * @param user The user creating the Schedule

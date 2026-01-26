@@ -149,8 +149,7 @@ export class SchedulesController {
 		@Param('namespace') namespace: string,
 		@Param('name') name: string,
 	): Promise<boolean> {
-		const schedule = await this.schedulesService.getScheduleByNameAndNamespace(name, namespace);
-		return !!schedule;
+		return await this.schedulesService.scheduleNameAlreadyExists(name, namespace);
 	}
 
 	@ApiOperation({ summary: 'Get historical metrics (time series) for a Schedule' })
