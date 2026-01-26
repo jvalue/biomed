@@ -43,7 +43,7 @@ export class CrawlerRunMetricsService {
 				progress: metric.progress,
 				crawledDataSets: metric.crawledDataSets,
 				cacheHits: metric.cacheHits,
-				runStartedAt: metric.runStartedAt,
+				runStartedAt: new Date(metric.runStartedAt),
 			});
 		} catch (error) {
 			this.logger.error(

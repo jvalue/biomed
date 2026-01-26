@@ -44,7 +44,7 @@ export class CrawlerRunMetricEntity {
 	progress?: number;
 
 	@Column({
-		type: 'timestamp',
+		type: 'timestamptz', // Changed from 'timestamp' to 'timestamptz' to store timezone info
 		nullable: true,
 	})
 	runStartedAt?: Date;
