@@ -80,6 +80,17 @@ export class ArgoScheduleEngine implements IScheduleEngine {
 				},
 			};
 		}
+
+		// Update parameters
+		if (updateScheduleDto.parameters) {
+			existingWorkflow.spec.workflowSpec.arguments = {
+				parameters: updateScheduleDto.parameters.map((p) => ({
+					name: p.name,
+					value: p.value,
+				})),
+			};
+		}
+
 		// Generate YAML from the object for debug reasons
 		const yamlString = yaml.dump(existingWorkflow);
 
