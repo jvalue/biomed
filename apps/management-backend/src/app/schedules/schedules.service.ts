@@ -7,6 +7,7 @@ import { ArgoClientService } from '../orchestrator-client/argo-client/argo-clien
 import { UserEntity } from '../users/entity/user.entity';
 import { CreateScheduleDto } from './dto/create-schedule.dto';
 import { ScheduleDto, ScheduleParameterDto } from './dto/schedule.dto';
+import { UpdateScheduleDto } from './dto/update-schedule.dto';
 import { ScheduleEntity } from './entity/schedule.entity';
 import { ScheduleErrorDetails, ScheduleErrorType } from './enums/schedule-error-type.enum';
 import type { IScheduleEngine } from './schedule-engine.interface';
@@ -163,6 +164,21 @@ export class SchedulesService {
 		scheduleEntity.createdBy = user;
 		scheduleEntity.targets = targets;
 		await this.scheduleRepository.save(scheduleEntity);
+	}
+
+	/**
+	 * Updates a Schedule
+	 * @param name The name of the Schedule
+	 * @param namespace The namespace of the Schedule
+	 * @param updateScheduleDto The updated schedule data
+	 */
+	async updateSchedule(
+		name: string,
+		namespace: string,
+		updateScheduleDto: UpdateScheduleDto,
+	): Promise<void> {
+		await this.scheduleEngine.updateSchedule(name, namespace, updateScheduleDto);
+		// Note: We don't need to update our local DB here because we don't store cronExpression or retryStrategy locally.
 	}
 
 	/**
