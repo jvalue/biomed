@@ -34,10 +34,46 @@ const DATE_RANGE_LABELS: Record<DateRange, string> = {
 	'7': 'Last Week',
 };
 
-const METRIC_LABELS: Record<MetricType, string> = {
-	newDatasets: 'New Datasets',
-	crawledDataSets: 'Crawled Datasets',
-	newDatasetsPercentage: 'New Datasets Percentage',
+// Configuration object for metrics to avoid switch statements and duplicate code
+interface MetricConfig {
+	label: string;
+	color: string;
+	areaStartColor: string;
+	areaEndColor: string;
+	yAxisName: string;
+	isPercentage?: boolean;
+}
+
+interface EChartsTooltipParam {
+	value: number | string;
+	axisValue: string;
+	marker: string;
+	seriesName: string;
+}
+
+const METRIC_CONFIGS: Record<MetricType, MetricConfig> = {
+	newDatasets: {
+		label: 'New Datasets',
+		color: 'rgba(22, 163, 74, 1)', // Green
+		areaStartColor: 'rgba(22, 163, 74, 0.3)',
+		areaEndColor: 'rgba(22, 163, 74, 0.05)',
+		yAxisName: 'Datasets',
+	},
+	crawledDataSets: {
+		label: 'Crawled Datasets',
+		color: 'rgba(37, 99, 235, 1)', // Blue
+		areaStartColor: 'rgba(37, 99, 235, 0.3)',
+		areaEndColor: 'rgba(37, 99, 235, 0.05)',
+		yAxisName: 'Datasets',
+	},
+	newDatasetsPercentage: {
+		label: 'New Datasets Percentage',
+		color: 'rgba(244, 164, 98, 1)', // Orange
+		areaStartColor: 'rgba(244, 164, 98, 0.3)',
+		areaEndColor: 'rgba(244, 164, 98, 0.05)',
+		yAxisName: 'Percentage',
+		isPercentage: true,
+	},
 };
 
 export default function ScheduleMetricsChartComponent({
@@ -47,6 +83,7 @@ export default function ScheduleMetricsChartComponent({
 	const [dateRange, setDateRange] = useState<DateRange>('90');
 	const [selectedMetric, setSelectedMetric] = useState<MetricType>('newDatasets');
 
+	// Calculate date range for API query
 	const { fromDate, toDate } = useMemo(() => {
 		const to = new Date();
 		if (dateRange === 'all') {
@@ -91,106 +128,56 @@ export default function ScheduleMetricsChartComponent({
 			}),
 		);
 
-		let metricData: number[];
-		let metricName: string;
-		let metricColor: string;
+		// Get configuration for current metric
+		const config = METRIC_CONFIGS[selectedMetric];
 
-		let areaStartColor: string = 'rgba(0,0,0,0)';
-		let areaEndColor: string = 'rgba(0,0,0,0)';
-		let yAxisConfig: Record<string, unknown> = {};
-		let showPercentage = false;
+		// Map data based on selected metric key
+		const metricData = sortedData.map((item) => {
+			const value = item[selectedMetric] ?? 0;
+			return config.isPercentage ? Number((value * 100).toFixed(1)) : value;
+		});
 
-		switch (selectedMetric) {
-			case 'crawledDataSets':
-				metricData = sortedData.map((item) => item.crawledDataSets ?? 0);
-				metricName = 'Crawled Datasets';
-				metricColor = 'rgba(37, 99, 235,1)';
-				areaStartColor = 'rgba(37, 99, 235,0.3)';
-				areaEndColor = 'rgba(37, 99, 235,0.05)';
-				yAxisConfig = {
-					type: 'value',
-					name: 'Datasets',
-					position: 'left',
-					splitLine: {
-						lineStyle: {
-							type: 'dashed',
-						},
-					},
-				};
-				break;
-			case 'newDatasets':
-				metricData = sortedData.map((item) => item.newDatasets ?? 0);
-				metricName = 'New Datasets';
-				metricColor = 'rgba(22, 163, 74,1)';
-				areaStartColor = 'rgba(22, 163, 74,0.3)';
-				areaEndColor = 'rgba(22, 163, 74,0.05)';
-				yAxisConfig = {
-					type: 'value',
-					name: 'Datasets',
-					position: 'left',
-					splitLine: {
-						lineStyle: {
-							type: 'dashed',
-						},
-					},
-				};
-				break;
-			case 'newDatasetsPercentage':
-				metricData = sortedData.map((item) =>
-					item.newDatasetsPercentage ? Number((item.newDatasetsPercentage * 100).toFixed(1)) : 0,
-				);
-				metricName = 'New Datasets Percentage';
-				metricColor = 'rgba(244,164,98,1)';
-				showPercentage = true;
-				areaStartColor = 'rgba(244,164,98,0.30)';
-				areaEndColor = 'rgba(244,164,98,0.05)';
-				yAxisConfig = {
-					type: 'value',
-					name: 'Percentage',
-					position: 'left',
-					axisLabel: {
-						formatter: '{value}%',
-					},
-					min: 0,
-					max: 100,
-					splitLine: {
-						lineStyle: {
-							type: 'dashed',
-						},
-					},
-				};
-				break;
-		}
+		// Build Y-Axis configuration
+		const yAxisConfig = {
+			type: 'value',
+			name: config.yAxisName,
+			nameLocation: 'middle',
+			nameGap: 40,
+			position: 'left',
+			splitLine: {
+				show: true,
+				lineStyle: {
+					type: 'dashed',
+					color: 'rgba(0, 0, 0, 0.1)', // Subtle grid lines
+				},
+			},
+			...(config.isPercentage && {
+				axisLabel: { formatter: '{value}%' },
+				min: 0,
+				max: 100,
+			}),
+		};
 
 		return {
 			tooltip: {
 				trigger: 'axis',
-				axisPointer: {
-					type: 'cross',
-				},
-				formatter: (params: unknown) => {
-					if (!params || !Array.isArray(params) || params.length === 0) return '';
-					const param = (params as Array<Record<string, unknown>>)[0];
-					if (!param) return '';
-					const value = showPercentage
-						? `${(param.value as number | string) ?? ''}%`
-						: ((param.value as number | string) ?? '');
-					// Handle potential undefined axisValue
-					const label = (param.axisValue as string) || (param.name as string) || '';
-					const marker = (param.marker as string) || '';
-					const seriesName = (param.seriesName as string) || '';
-					return `${label}<br/>${marker}${seriesName}: ${value}`;
+				axisPointer: { type: 'cross' },
+				formatter: (params: EChartsTooltipParam | EChartsTooltipParam[]) => {
+					if (!Array.isArray(params) || params.length === 0) return '';
+					const p = params[0];
+					const value = config.isPercentage ? `${p.value}%` : p.value;
+					return `${p.axisValue}<br/>${p.marker}${p.seriesName}: ${value}`;
 				},
 			},
 			legend: {
-				data: [metricName],
+				data: [config.label],
 				bottom: 0,
 			},
 			grid: {
 				left: '3%',
 				right: '4%',
 				bottom: '60px',
-				top: '40px',
+				top: '20px', // Increased top padding for axis title
 				containLabel: true,
 			},
 			xAxis: {
@@ -201,12 +188,12 @@ export default function ScheduleMetricsChartComponent({
 			yAxis: yAxisConfig,
 			series: [
 				{
-					name: metricName,
+					name: config.label,
 					type: 'line',
 					smooth: false,
 					data: metricData,
 					itemStyle: {
-						color: metricColor,
+						color: config.color,
 					},
 					areaStyle: {
 						color: {
@@ -216,8 +203,8 @@ export default function ScheduleMetricsChartComponent({
 							x2: 0,
 							y2: 1,
 							colorStops: [
-								{ offset: 0, color: areaStartColor },
-								{ offset: 1, color: areaEndColor },
+								{ offset: 0, color: config.areaStartColor },
+								{ offset: 1, color: config.areaEndColor },
 							],
 						},
 					},
@@ -227,10 +214,10 @@ export default function ScheduleMetricsChartComponent({
 					emphasis: {
 						focus: 'series',
 					},
-					connectNulls: true, // No gaps for null data points
+					connectNulls: true,
 				},
 			],
-			animation: false,
+			animation: true,
 		};
 	}, [data, selectedMetric]);
 
@@ -277,9 +264,9 @@ export default function ScheduleMetricsChartComponent({
 								<SelectValue placeholder="Select metric" />
 							</SelectTrigger>
 							<SelectContent>
-								{Object.entries(METRIC_LABELS).map(([value, label]) => (
+								{Object.entries(METRIC_CONFIGS).map(([value, config]) => (
 									<SelectItem key={value} value={value}>
-										{label}
+										{config.label}
 									</SelectItem>
 								))}
 							</SelectContent>
@@ -307,11 +294,10 @@ export default function ScheduleMetricsChartComponent({
 					</div>
 				) : (
 					<ReactECharts
-						key={`${selectedMetric}-${dateRange}`} // Force re-render on changes to avoid interpolation errors
+						key={`${selectedMetric}-${dateRange}`} // Force complete re-render when context changes
 						option={chartOption}
-						style={{ height: '500px', width: '100%' }} // className could cause sizing
-						// issues
-						notMerge={true}
+						style={{ height: '500px', width: '100%' }}
+						notMerge={true} // Ensure clean state updates without merging old options
 					/>
 				)}
 			</CardContent>
