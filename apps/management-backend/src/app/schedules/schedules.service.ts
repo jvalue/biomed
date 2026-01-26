@@ -179,6 +179,16 @@ export class SchedulesService {
 	): Promise<void> {
 		await this.scheduleEngine.updateSchedule(name, namespace, updateScheduleDto);
 		// Note: We don't need to update our local DB here because we don't store cronExpression or retryStrategy locally.
+
+		const schedule = await this.scheduleRepository.findOne({ where: { name, namespace } });
+
+		// Sync targets if schedule exists locally, otherwise it will be handled during the next sync from orchestrator
+		if (schedule) {
+			// If parameters were updated, we might need to sync targets
+			if (updateScheduleDto.parameters) {
+				await this.syncTargetsForExistingSchedule(schedule, updateScheduleDto.parameters);
+			}
+		}
 	}
 
 	/**
