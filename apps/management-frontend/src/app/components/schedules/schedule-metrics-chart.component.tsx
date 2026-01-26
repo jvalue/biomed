@@ -173,6 +173,20 @@ export default function ScheduleMetricsChartComponent({
 				data: [config.label],
 				bottom: 0,
 			},
+			visualMap: config.isPercentage
+				? {
+						show: false,
+						dimension: 1,
+						pieces: [
+							{ gte: 20, color: 'rgba(22, 163, 74, 1)' }, // Green
+							{ gte: 10, lt: 20, color: 'rgba(244, 164, 98, 1)' }, // Orange
+							{ lt: 10, color: 'rgba(220, 38, 38, 1)' }, // Red
+						],
+						outOfRange: {
+							color: 'rgba(22, 163, 74, 1)',
+						},
+					}
+				: undefined,
 			grid: {
 				left: '3%',
 				right: '4%',
@@ -192,22 +206,28 @@ export default function ScheduleMetricsChartComponent({
 					type: 'line',
 					smooth: false,
 					data: metricData,
-					itemStyle: {
-						color: config.color,
-					},
-					areaStyle: {
-						color: {
-							type: 'linear',
-							x: 0,
-							y: 0,
-							x2: 0,
-							y2: 1,
-							colorStops: [
-								{ offset: 0, color: config.areaStartColor },
-								{ offset: 1, color: config.areaEndColor },
-							],
-						},
-					},
+					itemStyle: config.isPercentage
+						? undefined
+						: {
+								color: config.color,
+							},
+					areaStyle: config.isPercentage
+						? {
+								opacity: 0.25,
+							}
+						: {
+								color: {
+									type: 'linear',
+									x: 0,
+									y: 0,
+									x2: 0,
+									y2: 1,
+									colorStops: [
+										{ offset: 0, color: config.areaStartColor },
+										{ offset: 1, color: config.areaEndColor },
+									],
+								},
+							},
 					lineStyle: {
 						width: 2,
 					},
