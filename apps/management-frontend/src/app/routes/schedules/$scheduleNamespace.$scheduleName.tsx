@@ -218,6 +218,13 @@ function RouteComponent() {
 									page={page}
 									setPage={setPage}
 									scheduleName={scheduleName}
+									visibleFilters={{
+										namespace: false,
+										template: false,
+										startAfter: true,
+										endBefore: true,
+										phase: true,
+									}}
 									scrollOnPaginate
 								/>
 							</CardContent>
