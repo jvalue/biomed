@@ -1,5 +1,6 @@
 import { useLayoutEffect, useRef, useState } from 'react';
 import { CrawlerRunDto, CrawlerRunPhaseEnum } from '@/src/app/api/dto/crawler-runs/crawler-run.dto';
+import { useCrawlerTemplates } from '@/src/app/api/hooks/useCrawlerTemplates';
 import { Button } from '@/src/app/components/design-components/button';
 import {
 	DropdownMenu,
@@ -8,6 +9,7 @@ import {
 	DropdownMenuTrigger,
 } from '@/src/app/components/design-components/dropdown-menu';
 import { Input } from '@/src/app/components/design-components/input';
+import { Label } from '@/src/app/components/design-components/label';
 import {
 	Pagination,
 	PaginationContent,
@@ -15,6 +17,7 @@ import {
 	PaginationNext,
 	PaginationPrevious,
 } from '@/src/app/components/design-components/pagination';
+import { RadioGroup, RadioGroupItem } from '@/src/app/components/design-components/radio-group';
 import { Spinner } from '@/src/app/components/design-components/spinner';
 import {
 	Table,
@@ -37,6 +40,13 @@ export interface CrawlerRunsTableProps {
 	scheduleName?: string;
 	/** When enabled, scrolls back to the table top after pagination changes. Useful when the table appears in the middle or bottom of the page. */
 	scrollOnPaginate?: boolean;
+	visibleFilters?: {
+		namespace?: boolean;
+		template?: boolean;
+		startAfter?: boolean;
+		endBefore?: boolean;
+		phase?: boolean;
+	};
 }
 
 function getPhaseClass(phase?: CrawlerRunPhaseEnum | string) {
@@ -62,6 +72,13 @@ export default function CrawlerRunsTable({
 	pageSize,
 	scheduleName,
 	scrollOnPaginate = false,
+	visibleFilters = {
+		namespace: true,
+		template: true,
+		startAfter: true,
+		endBefore: true,
+		phase: true,
+	},
 }: CrawlerRunsTableProps) {
 	const [namespace, setNamespace] = useState('');
 	const [crawlerTemplateName, setCrawlerTemplateName] = useState('');
@@ -84,6 +101,13 @@ export default function CrawlerRunsTable({
 		finishedBefore: finishedBefore || undefined,
 		phases: phases.length ? phases : undefined,
 	});
+
+	const {
+		data: templateData,
+		isLoading: templatesIsLoading,
+		error: templatesError,
+	} = useCrawlerTemplates();
+	const uniqueNamespaces = Array.from(new Set(templateData?.map((t) => t.namespace)));
 
 	useLayoutEffect(() => {
 		if (!scrollOnPaginate) return;
@@ -122,56 +146,93 @@ export default function CrawlerRunsTable({
 
 			{/* filter bar */}
 			<div className="flex flex-wrap gap-4 m-4">
-				<Input
-					placeholder="Namespace"
-					value={namespace}
-					onChange={(e) => setNamespace(e.target.value)}
-					className="w-48"
-				/>
+				{!templatesIsLoading && !templatesError && (
+					<>
+						{visibleFilters.namespace && (
+							<DropdownMenu>
+								<DropdownMenuTrigger asChild>
+									<Button variant="outline" className="w-48 justify-between">
+										{namespace || 'Select namespace'}
+									</Button>
+								</DropdownMenuTrigger>
 
-				<Input
-					placeholder="Workflow Template"
-					value={crawlerTemplateName}
-					onChange={(e) => setCrawlerTemplateName(e.target.value)}
-					className="w-48"
-				/>
+								<DropdownMenuContent className="w-48 p-2">
+									<RadioGroup value={namespace} onValueChange={setNamespace}>
+										{uniqueNamespaces?.map((namespace) => (
+											<div key={namespace} className="flex items-center gap-3">
+												<RadioGroupItem value={namespace} id={`namespace-${namespace}`} />
+												<Label htmlFor={`namespace-${namespace}`}>{namespace}</Label>
+											</div>
+										))}
+									</RadioGroup>
+								</DropdownMenuContent>
+							</DropdownMenu>
+						)}
+						{visibleFilters.template && (
+							<DropdownMenu>
+								<DropdownMenuTrigger asChild>
+									<Button variant="outline" className="w-48 justify-between">
+										{crawlerTemplateName || 'Select template'}
+									</Button>
+								</DropdownMenuTrigger>
 
-				<Input
-					type="datetime-local"
-					value={startedAfter ? new Date(startedAfter).toISOString().slice(0, 16) : ''}
-					onChange={(e) => setStartedAfter(e.target.value ? new Date(e.target.value) : undefined)}
-					className="w-56"
-				/>
+								<DropdownMenuContent className="w-48 p-2">
+									<RadioGroup value={crawlerTemplateName} onValueChange={setCrawlerTemplateName}>
+										{templateData?.map((template) => (
+											<div key={template.name} className="flex items-center gap-3">
+												<RadioGroupItem value={template.name} id={`template-${template.name}`} />
+												<Label htmlFor={`template-${template.name}`}>{template.name}</Label>
+											</div>
+										))}
+									</RadioGroup>
+								</DropdownMenuContent>
+							</DropdownMenu>
+						)}
+					</>
+				)}
 
-				<Input
-					type="datetime-local"
-					value={finishedBefore ? new Date(finishedBefore).toISOString().slice(0, 16) : ''}
-					onChange={(e) => setFinishedBefore(e.target.value ? new Date(e.target.value) : undefined)}
-					className="w-56"
-				/>
-
-				<DropdownMenu>
-					<DropdownMenuTrigger asChild>
-						<Button variant="outline" className="w-48 justify-between">
-							{phases.length > 0 ? phases.join(', ') : 'Filter by phase'}
-						</Button>
-					</DropdownMenuTrigger>
-					<DropdownMenuContent className="w-48">
-						{Object.values(CrawlerRunPhaseEnum).map((phase) => (
-							<DropdownMenuCheckboxItem
-								key={phase}
-								checked={phases.includes(phase)}
-								onCheckedChange={(checked) => {
-									setPhases((prev) =>
-										checked ? [...prev, phase] : prev.filter((p) => p !== phase),
-									);
-								}}
-							>
-								{phase}
-							</DropdownMenuCheckboxItem>
-						))}
-					</DropdownMenuContent>
-				</DropdownMenu>
+				{visibleFilters.startAfter && (
+					<Input
+						type="datetime-local"
+						value={startedAfter ? new Date(startedAfter).toISOString().slice(0, 16) : ''}
+						onChange={(e) => setStartedAfter(e.target.value ? new Date(e.target.value) : undefined)}
+						className="w-56"
+					/>
+				)}
+				{visibleFilters.endBefore && (
+					<Input
+						type="datetime-local"
+						value={finishedBefore ? new Date(finishedBefore).toISOString().slice(0, 16) : ''}
+						onChange={(e) =>
+							setFinishedBefore(e.target.value ? new Date(e.target.value) : undefined)
+						}
+						className="w-56"
+					/>
+				)}
+				{visibleFilters.phase && (
+					<DropdownMenu>
+						<DropdownMenuTrigger asChild>
+							<Button variant="outline" className="w-48 justify-between">
+								{phases.length > 0 ? phases.join(', ') : 'Filter by phase'}
+							</Button>
+						</DropdownMenuTrigger>
+						<DropdownMenuContent className="w-48">
+							{Object.values(CrawlerRunPhaseEnum).map((phase) => (
+								<DropdownMenuCheckboxItem
+									key={phase}
+									checked={phases.includes(phase)}
+									onCheckedChange={(checked) => {
+										setPhases((prev) =>
+											checked ? [...prev, phase] : prev.filter((p) => p !== phase),
+										);
+									}}
+								>
+									{phase}
+								</DropdownMenuCheckboxItem>
+							))}
+						</DropdownMenuContent>
+					</DropdownMenu>
+				)}
 
 				<Button
 					variant="outline"
