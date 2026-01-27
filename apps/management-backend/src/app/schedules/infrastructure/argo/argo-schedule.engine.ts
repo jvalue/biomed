@@ -74,9 +74,10 @@ export class ArgoScheduleEngine implements IScheduleEngine {
 			existingWorkflow.spec.workflowSpec.retryStrategy = {
 				limit: retry.retries,
 				backoff: {
-					duration: retry.backoffDuration,
+					duration: retry.backoffDuration.toString(),
+					cap: retry.backoffCap.toString(),
 					factor: retry.backoffFactor,
-					maxDuration: retry.backoffMaxDuration,
+					maxDuration: retry.backoffMaxDuration.toString(),
 				},
 			};
 		}
