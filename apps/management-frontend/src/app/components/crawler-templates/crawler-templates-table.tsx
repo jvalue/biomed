@@ -1,9 +1,8 @@
 import { Can } from '@casl/react';
 import { Calendar, Plus } from 'lucide-react';
-import { useState } from 'react';
+// biome-ignore lint/correctness/noUnusedImports: is used
+import React, { useState } from 'react';
 import { CrawlerTemplateDto } from '@/src/app/api/dto/crawler-templates/crawler-template.dto';
-import CrawlerTemplateRunDialog from '@/src/app/components/crawler-templates/crawler-template-run-dialog';
-import CrawlerTemplateScheduleDialog from '@/src/app/components/crawler-templates/crawler-template-schedule-dialog';
 import { Button } from '@/src/app/components/design-components/button';
 import {
 	Table,
@@ -14,7 +13,9 @@ import {
 	TableHeader,
 	TableRow,
 } from '@/src/app/components/design-components/table';
-import { useAuth } from '../../contexts/AuthContext';
+import { ScheduleFormDialog } from '@/src/app/components/schedules/schedule-form-dialog';
+import { useAuth } from '@/src/app/contexts/AuthContext';
+import CrawlerTemplateRunDialog from './crawler-template-run-dialog';
 
 export interface CrawlerTemplatesTableProps {
 	templates?: CrawlerTemplateDto[];
@@ -31,7 +32,7 @@ export default function CrawlerTemplatesTable({ templates = [] }: CrawlerTemplat
 		setDialogOpen(true);
 	};
 
-	const openScheduleDialog = (template: CrawlerTemplateDto) => {
+	const handleCreateSchedule = (template: CrawlerTemplateDto) => {
 		setSelectedTemplate(template);
 		setScheduleDialogOpen(true);
 	};
@@ -80,7 +81,7 @@ export default function CrawlerTemplatesTable({ templates = [] }: CrawlerTemplat
 									<Button
 										size="icon"
 										className="bg-blue-500 text-white hover:bg-blue-700"
-										onClick={() => openScheduleDialog(template)}
+										onClick={() => handleCreateSchedule(template)}
 									>
 										<Calendar />
 									</Button>
@@ -95,7 +96,8 @@ export default function CrawlerTemplatesTable({ templates = [] }: CrawlerTemplat
 				open={dialogOpen}
 				onOpenChange={setDialogOpen}
 			/>
-			<CrawlerTemplateScheduleDialog
+			<ScheduleFormDialog
+				mode="create"
 				template={selectedTemplate}
 				open={scheduleDialogOpen}
 				onOpenChange={setScheduleDialogOpen}

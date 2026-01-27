@@ -1,13 +1,19 @@
 import { useRouter } from '@tanstack/react-router';
 import { AlertCircle } from 'lucide-react';
-import React, { useMemo, useState } from 'react';
+// biome-ignore lint/correctness/noUnusedImports: is used
+import React, { useEffect, useMemo, useState } from 'react';
 import { toast } from 'react-toastify';
 import {
 	CrawlerTemplateDto,
 	CrawlerTemplateParameterDto,
 } from '@/src/app/api/dto/crawler-templates/crawler-template.dto';
-import { RetryStrategyDto } from '@/src/app/api/dto/schedule/schedule.dto';
-import { useCreateSchedule, useScheduleNameExists } from '@/src/app/api/hooks/useSchedules';
+import { RetryStrategyDto, ScheduleDto } from '@/src/app/api/dto/schedule/schedule.dto';
+import { useCrawlerTemplateByNameAndNamespace } from '@/src/app/api/hooks/useCrawlerTemplates';
+import {
+	useCreateSchedule,
+	useScheduleNameExists,
+	useUpdateSchedule,
+} from '@/src/app/api/hooks/useSchedules';
 import { Button } from '@/src/app/components/design-components/button';
 import {
 	Dialog,
@@ -24,20 +30,34 @@ import {
 import { Input } from '@/src/app/components/design-components/input';
 import { Label } from '@/src/app/components/design-components/label';
 import { formatCronReadable } from '@/src/app/utils/cron';
+import { Spinner } from '../design-components/spinner';
 
-export interface CrawlerTemplateScheduleDialogProps {
-	template: CrawlerTemplateDto | null;
+export interface ScheduleFormDialogProps {
+	mode: 'create' | 'edit';
+	template?: CrawlerTemplateDto | null; // Required for create
+	initialSchedule?: ScheduleDto; // Required for edit
 	open: boolean;
 	onOpenChange: (open: boolean) => void;
 }
 
-export default function CrawlerTemplateScheduleDialog({
-	template,
+export function ScheduleFormDialog({
+	mode,
+	template: propTemplate,
+	initialSchedule,
 	open,
 	onOpenChange,
-}: CrawlerTemplateScheduleDialogProps) {
+}: ScheduleFormDialogProps) {
 	const router = useRouter();
 	const createSchedule = useCreateSchedule();
+	const updateSchedule = useUpdateSchedule();
+
+	// Fetch templates if in edit mode and template not provided (to get parameter definitions)
+	const { data: template } = useCrawlerTemplateByNameAndNamespace(
+		propTemplate?.name || initialSchedule?.crawlerTemplateName || '',
+		propTemplate?.namespace || initialSchedule?.namespace || '',
+		!!(propTemplate || initialSchedule),
+	);
+
 	const [scheduleName, setScheduleName] = useState('');
 	const [cronExpression, setCronExpression] = useState('');
 	const [retries, setRetries] = useState<number>(0);
@@ -48,6 +68,55 @@ export default function CrawlerTemplateScheduleDialog({
 	const [parameters, setParameters] = useState<Record<string, string>>({});
 	const [errorMessage, setErrorMessage] = useState<string | null>(null);
 
+	// Load initial data when dialog opens
+	useEffect(() => {
+		if (open) {
+			setErrorMessage(null);
+			if (mode === 'edit' && initialSchedule) {
+				setScheduleName(initialSchedule.name);
+				setCronExpression(initialSchedule.schedule);
+
+				// Retry Strategy
+				if (initialSchedule.retryStrategy) {
+					setRetries(initialSchedule.retryStrategy.retries);
+					setBackoffDuration(initialSchedule.retryStrategy.backoffDuration?.toString() ?? '');
+					setBackoffFactor(initialSchedule.retryStrategy.backoffFactor?.toString() ?? '');
+					setBackoffCap(initialSchedule.retryStrategy.backoffCap?.toString() ?? '');
+					setBackoffMaxDuration(initialSchedule.retryStrategy.backoffMaxDuration?.toString() ?? '');
+				} else {
+					setRetries(0);
+					setBackoffDuration('');
+					setBackoffFactor('');
+					setBackoffCap('');
+					setBackoffMaxDuration('');
+				}
+
+				// Parameters
+				const paramMap: Record<string, string> = {};
+				initialSchedule.parameters?.forEach((p) => {
+					paramMap[p.name] = p.value;
+				});
+				setParameters(paramMap);
+			} else {
+				// Create Mode defaults
+				setScheduleName('');
+				setCronExpression('');
+				setRetries(0);
+				setBackoffDuration('');
+				setBackoffFactor('');
+				setBackoffCap('');
+				setBackoffMaxDuration('');
+				const initialParams: Record<string, string> = {};
+				if (template?.parameters) {
+					template.parameters.forEach((param) => {
+						initialParams[param.name] = param.defaultValue ?? '';
+					});
+				}
+				setParameters(initialParams);
+			}
+		}
+	}, [open, mode, initialSchedule, template]);
+
 	// Regex validation for name (Kubernetes-style DNS-1123 subdomain)
 	const nameRegex = useMemo(
 		() => /^[a-z0-9]([-a-z0-9]*[a-z0-9])?(?:\.[a-z0-9]([-a-z0-9]*[a-z0-9])?)*$/,
@@ -56,18 +125,19 @@ export default function CrawlerTemplateScheduleDialog({
 
 	// Validate name against regex
 	const nameIsInvalid = useMemo(() => {
+		if (mode === 'edit') return false; // Name is read-only in edit mode
 		if (!scheduleName) return false;
 		return !nameRegex.test(scheduleName);
-	}, [scheduleName, nameRegex]);
+	}, [scheduleName, nameRegex, mode]);
 
-	// Check if name already exists in the template's namespace (only when name and namespace are present)
+	// Check if name already exists (only in create mode)
 	const scheduleNameQuery = useScheduleNameExists(
 		scheduleName,
 		template?.namespace ?? '',
-		Boolean(scheduleName && template?.namespace),
+		Boolean(mode === 'create' && scheduleName && template?.namespace),
 	);
 
-	const scheduleNameExists = scheduleNameQuery.data === true;
+	const scheduleNameExists = mode === 'create' && scheduleNameQuery.data === true;
 
 	const cronReadable = useMemo(() => {
 		if (!cronExpression) return null;
@@ -86,6 +156,9 @@ export default function CrawlerTemplateScheduleDialog({
 		const factorNum = Number(factor);
 		if (Number.isNaN(factorNum) || factorNum <= 0) {
 			return 'Backoff Factor must be a positive number';
+		}
+		if (!Number.isInteger(factorNum)) {
+			return 'Backoff Factor must be an integer';
 		}
 		return null;
 	};
@@ -164,55 +237,27 @@ export default function CrawlerTemplateScheduleDialog({
 		return null;
 	}, [retries, backoffDuration, backoffFactor, backoffCap, backoffMaxDuration]);
 
-	React.useEffect(() => {
-		if (template && open) {
-			setScheduleName('');
-			setCronExpression('');
-			setRetries(0);
-			setBackoffDuration('');
-			setBackoffFactor('');
-			setBackoffCap('');
-			setBackoffMaxDuration('');
-			const initialParams: Record<string, string> = {};
-			template.parameters?.forEach((param) => {
-				initialParams[param.name] = param.defaultValue ?? '';
-			});
-			setParameters(initialParams);
-		}
-	}, [template, open]);
-
-	// Handle mutation errors
-	React.useEffect(() => {
-		if (createSchedule.isError && createSchedule.error) {
-			setErrorMessage(
-				createSchedule.error.message || 'An error occurred while creating the schedule.',
-			);
-		}
-	}, [createSchedule.isError, createSchedule.error]);
-
-	const handleSubmit = () => {
-		if (!template) return;
-
-		// Reset error message
+	const handleSubmit = async () => {
 		setErrorMessage(null);
 
-		// Validate cron expression
+		// Basic Validation
+		if (!scheduleName && mode === 'create') {
+			setErrorMessage('Schedule Name is required.');
+			return;
+		}
+
+		if (!cronExpression) {
+			setErrorMessage('Cron Expression is required.');
+			return;
+		}
+
 		if (cronIsInvalid) {
-			setErrorMessage('Invalid cron expression. Please enter a valid cron format.');
+			setErrorMessage('Invalid Cron Expression.');
 			return;
 		}
 
-		// Validate name
-		if (!scheduleName || nameIsInvalid) {
-			setErrorMessage(
-				'Invalid schedule name. Please use lowercase letters, numbers, hyphens, and dots only.',
-			);
-			return;
-		}
-
-		// Validate duplicate name
-		if (scheduleNameExists) {
-			setErrorMessage('A schedule with this name already exists');
+		if (mode === 'create' && (nameIsInvalid || scheduleNameExists)) {
+			setErrorMessage('Invalid Schedule Name.');
 			return;
 		}
 
@@ -222,64 +267,92 @@ export default function CrawlerTemplateScheduleDialog({
 			return;
 		}
 
-		const paramArray = Object.entries(parameters).map(([name, value]) => ({
-			name,
-			value,
-		}));
-
 		// Build retry strategy
-		const retryStrategy: RetryStrategyDto | undefined = retries !== 0 ? { retries } : undefined;
+		const retryStrategyDto: RetryStrategyDto | undefined = retries !== 0 ? { retries } : undefined;
 
-		if (retryStrategy && backoffDuration) {
-			retryStrategy.backoffDuration = durationToSeconds(backoffDuration);
+		if (retryStrategyDto && backoffDuration) {
+			retryStrategyDto.backoffDuration = durationToSeconds(backoffDuration);
 			if (backoffFactor) {
-				retryStrategy.backoffFactor = Number(backoffFactor);
+				retryStrategyDto.backoffFactor = Number(backoffFactor);
 			}
 			if (backoffCap) {
-				retryStrategy.backoffCap = durationToSeconds(backoffCap);
+				retryStrategyDto.backoffCap = durationToSeconds(backoffCap);
 			}
 			if (backoffMaxDuration) {
-				retryStrategy.backoffMaxDuration = durationToSeconds(backoffMaxDuration);
+				retryStrategyDto.backoffMaxDuration = durationToSeconds(backoffMaxDuration);
 			}
 		}
 
-		createSchedule.mutate(
-			{
-				name: scheduleName,
-				cronExpression: cronExpression,
-				crawlerTemplateNamespace: template.namespace,
-				crawlerTemplateName: template.name,
-				parameters: paramArray,
-				retryStrategy: retryStrategy,
-			},
-			{
-				onSuccess: () => {
-					// Navigate to the schedule detail page after successful creation
-					router.navigate({ to: `/schedules/${template.namespace}/${scheduleName}` });
-					onOpenChange(false);
-					toast.success(`Schedule "${scheduleName}" created successfully.`);
-				},
-			},
-		);
-	};
-
-	const handleParameterChange = (name: string, value: string) => {
-		setParameters((prev) => ({
-			...prev,
-			[name]: value,
+		const parameterList = Object.entries(parameters).map(([key, value]) => ({
+			name: key,
+			value: value,
 		}));
+		if (mode === 'create') {
+			if (!template) {
+				setErrorMessage('No template selected for creation.');
+				return;
+			}
+			createSchedule.mutate(
+				{
+					name: scheduleName,
+					cronExpression,
+					crawlerTemplateName: template.name,
+					crawlerTemplateNamespace: template.namespace,
+					parameters: parameterList,
+					retryStrategy: retryStrategyDto,
+				},
+				{
+					onSuccess: () => {
+						toast.success(`Schedule ${scheduleName} created successfully`);
+						router.navigate({ to: `/schedules/${template.namespace}/${scheduleName}` });
+						onOpenChange(false);
+					},
+				},
+			);
+		} else {
+			// Edit Mode
+			if (!initialSchedule) {
+				setErrorMessage('No schedule data found for update.');
+				return;
+			}
+			updateSchedule.mutate(
+				{
+					name: initialSchedule.name,
+					namespace: initialSchedule.namespace,
+					dto: {
+						cronExpression,
+						retryStrategy: retryStrategyDto,
+						parameters: parameterList,
+					},
+				},
+				{
+					onSuccess: () => {
+						toast.success(`Schedule ${scheduleName} updated successfully`);
+						onOpenChange(false);
+					},
+				},
+			);
+		}
 	};
 
-	if (!template) return null;
+	const isPending = createSchedule.isPending || updateSchedule.isPending;
 
 	return (
 		<Dialog open={open} onOpenChange={onOpenChange}>
 			<DialogContent className="sm:max-w-[1000px] max-h-[90vh] overflow-y-auto">
 				<DialogHeader>
-					<DialogTitle className="text-2xl font-semibold">Create Schedule</DialogTitle>
+					<DialogTitle className="text-2xl font-semibold">
+						{mode === 'create' ? 'Create Schedule' : `Edit Schedule: ${scheduleName}`}
+					</DialogTitle>
 					<DialogDescription className="text-base">
-						Schedule automated runs for crawler template:{' '}
-						<span className="font-semibold text-foreground">{template.name}</span>
+						{mode === 'create' ? (
+							<>
+								Schedule automated runs for crawler template:{' '}
+								<span className="font-semibold text-foreground">{template?.name}</span>
+							</>
+						) : (
+							'Update the schedule configuration.'
+						)}
 					</DialogDescription>
 				</DialogHeader>
 
@@ -300,10 +373,11 @@ export default function CrawlerTemplateScheduleDialog({
 									value={scheduleName}
 									onChange={(e) => setScheduleName(e.target.value)}
 									placeholder="e.g., biomed-north-america-daily"
-									className={`w-full ${nameIsInvalid || scheduleNameExists ? 'border-red-500 focus-visible:ring-red-500' : ''}`}
-									aria-invalid={nameIsInvalid || scheduleNameExists}
+									disabled={mode === 'edit'}
+									className={`w-full ${mode === 'create' && (nameIsInvalid || scheduleNameExists) ? 'border-red-500 focus-visible:ring-red-500' : ''}`}
+									aria-invalid={mode === 'create' && (nameIsInvalid || scheduleNameExists)}
 								/>
-								{nameIsInvalid && (
+								{mode === 'create' && nameIsInvalid && (
 									<div className="flex items-center gap-2 mt-2 p-2 bg-red-50 dark:bg-red-950 rounded-md border border-red-200 dark:border-red-800">
 										<AlertCircle className="h-4 w-4 text-red-600 dark:text-red-400" />
 										<span className="text-sm text-red-800 dark:text-red-300">
@@ -311,7 +385,7 @@ export default function CrawlerTemplateScheduleDialog({
 										</span>
 									</div>
 								)}
-								{!nameIsInvalid && scheduleNameExists && (
+								{mode === 'create' && !nameIsInvalid && scheduleNameExists && (
 									<div className="flex items-center gap-2 mt-2 p-2 bg-red-50 dark:bg-red-950 rounded-md border border-red-200 dark:border-red-800">
 										<AlertCircle className="h-4 w-4 text-red-600 dark:text-red-400" />
 										<span className="text-sm text-red-800 dark:text-red-300">
@@ -407,7 +481,7 @@ export default function CrawlerTemplateScheduleDialog({
 								</div>
 							)}
 
-							{backoffDuration && (
+							{backoffDuration && retries > 0 && (
 								<>
 									<div className="space-y-2">
 										<Label htmlFor="backoffFactor" className="text-sm font-medium">
@@ -418,8 +492,8 @@ export default function CrawlerTemplateScheduleDialog({
 											value={backoffFactor}
 											onChange={(e) => setBackoffFactor(e.target.value)}
 											type="number"
-											min={0}
-											step="0.1"
+											min={1}
+											step="1"
 											placeholder="0"
 											className="w-full"
 										/>
@@ -463,7 +537,7 @@ export default function CrawlerTemplateScheduleDialog({
 					</div>
 
 					{/* Crawler Parameters Section */}
-					{template.parameters && template.parameters.length > 0 && (
+					{template?.parameters && template.parameters.length > 0 && (
 						<div className="space-y-4">
 							<div className="pb-2 border-b border-primary/20">
 								<h3 className="text-lg font-semibold text-primary">Crawler Parameters</h3>
@@ -478,7 +552,9 @@ export default function CrawlerTemplateScheduleDialog({
 										<Input
 											id={param.name}
 											value={parameters[param.name] || ''}
-											onChange={(e) => handleParameterChange(param.name, e.target.value)}
+											onChange={(e) =>
+												setParameters((prev) => ({ ...prev, [param.name]: e.target.value }))
+											}
 											placeholder={param.defaultValue ?? 'Enter value...'}
 											className="w-full"
 										/>
@@ -503,27 +579,32 @@ export default function CrawlerTemplateScheduleDialog({
 				)}
 
 				<DialogFooter className="gap-2 sm:gap-0">
-					<Button
-						variant="outline"
-						onClick={() => onOpenChange(false)}
-						disabled={createSchedule.isPending}
-					>
+					<Button variant="outline" onClick={() => onOpenChange(false)} disabled={isPending}>
 						Cancel
 					</Button>
 					<Button
 						onClick={handleSubmit}
 						disabled={
-							createSchedule.isPending ||
-							!scheduleName ||
+							isPending ||
+							(!scheduleName && mode === 'create') ||
+							(mode === 'create' && (nameIsInvalid || scheduleNameExists)) ||
 							!cronExpression ||
 							cronIsInvalid ||
 							retryValidationError !== null ||
-							scheduleNameExists ||
-							scheduleNameQuery.isLoading
+							(mode === 'create' && scheduleNameQuery.isLoading)
 						}
 						className="bg-primary hover:bg-primary/90"
 					>
-						{createSchedule.isPending ? 'Creating PR ...' : 'Create Schedule'}
+						{isPending ? (
+							<span className="flex items-center gap-2">
+								<Spinner className="h-4 w-4" />
+								{mode === 'create' ? 'Creating...' : 'Updating...'}
+							</span>
+						) : mode === 'create' ? (
+							'Create Schedule'
+						) : (
+							'Update Schedule'
+						)}
 					</Button>
 				</DialogFooter>
 			</DialogContent>

@@ -23,6 +23,7 @@ import { Spinner } from '@/src/app/components/design-components/spinner';
 import { PermissionGuard } from '@/src/app/components/guards/permission-guard';
 import DeleteScheduleDialogComponent from '@/src/app/components/schedules/delete-schedule-dialog.component';
 import ScheduleErrorsComponent from '@/src/app/components/schedules/schedule-errors.component';
+import { ScheduleFormDialog } from '@/src/app/components/schedules/schedule-form-dialog';
 import ScheduleMetricsChartComponent from '@/src/app/components/schedules/schedule-metrics-chart.component';
 import ScheduleMetricsSummaryComponent from '@/src/app/components/schedules/schedule-metrics-summary.component';
 import ScheduleConfigurationSectionComponent from '@/src/app/components/schedules/scheduleConfigurationSection.component';
@@ -47,6 +48,7 @@ function RouteComponent() {
 	const deleteSchedule = useDeleteSchedule();
 
 	const [deleteDialogOpen, setDeleteDialogOpen] = React.useState(false);
+	const [isEditOpen, setIsEditOpen] = React.useState(false);
 
 	const handleToggleSuspend = () => {
 		if (suspended) {
@@ -142,6 +144,11 @@ function RouteComponent() {
 									disabled={suspendSchedule.isPending || resumeSchedule.isPending}
 									size={'large'}
 								/>
+
+								<Button variant="outline" onClick={() => setIsEditOpen(true)} className="ml-2">
+									Edit
+								</Button>
+
 								{/* Delete button with permission check */}
 								<Can ability={ability} I="delete" a="schedule">
 									<Button
@@ -255,6 +262,16 @@ function RouteComponent() {
 							toast.success(`Schedule ${scheduleName} deleted successfully`);
 						}}
 					/>
+
+					{/* Edit Schedule Dialog */}
+					<Can ability={ability} I="update" a="schedule">
+						<ScheduleFormDialog
+							mode="edit"
+							initialSchedule={schedule}
+							open={isEditOpen}
+							onOpenChange={setIsEditOpen}
+						/>
+					</Can>
 				</div>
 			</PermissionGuard>
 		</AuthGuard>

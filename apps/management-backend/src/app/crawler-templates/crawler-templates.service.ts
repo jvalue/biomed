@@ -1,4 +1,4 @@
-import { Injectable } from '@nestjs/common';
+import { Injectable, NotFoundException } from '@nestjs/common';
 import { CrawlerRunDto } from '../crawler-runs/dto/crawler-run.dto';
 import { CrawlerRunParameterDto } from '../crawler-runs/dto/crawler-run-parameter.dto';
 import { ArgoClientService } from '../orchestrator-client/argo-client/argo-client.service';
@@ -19,6 +19,25 @@ export class CrawlerTemplatesService {
 		return templates.sort((a: CrawlerTemplateDto, b: CrawlerTemplateDto) => {
 			return new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime();
 		});
+	}
+
+	/**
+	 * Gets a specific crawler Template by name and namespace.
+	 * @param templateName
+	 * @param namespace
+	 */
+	async getCrawlerTemplateByNameAndNamespace(
+		templateName: string,
+		namespace: string,
+	): Promise<CrawlerTemplateDto> {
+		const template = await this.orchestratorClientService.getCrawlerTemplateByNameAndNamespace(
+			templateName,
+			namespace,
+		);
+		if (!template) {
+			throw new NotFoundException(`Crawler Template ${namespace}/${templateName} not found`);
+		}
+		return template;
 	}
 
 	/**
