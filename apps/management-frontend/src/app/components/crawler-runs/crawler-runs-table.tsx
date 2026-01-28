@@ -36,11 +36,11 @@ import { useCrawlerRuns } from '../../api/hooks/useCrawlerRuns';
 const DEFAULT_PAGE_SIZE = 20;
 const TABLE_PAGINATION_SCROLL_KEY = '__crawler_runs_table_scroll__';
 const DEFAULT_FILTERS = {
-    namespace: true,
-    template: true,
-    startAfter: true,
-    endBefore: true,
-    phase: true,
+	namespace: true,
+	template: true,
+	startAfter: true,
+	endBefore: true,
+	phase: true,
 };
 
 export interface CrawlerRunsTableProps {
@@ -90,10 +90,10 @@ export default function CrawlerRunsTable({
 	const [finishedBefore, setFinishedBefore] = useState<Date | undefined>();
 	const [phases, setPhases] = useState<CrawlerRunPhaseEnum[]>([]);
 
-    const filterOptions = {
-        ...DEFAULT_FILTERS,
-        ...(visibleFilters ?? {}),
-    };
+	const filterOptions = {
+		...DEFAULT_FILTERS,
+		...(visibleFilters ?? {}),
+	};
 	const effectivePageSize = pageSize ?? DEFAULT_PAGE_SIZE;
 	const offset = (page - 1) * effectivePageSize;
 	const hasActiveFilters =
