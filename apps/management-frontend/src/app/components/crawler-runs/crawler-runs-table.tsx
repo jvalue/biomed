@@ -1,6 +1,8 @@
+import { ChevronDown } from 'lucide-react';
 import { useLayoutEffect, useRef, useState } from 'react';
 import { CrawlerRunDto, CrawlerRunPhaseEnum } from '@/src/app/api/dto/crawler-runs/crawler-run.dto';
 import { useCrawlerTemplates } from '@/src/app/api/hooks/useCrawlerTemplates';
+import { Badge } from '@/src/app/components/design-components/badge';
 import { Button } from '@/src/app/components/design-components/button';
 import {
 	DropdownMenu,
@@ -28,6 +30,7 @@ import {
 	TableHeader,
 	TableRow,
 } from '@/src/app/components/design-components/table';
+import { cn } from '@/src/utils';
 import { useCrawlerRuns } from '../../api/hooks/useCrawlerRuns';
 
 const DEFAULT_PAGE_SIZE = 20;
@@ -88,6 +91,12 @@ export default function CrawlerRunsTable({
 
 	const effectivePageSize = pageSize ?? DEFAULT_PAGE_SIZE;
 	const offset = (page - 1) * effectivePageSize;
+	const hasActiveFilters =
+		visibleFilters?.namespace ||
+		visibleFilters?.template ||
+		visibleFilters?.startAfter ||
+		visibleFilters?.endBefore ||
+		visibleFilters?.phase;
 
 	const anchorRef = useRef<HTMLDivElement | null>(null);
 
@@ -145,107 +154,191 @@ export default function CrawlerRunsTable({
 			<div ref={anchorRef} className="scroll-mt-24" />
 
 			{/* filter bar */}
-			<div className="flex flex-wrap gap-4 m-4">
+			<div className="flex flex-wrap items-end gap-3 rounded-xl border bg-muted/40 p-3 shadow-md m-3 mt-8">
 				{!templatesIsLoading && !templatesError && (
 					<>
 						{visibleFilters.namespace && (
-							<DropdownMenu>
-								<DropdownMenuTrigger asChild>
-									<Button variant="outline" className="w-48 justify-between">
-										{namespace || 'Select namespace'}
-									</Button>
-								</DropdownMenuTrigger>
+							<div className="flex flex-col gap-1">
+								<span className="text-xs text-muted-foreground">Namespace:</span>
+								<DropdownMenu>
+									<DropdownMenuTrigger asChild>
+										<Button
+											variant="outline"
+											size="sm"
+											className="h-9 w-48 justify-between font-normal"
+										>
+											<span className={namespace ? 'truncate' : 'truncate text-muted-foreground'}>
+												{namespace || 'Namespace'}
+											</span>
+											<ChevronDown className="h-4 w-4 opacity-50" />
+										</Button>
+									</DropdownMenuTrigger>
 
-								<DropdownMenuContent className="w-48 p-2">
-									<RadioGroup value={namespace} onValueChange={setNamespace}>
-										{uniqueNamespaces?.map((namespace) => (
-											<div key={namespace} className="flex items-center gap-3">
-												<RadioGroupItem value={namespace} id={`namespace-${namespace}`} />
-												<Label htmlFor={`namespace-${namespace}`}>{namespace}</Label>
+									<DropdownMenuContent className="w-48 p-2">
+										<RadioGroup value={namespace} onValueChange={setNamespace}>
+											{/* "All" option */}
+											<div className="flex items-center gap-2 py-1">
+												<RadioGroupItem value="" id="ns-all" />
+												<Label htmlFor="ns-all" className="cursor-pointer">
+													All Namespaces
+												</Label>
 											</div>
-										))}
-									</RadioGroup>
-								</DropdownMenuContent>
-							</DropdownMenu>
+
+											{uniqueNamespaces?.map((ns) => (
+												<div key={ns} className="flex items-center gap-2 py-1">
+													<RadioGroupItem value={ns} id={`ns-${ns}`} />
+													<Label htmlFor={`ns-${ns}`} className="cursor-pointer">
+														{ns}
+													</Label>
+												</div>
+											))}
+										</RadioGroup>
+									</DropdownMenuContent>
+								</DropdownMenu>
+							</div>
 						)}
-						{visibleFilters.template && (
-							<DropdownMenu>
-								<DropdownMenuTrigger asChild>
-									<Button variant="outline" className="w-48 justify-between">
-										{crawlerTemplateName || 'Select template'}
-									</Button>
-								</DropdownMenuTrigger>
 
-								<DropdownMenuContent className="w-48 p-2">
-									<RadioGroup value={crawlerTemplateName} onValueChange={setCrawlerTemplateName}>
-										{templateData?.map((template) => (
-											<div key={template.name} className="flex items-center gap-3">
-												<RadioGroupItem value={template.name} id={`template-${template.name}`} />
-												<Label htmlFor={`template-${template.name}`}>{template.name}</Label>
+						{visibleFilters.template && (
+							<div className="flex flex-col gap-1">
+								<span className="text-xs text-muted-foreground">Template:</span>
+								<DropdownMenu>
+									<DropdownMenuTrigger asChild>
+										<Button
+											variant="outline"
+											size="sm"
+											className="h-9 w-48 justify-between font-normal"
+										>
+											<span
+												className={
+													crawlerTemplateName ? 'truncate' : 'truncate text-muted-foreground'
+												}
+											>
+												{crawlerTemplateName || 'Template'}
+											</span>
+											<ChevronDown className="h-4 w-4 opacity-50" />
+										</Button>
+									</DropdownMenuTrigger>
+
+									<DropdownMenuContent className="w-48 p-2">
+										<RadioGroup value={crawlerTemplateName} onValueChange={setCrawlerTemplateName}>
+											{/* "All" option (same pattern as namespace) */}
+											<div className="flex items-center gap-2 py-1">
+												<RadioGroupItem value="" id="template-all" />
+												<Label htmlFor="template-all" className="cursor-pointer">
+													All templates
+												</Label>
 											</div>
-										))}
-									</RadioGroup>
-								</DropdownMenuContent>
-							</DropdownMenu>
+
+											{templateData?.map((template) => (
+												<div key={template.name} className="flex items-center gap-2 py-1">
+													<RadioGroupItem value={template.name} id={`template-${template.name}`} />
+													<Label htmlFor={`template-${template.name}`} className="cursor-pointer">
+														{template.name}
+													</Label>
+												</div>
+											))}
+										</RadioGroup>
+									</DropdownMenuContent>
+								</DropdownMenu>
+							</div>
 						)}
 					</>
 				)}
 
-				{visibleFilters.startAfter && (
-					<Input
-						type="datetime-local"
-						value={startedAfter ? new Date(startedAfter).toISOString().slice(0, 16) : ''}
-						onChange={(e) => setStartedAfter(e.target.value ? new Date(e.target.value) : undefined)}
-						className="w-56"
-					/>
-				)}
-				{visibleFilters.endBefore && (
-					<Input
-						type="datetime-local"
-						value={finishedBefore ? new Date(finishedBefore).toISOString().slice(0, 16) : ''}
-						onChange={(e) =>
-							setFinishedBefore(e.target.value ? new Date(e.target.value) : undefined)
-						}
-						className="w-56"
-					/>
-				)}
+				{/* Phase Multi-Select (single version only) */}
 				{visibleFilters.phase && (
-					<DropdownMenu>
-						<DropdownMenuTrigger asChild>
-							<Button variant="outline" className="w-48 justify-between">
-								{phases.length > 0 ? phases.join(', ') : 'Filter by phase'}
-							</Button>
-						</DropdownMenuTrigger>
-						<DropdownMenuContent className="w-48">
-							{Object.values(CrawlerRunPhaseEnum).map((phase) => (
-								<DropdownMenuCheckboxItem
-									key={phase}
-									checked={phases.includes(phase)}
-									onCheckedChange={(checked) => {
-										setPhases((prev) =>
-											checked ? [...prev, phase] : prev.filter((p) => p !== phase),
-										);
-									}}
+					<div className="flex flex-col gap-1">
+						<span className="text-xs text-muted-foreground">Phase:</span>
+						<DropdownMenu>
+							<DropdownMenuTrigger asChild>
+								<Button
+									variant="outline"
+									size="sm"
+									className="h-9 min-w-[12rem] justify-between font-normal"
 								>
-									{phase}
-								</DropdownMenuCheckboxItem>
-							))}
-						</DropdownMenuContent>
-					</DropdownMenu>
+									<div className="flex max-w-[10rem] items-center gap-1 overflow-hidden">
+										{phases.length === 0 ? (
+											<span className="text-muted-foreground">Phase</span>
+										) : phases.length <= 2 ? (
+											phases.map((phase) => (
+												<Badge
+													key={phase}
+													className={cn(
+														'px-1.5 py-0 text-[10px] font-normal',
+														getPhaseClass(phase),
+													)}
+												>
+													{phase}
+												</Badge>
+											))
+										) : (
+											<Badge variant="secondary" className="px-1.5 py-0 text-[10px] font-normal">
+												{phases.length} selected
+											</Badge>
+										)}
+									</div>
+									<ChevronDown className="h-4 w-4 opacity-50" />
+								</Button>
+							</DropdownMenuTrigger>
+
+							<DropdownMenuContent className="w-56">
+								{Object.values(CrawlerRunPhaseEnum).map((phase) => (
+									<DropdownMenuCheckboxItem
+										key={phase}
+										checked={phases.includes(phase)}
+										onCheckedChange={(checked) => {
+											setPhases((prev) =>
+												checked ? [...prev, phase] : prev.filter((p) => p !== phase),
+											);
+										}}
+									>
+										{phase}
+									</DropdownMenuCheckboxItem>
+								))}
+							</DropdownMenuContent>
+						</DropdownMenu>
+					</div>
 				)}
 
-				<Button
-					variant="outline"
-					onClick={() => {
-						setNamespace('');
-						setCrawlerTemplateName('');
-						setStartedAfter(undefined);
-						setFinishedBefore(undefined);
-						setPhases([]);
-					}}
-				>
-					Clear filters
-				</Button>
+				{/* Date Inputs */}
+				{visibleFilters.startAfter && (
+					<div className="flex flex-col gap-1">
+						<span className="text-xs text-muted-foreground">Started After:</span>
+						<Input
+							type="datetime-local"
+							value={startedAfter ? new Date(startedAfter).toISOString().slice(0, 16) : ''}
+							onChange={(e) =>
+								setStartedAfter(e.target.value ? new Date(e.target.value) : undefined)
+							}
+							className="h-9 w-52"
+						/>
+					</div>
+				)}
+
+				{visibleFilters.endBefore && (
+					<div className="flex flex-col gap-1">
+						<span className="text-xs text-muted-foreground">Finished Before:</span>
+						<Input
+							type="datetime-local"
+							value={finishedBefore ? new Date(finishedBefore).toISOString().slice(0, 16) : ''}
+							onChange={(e) =>
+								setFinishedBefore(e.target.value ? new Date(e.target.value) : undefined)
+							}
+							className="h-9 w-52"
+						/>
+					</div>
+				)}
+
+				{/* Clear button aligned right */}
+				{hasActiveFilters && (
+					<Button
+						variant="ghost"
+						size="sm"
+						className="ml-auto h-9 text-muted-foreground hover:text-destructive"
+					>
+						Clear filters
+					</Button>
+				)}
 			</div>
 
 			{/* TABLE */}
