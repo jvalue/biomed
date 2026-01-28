@@ -17,7 +17,7 @@ export const crawlerRunService = {
 	): Promise<CursorBasedPaginationResponseDto<CrawlerRunDto>> => {
 		const qs = new URLSearchParams();
 
-		// simple string filters
+		// string filters
 		if (params.scheduleName) qs.set('scheduleName', params.scheduleName);
 		if (params.namespace) qs.set('namespace', params.namespace);
 		if (params.crawlerTemplateName) qs.set('crawlerTemplateName', params.crawlerTemplateName);

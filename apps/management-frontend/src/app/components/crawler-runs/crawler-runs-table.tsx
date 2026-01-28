@@ -35,6 +35,13 @@ import { useCrawlerRuns } from '../../api/hooks/useCrawlerRuns';
 
 const DEFAULT_PAGE_SIZE = 20;
 const TABLE_PAGINATION_SCROLL_KEY = '__crawler_runs_table_scroll__';
+const DEFAULT_FILTERS = {
+    namespace: true,
+    template: true,
+    startAfter: true,
+    endBefore: true,
+    phase: true,
+};
 
 export interface CrawlerRunsTableProps {
 	page: number;
@@ -75,13 +82,7 @@ export default function CrawlerRunsTable({
 	pageSize,
 	scheduleName,
 	scrollOnPaginate = false,
-	visibleFilters = {
-		namespace: true,
-		template: true,
-		startAfter: true,
-		endBefore: true,
-		phase: true,
-	},
+	visibleFilters,
 }: CrawlerRunsTableProps) {
 	const [namespace, setNamespace] = useState('');
 	const [crawlerTemplateName, setCrawlerTemplateName] = useState('');
@@ -89,14 +90,18 @@ export default function CrawlerRunsTable({
 	const [finishedBefore, setFinishedBefore] = useState<Date | undefined>();
 	const [phases, setPhases] = useState<CrawlerRunPhaseEnum[]>([]);
 
+    const filterOptions = {
+        ...DEFAULT_FILTERS,
+        ...(visibleFilters ?? {}),
+    };
 	const effectivePageSize = pageSize ?? DEFAULT_PAGE_SIZE;
 	const offset = (page - 1) * effectivePageSize;
 	const hasActiveFilters =
-		visibleFilters?.namespace ||
-		visibleFilters?.template ||
-		visibleFilters?.startAfter ||
-		visibleFilters?.endBefore ||
-		visibleFilters?.phase;
+		filterOptions.namespace ||
+		filterOptions.template ||
+		filterOptions.startAfter ||
+		filterOptions.endBefore ||
+		filterOptions.phase;
 
 	const anchorRef = useRef<HTMLDivElement | null>(null);
 
@@ -157,7 +162,7 @@ export default function CrawlerRunsTable({
 			<div className="flex flex-wrap items-end gap-3 rounded-xl border bg-muted/40 p-3 shadow-md m-3 mt-8">
 				{!templatesIsLoading && !templatesError && (
 					<>
-						{visibleFilters.namespace && (
+						{filterOptions.namespace && (
 							<div className="flex flex-col gap-1">
 								<span className="text-xs text-muted-foreground">Namespace:</span>
 								<DropdownMenu>
@@ -176,7 +181,6 @@ export default function CrawlerRunsTable({
 
 									<DropdownMenuContent className="w-48 p-2">
 										<RadioGroup value={namespace} onValueChange={setNamespace}>
-											{/* "All" option */}
 											<div className="flex items-center gap-2 py-1">
 												<RadioGroupItem value="" id="ns-all" />
 												<Label htmlFor="ns-all" className="cursor-pointer">
@@ -198,7 +202,7 @@ export default function CrawlerRunsTable({
 							</div>
 						)}
 
-						{visibleFilters.template && (
+						{filterOptions.template && (
 							<div className="flex flex-col gap-1">
 								<span className="text-xs text-muted-foreground">Template:</span>
 								<DropdownMenu>
@@ -221,7 +225,6 @@ export default function CrawlerRunsTable({
 
 									<DropdownMenuContent className="w-48 p-2">
 										<RadioGroup value={crawlerTemplateName} onValueChange={setCrawlerTemplateName}>
-											{/* "All" option (same pattern as namespace) */}
 											<div className="flex items-center gap-2 py-1">
 												<RadioGroupItem value="" id="template-all" />
 												<Label htmlFor="template-all" className="cursor-pointer">
@@ -245,8 +248,7 @@ export default function CrawlerRunsTable({
 					</>
 				)}
 
-				{/* Phase Multi-Select (single version only) */}
-				{visibleFilters.phase && (
+				{filterOptions.phase && (
 					<div className="flex flex-col gap-1">
 						<span className="text-xs text-muted-foreground">Phase:</span>
 						<DropdownMenu>
@@ -300,8 +302,7 @@ export default function CrawlerRunsTable({
 					</div>
 				)}
 
-				{/* Date Inputs */}
-				{visibleFilters.startAfter && (
+				{filterOptions.startAfter && (
 					<div className="flex flex-col gap-1">
 						<span className="text-xs text-muted-foreground">Started After:</span>
 						<Input
@@ -315,7 +316,7 @@ export default function CrawlerRunsTable({
 					</div>
 				)}
 
-				{visibleFilters.endBefore && (
+				{filterOptions.endBefore && (
 					<div className="flex flex-col gap-1">
 						<span className="text-xs text-muted-foreground">Finished Before:</span>
 						<Input
@@ -329,7 +330,6 @@ export default function CrawlerRunsTable({
 					</div>
 				)}
 
-				{/* Clear button aligned right */}
 				{hasActiveFilters && (
 					<Button
 						variant="ghost"
@@ -341,7 +341,7 @@ export default function CrawlerRunsTable({
 				)}
 			</div>
 
-			{/* TABLE */}
+			{/* table */}
 			{isLoading ? (
 				<div className="col-span-12 flex justify-center pt-6">
 					<Spinner className="size-10" />
