@@ -221,9 +221,6 @@ function RouteComponent() {
 									visibleFilters={{
 										namespace: false,
 										template: false,
-										startAfter: true,
-										endBefore: true,
-										phase: true,
 									}}
 									scrollOnPaginate
 								/>
