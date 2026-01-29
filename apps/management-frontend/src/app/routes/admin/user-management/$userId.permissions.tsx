@@ -45,6 +45,7 @@ const permissionGroups = {
 	],
 	users: [
 		UserPermission.USER_READ,
+		UserPermission.USER_CREATE,
 		UserPermission.USER_UPDATE,
 		UserPermission.USER_DELETE,
 		UserPermission.USER_APPROVE,
@@ -72,6 +73,7 @@ const permissionLabels: Record<UserPermission, string> = {
 	[UserPermission.SCHEDULE_UPDATE]: 'Edit',
 	[UserPermission.SCHEDULE_DELETE]: 'Delete',
 	[UserPermission.USER_READ]: 'Read',
+	[UserPermission.USER_CREATE]: 'Create',
 	[UserPermission.USER_UPDATE]: 'Edit',
 	[UserPermission.USER_DELETE]: 'Delete',
 	[UserPermission.USER_APPROVE]: 'Approve',

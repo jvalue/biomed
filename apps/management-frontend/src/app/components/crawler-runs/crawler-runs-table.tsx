@@ -1,8 +1,9 @@
-import { useSearch } from '@tanstack/react-router';
+import { useNavigate, useSearch } from '@tanstack/react-router';
 import { ChevronDown } from 'lucide-react';
 import { useLayoutEffect, useRef } from 'react';
 import { CrawlerRunDto, CrawlerRunPhaseEnum } from '@/src/app/api/dto/crawler-runs/crawler-run.dto';
 import { useCrawlerTemplates } from '@/src/app/api/hooks/useCrawlerTemplates';
+import { getPhaseClass } from '@/src/app/components/crawler-runs/crawler-runs-utils';
 import { useLooseSearchNavigate } from '@/src/app/components/crawler-runs/utils/useLooseSearchNavigate';
 import { Badge } from '@/src/app/components/design-components/badge';
 import { Button } from '@/src/app/components/design-components/button';
@@ -60,30 +61,11 @@ export interface CrawlerRunsTableProps {
 		phase?: boolean;
 	};
 }
-
-function getPhaseClass(phase?: CrawlerRunPhaseEnum | string) {
-	switch (phase) {
-		case CrawlerRunPhaseEnum.PENDING:
-			return 'bg-yellow-100 text-yellow-800';
-		case CrawlerRunPhaseEnum.RUNNING:
-			return 'bg-blue-100 text-blue-800';
-		case CrawlerRunPhaseEnum.SUCCEEDED:
-			return 'bg-green-100 text-green-800';
-		case CrawlerRunPhaseEnum.FAILED:
-			return 'bg-red-100 text-red-800';
-		case CrawlerRunPhaseEnum.ERROR:
-			return 'bg-rose-100 text-rose-800';
-		default:
-			return '';
-	}
-}
-
 function normalizeStringArray(v: unknown): string[] {
 	if (Array.isArray(v)) return v.filter((x): x is string => typeof x === 'string');
 	if (typeof v === 'string') return [v];
 	return [];
 }
-
 export default function CrawlerRunsTable({
 	page,
 	setPage,
@@ -169,6 +151,7 @@ export default function CrawlerRunsTable({
 		filterOptions.phase;
 
 	const anchorRef = useRef<HTMLDivElement | null>(null);
+	const navigate = useNavigate();
 
 	const { data, isLoading, error } = useCrawlerRuns({
 		limit: effectivePageSize,
@@ -431,7 +414,16 @@ export default function CrawlerRunsTable({
 
 						<TableBody>
 							{runs.map((run) => (
-								<TableRow key={run.name}>
+								<TableRow
+									key={run.name}
+									className="cursor-pointer hover:bg-gray-50"
+									onClick={() =>
+										navigate({
+											to: '/crawler-runs/$crawlerRunNamespace/$crawlerRunId',
+											params: { crawlerRunNamespace: run.namespace, crawlerRunId: run.name },
+										})
+									}
+								>
 									<TableCell>{run.name}</TableCell>
 									<TableCell>{run.namespace}</TableCell>
 									<TableCell>{run.crawlerTemplateName}</TableCell>

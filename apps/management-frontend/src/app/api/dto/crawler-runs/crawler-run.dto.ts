@@ -1,3 +1,5 @@
+import { ParameterDto } from './parameter.dto';
+
 export enum CrawlerRunPhaseEnum {
 	PENDING = 'Pending',
 	RUNNING = 'Running',
@@ -14,4 +16,5 @@ export class CrawlerRunDto {
 	phase!: CrawlerRunPhaseEnum;
 	startedAt?: Date;
 	finishedAt?: Date;
+	parameters?: ParameterDto[];
 }

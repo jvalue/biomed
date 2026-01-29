@@ -5,9 +5,9 @@ import { validatePageAndFiltersSearch } from '@/src/app/components/crawler-runs/
 import { AuthGuard } from '@/src/app/components/guards/auth-guard';
 import { PermissionGuard } from '@/src/app/components/guards/permission-guard';
 import { createSetPageSearch } from '@/src/app/utils/set-page-search';
-import { useAuth } from '../contexts/AuthContext';
+import { useAuth } from '../../contexts/AuthContext';
 
-export const Route = createFileRoute('/crawler-runs')({
+export const Route = createFileRoute('/crawler-runs/')({
 	validateSearch: validatePageAndFiltersSearch,
 	component: RouteComponent,
 });

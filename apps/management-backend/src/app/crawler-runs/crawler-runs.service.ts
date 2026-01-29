@@ -20,4 +20,13 @@ export class CrawlerRunsService {
 	): Promise<CursorBasedPaginationResponseDto<CrawlerRunDto>> {
 		return this.orchestratorClientService.listCrawlerRuns(filter, pagination);
 	}
+
+	/**
+	 * Get a Crawler Run by ID and namespace.
+	 * @param runId The ID of the Crawler Run.
+	 * @param runNamespace The namespace of the Crawler Run.
+	 */
+	async getCrawlerRun(runId: string, runNamespace: string): Promise<CrawlerRunDto> {
+		return this.orchestratorClientService.getCrawlerRunByNameAndNamespace(runId, runNamespace);
+	}
 }
