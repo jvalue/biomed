@@ -1,14 +1,14 @@
 import { createFileRoute } from '@tanstack/react-router';
 import { useMemo } from 'react';
 import CrawlerRunsTable from '@/src/app/components/crawler-runs/crawler-runs-table';
+import { validatePageAndFiltersSearch } from '@/src/app/components/crawler-runs/utils/search-schema';
 import { AuthGuard } from '@/src/app/components/guards/auth-guard';
 import { PermissionGuard } from '@/src/app/components/guards/permission-guard';
 import { createSetPageSearch } from '@/src/app/utils/set-page-search';
 import { useAuth } from '../contexts/AuthContext';
-import { validatePageSearch } from '../utils/validate-page-search';
 
 export const Route = createFileRoute('/crawler-runs')({
-	validateSearch: validatePageSearch,
+	validateSearch: validatePageAndFiltersSearch,
 	component: RouteComponent,
 });
 
