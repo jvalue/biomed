@@ -2,6 +2,7 @@ import { ApiProperty } from '@nestjs/swagger';
 import { Type } from 'class-transformer';
 import { IsDate, IsEnum, IsOptional, IsString } from 'class-validator';
 import { WorkflowPhaseEnum } from '../../orchestrator-client/argo-client/enums/workflow-phase.enum';
+import { CrawlerRunParameterDto } from './crawler-run-parameter.dto';
 
 export class CrawlerRunDto {
 	@ApiProperty({ type: String, description: 'The name/id of the crawler run' })
@@ -60,4 +61,13 @@ export class CrawlerRunDto {
 	@Type(() => Date)
 	@IsDate()
 	finishedAt?: Date;
+
+	@ApiProperty({
+		type: () => [CrawlerRunParameterDto],
+		required: false,
+		description: 'The parameters used for this crawler run',
+	})
+	@IsOptional()
+	@Type(() => CrawlerRunParameterDto)
+	parameters?: CrawlerRunParameterDto[];
 }

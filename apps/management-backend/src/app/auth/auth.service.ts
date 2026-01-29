@@ -5,17 +5,26 @@ import {
 	UnauthorizedException,
 } from '@nestjs/common';
 import { JwtService } from '@nestjs/jwt';
+import { InjectRepository } from '@nestjs/typeorm';
 import * as bcrypt from 'bcrypt';
+import * as crypto from 'crypto';
 import type { Response } from 'express';
+import { Repository } from 'typeorm';
+import { UserEntity } from '../users/entity/user.entity';
 import { UsersService } from '../users/users.service';
 import { AbilityFactory } from './ability-factory';
+import { ApiKeyCreationResponseDto } from './dto/api-key-creation-response.dto';
+import { ApiKeySafeDto } from './dto/api-key-safe.dto';
 import { AuthResponseDto } from './dto/auth-response.dto';
 import { LoginDataDto } from './dto/login-data.dto';
+import { ApiKeyEntity } from './entity/api-key.entity';
 import { UserStatus } from './enums/user-status.enum';
 
 @Injectable()
 export class AuthService {
 	constructor(
+		@InjectRepository(ApiKeyEntity)
+		private readonly apiKeyRepository: Repository<ApiKeyEntity>,
 		private readonly usersService: UsersService,
 		private readonly jwtService: JwtService,
 		private readonly abilityFactory: AbilityFactory,
@@ -87,5 +96,82 @@ export class AuthService {
 
 	async validateUser(userId: string) {
 		return this.usersService.findById(userId);
+	}
+
+	/**
+	 * Creates a new API key (used for crawlers only)
+	 * @param createdBy
+	 * @param description
+	 * @return ApiKeyCreationResponseDto with rawKey only shown once
+	 */
+	async createApiKey(
+		createdBy: UserEntity,
+		description: string,
+	): Promise<ApiKeyCreationResponseDto> {
+		// Generate cryptographically strong random string
+		const rawKey = crypto.randomBytes(32).toString('hex');
+
+		// Hash the key before persisting
+		const hash = crypto.createHash('sha256').update(rawKey).digest('hex');
+
+		const prefix = rawKey.substring(0, 15);
+
+		const created = await this.apiKeyRepository.save({
+			hash: hash,
+			prefix: prefix,
+			description,
+			isActive: true,
+			createdById: createdBy.id,
+			lastUsedAt: new Date(),
+		});
+
+		// Build response DTO. rawKey must only be returned once; do not log it.
+		return {
+			id: created.id,
+			prefix: prefix,
+			rawKey: rawKey,
+		};
+	}
+
+	/**
+	 * Deactivates an API key
+	 * @param apiKeyId
+	 */
+	async deactivateApiKey(apiKeyId: string): Promise<void> {
+		await this.apiKeyRepository.update(apiKeyId, { isActive: false });
+	}
+
+	/**
+	 * Get all API Keys safely (only prefixes)
+	 */
+	async getAllApiKeys(): Promise<ApiKeySafeDto[]> {
+		// Find with select to avoid returning sensitive data
+		const apiKeys = await this.apiKeyRepository.find({
+			select: ['id', 'prefix', 'description', 'isActive', 'createdAt', 'lastUsedAt'],
+		});
+		return apiKeys.map((key) => ({
+			id: key.id,
+			prefix: key.prefix,
+			description: key.description,
+			isActive: key.isActive,
+			createdAt: key.createdAt,
+			lastUsedAt: key.lastUsedAt,
+		}));
+	}
+
+	/**
+	 * Validates an API key
+	 * @param rawKey
+	 */
+	async validateApiKey(rawKey: string): Promise<ApiKeyEntity | null> {
+		const hash = crypto.createHash('sha256').update(rawKey).digest('hex');
+		const keyEntity = await this.apiKeyRepository.findOne({ where: { hash, isActive: true } });
+
+		if (keyEntity) {
+			// Update last used timestamp
+			await this.apiKeyRepository.update(keyEntity.id, { lastUsedAt: new Date() });
+			return keyEntity;
+		}
+		return null;
 	}
 }
