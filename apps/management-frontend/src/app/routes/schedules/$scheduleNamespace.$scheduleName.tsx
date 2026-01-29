@@ -9,6 +9,7 @@ import {
 	useSuspendSchedule,
 } from '@/src/app/api/hooks/useSchedules';
 import CrawlerRunsTable from '@/src/app/components/crawler-runs/crawler-runs-table';
+import { validatePageAndFiltersSearch } from '@/src/app/components/crawler-runs/utils/search-schema';
 import { Button } from '@/src/app/components/design-components/button';
 import {
 	Card,
@@ -29,10 +30,9 @@ import { createSetPageSearch } from '@/src/app/utils/set-page-search';
 import { Badge } from '../../components/design-components/badge';
 import { Switch } from '../../components/design-components/switch';
 import { AuthGuard } from '../../components/guards/auth-guard';
-import { validatePageSearch } from '../../utils/validate-page-search';
 
 export const Route = createFileRoute('/schedules/$scheduleNamespace/$scheduleName')({
-	validateSearch: validatePageSearch,
+	validateSearch: validatePageAndFiltersSearch,
 	component: RouteComponent,
 });
 

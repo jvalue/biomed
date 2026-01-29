@@ -1,7 +1,9 @@
+import { useSearch } from '@tanstack/react-router';
 import { ChevronDown } from 'lucide-react';
-import { useLayoutEffect, useRef, useState } from 'react';
+import { useLayoutEffect, useRef } from 'react';
 import { CrawlerRunDto, CrawlerRunPhaseEnum } from '@/src/app/api/dto/crawler-runs/crawler-run.dto';
 import { useCrawlerTemplates } from '@/src/app/api/hooks/useCrawlerTemplates';
+import { useLooseSearchNavigate } from '@/src/app/components/crawler-runs/utils/useLooseSearchNavigate';
 import { Badge } from '@/src/app/components/design-components/badge';
 import { Button } from '@/src/app/components/design-components/button';
 import {
@@ -76,6 +78,12 @@ function getPhaseClass(phase?: CrawlerRunPhaseEnum | string) {
 	}
 }
 
+function normalizeStringArray(v: unknown): string[] {
+	if (Array.isArray(v)) return v.filter((x): x is string => typeof x === 'string');
+	if (typeof v === 'string') return [v];
+	return [];
+}
+
 export default function CrawlerRunsTable({
 	page,
 	setPage,
@@ -84,11 +92,68 @@ export default function CrawlerRunsTable({
 	scrollOnPaginate = false,
 	visibleFilters,
 }: CrawlerRunsTableProps) {
-	const [namespace, setNamespace] = useState('');
-	const [crawlerTemplateName, setCrawlerTemplateName] = useState('');
-	const [startedAfter, setStartedAfter] = useState<Date | undefined>();
-	const [finishedBefore, setFinishedBefore] = useState<Date | undefined>();
-	const [phases, setPhases] = useState<CrawlerRunPhaseEnum[]>([]);
+	const updateSearch = useLooseSearchNavigate();
+	const search = useSearch({ strict: false }) as Record<string, unknown>;
+
+	const namespace = typeof search.namespace === 'string' ? search.namespace : '';
+	const crawlerTemplateName = typeof search.template === 'string' ? search.template : '';
+
+	const startedAfter =
+		typeof search.startedAfter === 'string' ? new Date(search.startedAfter) : undefined;
+	const finishedBefore =
+		typeof search.finishedBefore === 'string' ? new Date(search.finishedBefore) : undefined;
+
+	const phases = normalizeStringArray(search.phases) as CrawlerRunPhaseEnum[];
+
+	// URL setters (also reset page)
+	const setNamespace = (v: string) =>
+		updateSearch((prev) => ({
+			...prev,
+			page: undefined,
+			namespace: v || undefined,
+		}));
+
+	const setCrawlerTemplateName = (v: string) =>
+		updateSearch((prev) => ({
+			...prev,
+			page: undefined,
+			template: v || undefined,
+		}));
+
+	const setStartedAfter = (d?: Date) =>
+		updateSearch((prev) => ({
+			...prev,
+			page: undefined,
+			startedAfter: d ? d.toISOString() : undefined,
+		}));
+
+	const setFinishedBefore = (d?: Date) =>
+		updateSearch((prev) => ({
+			...prev,
+			page: undefined,
+			finishedBefore: d ? d.toISOString() : undefined,
+		}));
+
+	const setPhases = (updater: (prev: CrawlerRunPhaseEnum[]) => CrawlerRunPhaseEnum[]) => {
+		const next = updater(phases);
+
+		updateSearch((prevSearch) => ({
+			...prevSearch,
+			page: undefined,
+			phases: next.length ? next : undefined,
+		}));
+	};
+
+	const clearFilters = () =>
+		updateSearch((prev) => ({
+			...prev,
+			page: undefined,
+			namespace: undefined,
+			template: undefined,
+			startedAfter: undefined,
+			finishedBefore: undefined,
+			phases: undefined,
+		}));
 
 	const filterOptions = {
 		...DEFAULT_FILTERS,
@@ -256,7 +321,7 @@ export default function CrawlerRunsTable({
 								<Button
 									variant="outline"
 									size="sm"
-									className="h-9 min-w-[12rem] justify-between font-normal"
+									className="h-9 w-48 justify-between font-normal"
 								>
 									<div className="flex max-w-[10rem] items-center gap-1 overflow-hidden">
 										{phases.length === 0 ? (
@@ -283,7 +348,7 @@ export default function CrawlerRunsTable({
 								</Button>
 							</DropdownMenuTrigger>
 
-							<DropdownMenuContent className="w-56">
+							<DropdownMenuContent className="w-48">
 								{Object.values(CrawlerRunPhaseEnum).map((phase) => (
 									<DropdownMenuCheckboxItem
 										key={phase}
@@ -311,7 +376,7 @@ export default function CrawlerRunsTable({
 							onChange={(e) =>
 								setStartedAfter(e.target.value ? new Date(e.target.value) : undefined)
 							}
-							className="h-9 w-52"
+							className="h-9 w-48"
 						/>
 					</div>
 				)}
@@ -325,7 +390,7 @@ export default function CrawlerRunsTable({
 							onChange={(e) =>
 								setFinishedBefore(e.target.value ? new Date(e.target.value) : undefined)
 							}
-							className="h-9 w-52"
+							className="h-9 w-48"
 						/>
 					</div>
 				)}
@@ -335,6 +400,7 @@ export default function CrawlerRunsTable({
 						variant="ghost"
 						size="sm"
 						className="ml-auto h-9 text-muted-foreground hover:text-destructive"
+						onClick={clearFilters}
 					>
 						Clear filters
 					</Button>
