@@ -7,7 +7,7 @@ import {
 	CardTitle,
 } from '../design-components/card';
 import { Spinner } from '../design-components/spinner';
-import { getEventTypeClass } from './crawler-runs-utils';
+import { getEventTypeClass } from './utils/get-event-type-class';
 
 interface RunEventsSectionProps {
 	events?: CrawlerRunEventDto[];

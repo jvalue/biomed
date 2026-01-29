@@ -3,7 +3,7 @@ import { ChevronDown } from 'lucide-react';
 import { useLayoutEffect, useRef } from 'react';
 import { CrawlerRunDto, CrawlerRunPhaseEnum } from '@/src/app/api/dto/crawler-runs/crawler-run.dto';
 import { useCrawlerTemplates } from '@/src/app/api/hooks/useCrawlerTemplates';
-import { getPhaseClass } from '@/src/app/components/crawler-runs/crawler-runs-utils';
+import { getPhaseClass } from '@/src/app/components/crawler-runs/utils/get-phase-class';
 import { useLooseSearchNavigate } from '@/src/app/components/crawler-runs/utils/useLooseSearchNavigate';
 import { Badge } from '@/src/app/components/design-components/badge';
 import { Button } from '@/src/app/components/design-components/button';
