@@ -10,7 +10,7 @@ import { RunMetricsSectionComponent } from '@/src/app/components/crawler-runs/ru
 import { Badge } from '@/src/app/components/design-components/badge';
 import ParameterSectionComponent from '@/src/app/components/design-components/parameterSection.component';
 import { Spinner } from '@/src/app/components/design-components/spinner';
-import { getPhaseClass } from '../../components/crawler-runs/crawler-runs-utils';
+import { getPhaseClass } from '../../components/crawler-runs/utils/get-phase-class';
 
 export const Route = createFileRoute('/crawler-runs/$crawlerRunNamespace/$crawlerRunId')({
 	component: RouteComponent,

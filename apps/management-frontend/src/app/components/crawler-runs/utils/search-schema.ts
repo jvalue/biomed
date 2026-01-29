@@ -1,6 +1,8 @@
 import type { PageSearch } from '@/src/app/utils/validate-page-search';
 import { validatePageSearch } from '@/src/app/utils/validate-page-search';
 
+/* Filter search params */
+
 export type FiltersSearch = {
 	namespace?: string;
 	template?: string;
@@ -48,6 +50,7 @@ export function validateFiltersSearch(search: Record<string, unknown>): FiltersS
 	};
 }
 
+/* Combined search params (pagination + filters) */
 export type PageAndFiltersSearch = PageSearch & FiltersSearch;
 
 export function validatePageAndFiltersSearch(
