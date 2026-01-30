@@ -2,6 +2,7 @@ import { Module } from '@nestjs/common';
 import { TypeOrmModule } from '@nestjs/typeorm';
 import { AbilityFactory } from '../auth/ability-factory';
 import { TargetsModule } from '../health/targets/targets.module';
+import { CrawlerRunMetricsModule } from '../metrics/crawler-run-metrics/crawler-run-metrics.module';
 import { ArgoClientModule } from '../orchestrator-client/argo-client/argo-client.module';
 import { ScheduleEntity } from './entity/schedule.entity';
 import { ArgoScheduleEngine } from './infrastructure/argo/argo-schedule.engine';
@@ -10,7 +11,12 @@ import { SchedulesController } from './schedules.controller';
 import { SchedulesService } from './schedules.service';
 
 @Module({
-	imports: [ArgoClientModule, TargetsModule, TypeOrmModule.forFeature([ScheduleEntity])],
+	imports: [
+		ArgoClientModule,
+		TargetsModule,
+		TypeOrmModule.forFeature([ScheduleEntity]),
+		CrawlerRunMetricsModule,
+	],
 	controllers: [SchedulesController],
 	providers: [
 		SchedulesService,

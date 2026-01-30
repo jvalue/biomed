@@ -1,5 +1,5 @@
 import { ApiProperty } from '@nestjs/swagger';
-import { IsNumber, IsOptional, IsString, Max, Min } from 'class-validator';
+import { IsDateString, IsNumber, IsOptional, IsString, Max, Min } from 'class-validator';
 
 export class CrawlerRunMetricsIncomingDto {
 	@ApiProperty({
@@ -37,4 +37,11 @@ export class CrawlerRunMetricsIncomingDto {
 	@IsOptional()
 	@IsNumber()
 	cacheHits?: number;
+
+	@ApiProperty({
+		description: 'Run start timestamp (ISO 8601, UTC recommended), e.g. 2026-01-20T13:00:00.000Z',
+		example: '2026-01-20T13:00:00.000Z',
+	})
+	@IsDateString()
+	runStartedAt!: string;
 }
