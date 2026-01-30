@@ -18,6 +18,9 @@ import { RunEvents1768638111874 } from './migrations/1768638111874-RunEvents';
 import { RunIdentifierChange1768738597094 } from './migrations/1768738597094-RunIdentifierChange';
 import { AddedProgressToRunMetrics1768745187921 } from './migrations/1768745187921-AddedProgressToRunMetrics';
 import { ApiKeys1768820430974 } from './migrations/1768820430974-ApiKeys';
+import { RunStartedAt1768916293714 } from './migrations/1768916293714-RunStartedAt';
+import { RunTimezone1769439239264 } from './migrations/1769439239264-RunTimezone';
+import { TimezoneAdjustments1769440475465 } from './migrations/1769440475465-TimezoneAdjustments';
 import { ScheduleEntity } from './schedules/entity/schedule.entity';
 import { UserEntity } from './users/entity/user.entity';
 
@@ -61,6 +64,9 @@ export class DbConfigService implements TypeOrmOptionsFactory {
 				RunIdentifierChange1768738597094,
 				AddedProgressToRunMetrics1768745187921,
 				ApiKeys1768820430974,
+				RunStartedAt1768916293714,
+				RunTimezone1769439239264,
+				TimezoneAdjustments1769440475465,
 			],
 			logging: true,
 			logger: 'debug',

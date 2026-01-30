@@ -3,6 +3,7 @@ import {
 	ApiBody,
 	ApiCreatedResponse,
 	ApiForbiddenResponse,
+	ApiNotFoundResponse,
 	ApiOkResponse,
 	ApiOperation,
 	ApiParam,
@@ -54,6 +55,7 @@ export class CrawlerRunsController {
 	@ApiParam({ name: 'runNamespace', description: 'The namespace of the crawler run' })
 	@ApiParam({ name: 'runId', description: 'The ID of the crawler run' })
 	@ApiForbiddenResponse({ description: 'You do not have permission to access this crawler run' })
+	@ApiNotFoundResponse({ description: 'Crawler run with given ID in given namespace not found' })
 	@UseGuards(JwtAuthGuard, PermissionsGuard)
 	@RequirePermission('read', 'crawler-run')
 	@Get(':runNamespace/:runId')
