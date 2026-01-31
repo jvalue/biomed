@@ -1,4 +1,4 @@
-import { RetryStrategyDto } from '../../dto/create-schedule.dto';
+import { RetryStrategyDto } from '../../dto/retry-strategy.dto';
 import { ArgoCronWorkflow, WorkflowParameter } from './argo-cron-workflow';
 
 /**
@@ -122,6 +122,10 @@ export class ArgoCronWorkflowBuilder {
 		return this;
 	}
 
+	/**
+	 * Adds a retry strategy to the workflow spec.
+	 * @param retryStrategy
+	 */
 	public addRetryStrategy(retryStrategy: RetryStrategyDto): this {
 		if (!retryStrategy) return this;
 		if (retryStrategy.retries < 0) {

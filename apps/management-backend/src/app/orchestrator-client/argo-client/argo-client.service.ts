@@ -367,17 +367,17 @@ export class ArgoClientService implements IOrchestratorClient {
 	}
 
 	/**
-	 * Get a cron workflow by name and namespace (similar to getScheduleByNameAndNamespace but returns the raw ArgoCronWorkflowDto)
+	 * Get a cron workflow by name and namespace (similar to getScheduleByNameAndNamespace but returns the raw ArgoCronWorkflow object)
 	 * @param name The name of the cron workflow
 	 * @param namespace The namespace of the cron workflow
 	 */
-	async getCronWorkflow(name: string, namespace: string): Promise<ArgoCronWorkflowDto | null> {
+	async getCronWorkflow(name: string, namespace: string): Promise<ArgoCronWorkflow | null> {
 		this.logger.log(`Getting cron workflow ${name} in namespace ${namespace}`);
 
 		const url = `/cron-workflows/${namespace}/${name}`;
 
 		try {
-			const response = await this.http.get<ArgoCronWorkflowDto>(url);
+			const response = await this.http.get<ArgoCronWorkflow>(url);
 			return response.data;
 		} catch (err) {
 			if (err.response && err.response.status === 404) {
@@ -397,7 +397,7 @@ export class ArgoClientService implements IOrchestratorClient {
 	async updateCronWorkflow(
 		name: string,
 		namespace: string,
-		cronWorkflow: ArgoCronWorkflowDto,
+		cronWorkflow: ArgoCronWorkflow,
 	): Promise<void> {
 		this.logger.log(`Updating cron workflow ${name} in namespace ${namespace}`);
 
