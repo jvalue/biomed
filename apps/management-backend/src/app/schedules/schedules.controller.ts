@@ -1,6 +1,18 @@
-import { Body, Controller, Delete, Get, Param, Patch, Post, UseGuards } from '@nestjs/common';
+import {
+	Body,
+	Controller,
+	Delete,
+	Get,
+	Param,
+	Patch,
+	Post,
+	Query,
+	UseGuards,
+} from '@nestjs/common';
 import {
 	ApiCreatedResponse,
+	ApiForbiddenResponse,
+	ApiNotFoundResponse,
 	ApiOkResponse,
 	ApiOperation,
 	ApiParam,
@@ -10,15 +22,22 @@ import { CurrentUser } from '../auth/decorators/current-user.decorator';
 import { RequirePermission } from '../auth/decorators/require-permission.decorator';
 import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
 import { PermissionsGuard } from '../auth/guards/permissions.guard';
+import { CrawlerRunMetricsService } from '../metrics/crawler-run-metrics/crawler-run-metrics.service';
 import { UserEntity } from '../users/entity/user.entity';
 import { CreateScheduleDto } from './dto/create-schedule.dto';
+import { HistoricalMetricsQueryDto } from './dto/historical-metrics-query.dto';
 import { ScheduleDto } from './dto/schedule.dto';
+import { ScheduleHistoricalMetricsItemDto } from './dto/schedule-historical-metrics-item.dto';
+import { ScheduleOverallMetricsDto } from './dto/schedule-overall-metrics.dto';
 import { SchedulesService } from './schedules.service';
 
 @Controller('schedules')
 @UseGuards(JwtAuthGuard, PermissionsGuard)
 export class SchedulesController {
-	constructor(private readonly schedulesService: SchedulesService) {}
+	constructor(
+		private readonly schedulesService: SchedulesService,
+		private readonly crawlerRunMetricsService: CrawlerRunMetricsService,
+	) {}
 
 	@ApiOperation({ summary: 'List all Schedules' })
 	@ApiOkResponse({ type: [ScheduleDto], description: 'List of Schedules' })
@@ -39,6 +58,7 @@ export class SchedulesController {
 		status: 403,
 		description: 'You do not have permission to access schedules or templates',
 	})
+	@ApiNotFoundResponse({ description: 'Schedule with given name in given namespace not found' })
 	@RequirePermission('read', 'schedule')
 	@RequirePermission('read', 'crawler-template')
 	@ApiParam({ name: 'namespace', description: 'The namespace of the Schedule' })
@@ -131,7 +151,38 @@ export class SchedulesController {
 		@Param('namespace') namespace: string,
 		@Param('name') name: string,
 	): Promise<boolean> {
-		const schedule = await this.schedulesService.getScheduleByNameAndNamespace(name, namespace);
-		return !!schedule;
+		return await this.schedulesService.scheduleNameAlreadyExists(name, namespace);
+	}
+
+	@ApiOperation({ summary: 'Get historical metrics (time series) for a Schedule' })
+	@ApiOkResponse({
+		type: [ScheduleHistoricalMetricsItemDto],
+		description: 'Historical metrics list',
+	})
+	@ApiForbiddenResponse({ description: 'You do not have permission to access schedule metrics' })
+	@RequirePermission('read', 'schedule')
+	@ApiParam({ name: 'namespace', description: 'The namespace of the Schedule' })
+	@ApiParam({ name: 'name', description: 'The name of the Schedule' })
+	@Get(':namespace/:name/metrics/history')
+	async getScheduleHistoricalMetrics(
+		@Param('namespace') namespace: string,
+		@Param('name') name: string,
+		@Query() query: HistoricalMetricsQueryDto,
+	): Promise<ScheduleHistoricalMetricsItemDto[]> {
+		return this.crawlerRunMetricsService.getHistoricalScheduleMetrics(name, namespace, query);
+	}
+
+	@ApiOperation({ summary: 'Get overall metrics for a Schedule (all time)' })
+	@ApiOkResponse({ type: ScheduleOverallMetricsDto, description: 'Aggregated overall metrics' })
+	@ApiForbiddenResponse({ description: 'You do not have permission to access schedule metrics' })
+	@RequirePermission('read', 'schedule')
+	@ApiParam({ name: 'namespace', description: 'The namespace of the Schedule' })
+	@ApiParam({ name: 'name', description: 'The name of the Schedule' })
+	@Get(':namespace/:name/metrics/aggregated')
+	async getScheduleOverallMetrics(
+		@Param('namespace') namespace: string,
+		@Param('name') name: string,
+	): Promise<ScheduleOverallMetricsDto> {
+		return this.crawlerRunMetricsService.getOverallScheduleMetrics(name, namespace);
 	}
 }

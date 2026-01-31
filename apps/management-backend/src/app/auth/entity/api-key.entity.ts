@@ -25,10 +25,10 @@ export class ApiKeyEntity {
 	@Column({ default: true, type: 'boolean' })
 	isActive: boolean;
 
-	@CreateDateColumn()
+	@CreateDateColumn({ type: 'timestamptz' })
 	createdAt: Date;
 
-	@Column({ nullable: true, type: 'timestamp' })
+	@Column({ nullable: true, type: 'timestamptz' })
 	lastUsedAt: Date;
 
 	@Column({ name: 'created_by_id', type: 'varchar' })

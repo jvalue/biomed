@@ -3,6 +3,7 @@ import {
 	ApiBody,
 	ApiCreatedResponse,
 	ApiForbiddenResponse,
+	ApiNotFoundResponse,
 	ApiOkResponse,
 	ApiOperation,
 	ApiParam,
@@ -13,6 +14,7 @@ import { ApiKeyAuthGuard } from '../auth/guards/api-key-auth.guard';
 import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
 import { PermissionsGuard } from '../auth/guards/permissions.guard';
 import { CrawlerRunMetricsService } from '../metrics/crawler-run-metrics/crawler-run-metrics.service';
+import { CrawlerRunDownloadMetricsIncomingDto } from '../metrics/crawler-run-metrics/dto/incoming/crawler-run-download-metrics-incoming.dto';
 import { CrawlerRunEventIncomingDto } from '../metrics/crawler-run-metrics/dto/incoming/crawler-run-event-incoming.dto';
 import { CrawlerRunMetricsIncomingDto } from '../metrics/crawler-run-metrics/dto/incoming/crawler-run-metrics-incoming.dto';
 import { CrawlerRunEventOutgoingDto } from '../metrics/crawler-run-metrics/dto/outgoing/crawler-run-event-outgoing.dto';
@@ -54,6 +56,7 @@ export class CrawlerRunsController {
 	@ApiParam({ name: 'runNamespace', description: 'The namespace of the crawler run' })
 	@ApiParam({ name: 'runId', description: 'The ID of the crawler run' })
 	@ApiForbiddenResponse({ description: 'You do not have permission to access this crawler run' })
+	@ApiNotFoundResponse({ description: 'Crawler run with given ID in given namespace not found' })
 	@UseGuards(JwtAuthGuard, PermissionsGuard)
 	@RequirePermission('read', 'crawler-run')
 	@Get(':runNamespace/:runId')
@@ -78,6 +81,26 @@ export class CrawlerRunsController {
 		@Body() metrics: CrawlerRunMetricsIncomingDto,
 	): Promise<void> {
 		return this.crawlerRunMetricsService.saveCrawlerRunMetric(crawlerRunId, runNamespace, metrics);
+	}
+
+	@ApiOperation({ summary: 'Save download metrics for a specific crawler run' })
+	@ApiCreatedResponse({ description: 'Download metrics saved successfully' })
+	@ApiParam({ name: 'runId', description: 'The ID of the crawler run' })
+	@ApiParam({ name: 'runNamespace', description: 'The namespace of the crawler run' })
+	@ApiBody({ type: CrawlerRunDownloadMetricsIncomingDto })
+	@ApiSecurity('api-key')
+	@UseGuards(ApiKeyAuthGuard)
+	@Post(':runNamespace/:runId/download-metrics')
+	async saveCrawlerRunDownloadMetrics(
+		@Param('runId') crawlerRunId: string,
+		@Param('runNamespace') runNamespace: string,
+		@Body() metrics: CrawlerRunDownloadMetricsIncomingDto,
+	): Promise<void> {
+		return this.crawlerRunMetricsService.saveCrawlerRunDownloadMetric(
+			crawlerRunId,
+			runNamespace,
+			metrics,
+		);
 	}
 
 	@ApiOkResponse({
