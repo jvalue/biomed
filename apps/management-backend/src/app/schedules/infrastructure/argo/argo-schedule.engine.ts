@@ -69,7 +69,6 @@ export class ArgoScheduleEngine implements IScheduleEngine {
 			existingWorkflow.spec.schedules = [updateScheduleDto.cronExpression];
 		}
 
-		this.logger.log(updateScheduleDto);
 		// Update retry strategy
 		if (updateScheduleDto.retryStrategy) {
 			const retry = updateScheduleDto.retryStrategy;
@@ -83,6 +82,9 @@ export class ArgoScheduleEngine implements IScheduleEngine {
 					maxDuration: retry.backoffMaxDuration?.toString(),
 				},
 			};
+		} else {
+			// If no retry strategy is provided, remove existing one
+			delete existingWorkflow.spec.workflowSpec.retryStrategy;
 		}
 
 		// Update parameters
