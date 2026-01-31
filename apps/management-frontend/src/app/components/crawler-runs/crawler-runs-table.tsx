@@ -33,6 +33,11 @@ import {
 	TableHeader,
 	TableRow,
 } from '@/src/app/components/design-components/table';
+import {
+	fromDatetimeLocalValue,
+	parseIsoDate,
+	toDatetimeLocalValue,
+} from '@/src/app/utils/datetime';
 import { cn } from '@/src/utils';
 import { useCrawlerRuns } from '../../api/hooks/useCrawlerRuns';
 
@@ -41,8 +46,8 @@ const TABLE_PAGINATION_SCROLL_KEY = '__crawler_runs_table_scroll__';
 const DEFAULT_FILTERS = {
 	namespace: true,
 	template: true,
-	startAfter: true,
-	endBefore: true,
+	startedAfter: true,
+	finishedBefore: true,
 	phase: true,
 };
 
@@ -56,8 +61,8 @@ export interface CrawlerRunsTableProps {
 	visibleFilters?: {
 		namespace?: boolean;
 		template?: boolean;
-		startAfter?: boolean;
-		endBefore?: boolean;
+		startedAfter?: boolean;
+		finishedBefore?: boolean;
 		phase?: boolean;
 	};
 }
@@ -80,10 +85,8 @@ export default function CrawlerRunsTable({
 	const namespace = typeof search.namespace === 'string' ? search.namespace : '';
 	const crawlerTemplateName = typeof search.template === 'string' ? search.template : '';
 
-	const startedAfter =
-		typeof search.startedAfter === 'string' ? new Date(search.startedAfter) : undefined;
-	const finishedBefore =
-		typeof search.finishedBefore === 'string' ? new Date(search.finishedBefore) : undefined;
+	const startedAfter = parseIsoDate(search.startedAfter);
+	const finishedBefore = parseIsoDate(search.finishedBefore);
 
 	const phases = normalizeStringArray(search.phases) as CrawlerRunPhaseEnum[];
 
@@ -143,11 +146,11 @@ export default function CrawlerRunsTable({
 	};
 	const effectivePageSize = pageSize ?? DEFAULT_PAGE_SIZE;
 	const offset = (page - 1) * effectivePageSize;
-	const hasActiveFilters =
+	const hasVisibleFilters =
 		filterOptions.namespace ||
 		filterOptions.template ||
-		filterOptions.startAfter ||
-		filterOptions.endBefore ||
+		filterOptions.startedAfter ||
+		filterOptions.finishedBefore ||
 		filterOptions.phase;
 
 	const anchorRef = useRef<HTMLDivElement | null>(null);
@@ -164,12 +167,24 @@ export default function CrawlerRunsTable({
 		phases: phases.length ? phases : undefined,
 	});
 
+	const shouldFetchTemplates = filterOptions.namespace || filterOptions.template;
 	const {
 		data: templateData,
 		isLoading: templatesIsLoading,
 		error: templatesError,
-	} = useCrawlerTemplates();
-	const uniqueNamespaces = Array.from(new Set(templateData?.map((t) => t.namespace)));
+	} = useCrawlerTemplates({ enabled: shouldFetchTemplates });
+
+	const uniqueNamespaces = Array.from(
+		new Set((templateData ?? []).map((t) => t.namespace).filter(Boolean)),
+	).sort((a, b) => a.localeCompare(b));
+	const uniqueTemplateNames = Array.from(
+		new Set(
+			(templateData ?? [])
+				.filter((t) => (namespace ? t.namespace === namespace : true))
+				.map((t) => t.name)
+				.filter(Boolean),
+		),
+	).sort((a, b) => a.localeCompare(b));
 
 	useLayoutEffect(() => {
 		if (!scrollOnPaginate) return;
@@ -280,11 +295,11 @@ export default function CrawlerRunsTable({
 												</Label>
 											</div>
 
-											{templateData?.map((template) => (
-												<div key={template.name} className="flex items-center gap-2 py-1">
-													<RadioGroupItem value={template.name} id={`template-${template.name}`} />
-													<Label htmlFor={`template-${template.name}`} className="cursor-pointer">
-														{template.name}
+											{uniqueTemplateNames?.map((template) => (
+												<div key={template} className="flex items-center gap-2 py-1">
+													<RadioGroupItem value={template} id={`template-${template}`} />
+													<Label htmlFor={`template-${template}`} className="cursor-pointer">
+														{template}
 													</Label>
 												</div>
 											))}
@@ -350,35 +365,37 @@ export default function CrawlerRunsTable({
 					</div>
 				)}
 
-				{filterOptions.startAfter && (
+				{filterOptions.startedAfter && (
 					<div className="flex flex-col gap-1">
 						<span className="text-xs text-muted-foreground">Started After:</span>
 						<Input
 							type="datetime-local"
-							value={startedAfter ? new Date(startedAfter).toISOString().slice(0, 16) : ''}
+							value={startedAfter ? toDatetimeLocalValue(startedAfter) : ''}
 							onChange={(e) =>
-								setStartedAfter(e.target.value ? new Date(e.target.value) : undefined)
+								setStartedAfter(e.target.value ? fromDatetimeLocalValue(e.target.value) : undefined)
 							}
 							className="h-9 w-48"
 						/>
 					</div>
 				)}
 
-				{filterOptions.endBefore && (
+				{filterOptions.finishedBefore && (
 					<div className="flex flex-col gap-1">
 						<span className="text-xs text-muted-foreground">Finished Before:</span>
 						<Input
 							type="datetime-local"
-							value={finishedBefore ? new Date(finishedBefore).toISOString().slice(0, 16) : ''}
+							value={finishedBefore ? toDatetimeLocalValue(finishedBefore) : ''}
 							onChange={(e) =>
-								setFinishedBefore(e.target.value ? new Date(e.target.value) : undefined)
+								setFinishedBefore(
+									e.target.value ? fromDatetimeLocalValue(e.target.value) : undefined,
+								)
 							}
 							className="h-9 w-48"
 						/>
 					</div>
 				)}
 
-				{hasActiveFilters && (
+				{hasVisibleFilters && (
 					<Button
 						variant="ghost"
 						size="sm"
