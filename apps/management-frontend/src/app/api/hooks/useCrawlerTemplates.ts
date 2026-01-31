@@ -2,10 +2,12 @@ import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { isRetryableError } from '@/src/app/api/hooks/hook-utils';
 import { crawlerTemplateService } from '@/src/app/api/services/crawler-template.service';
 
-export const useCrawlerTemplates = () => {
+export const useCrawlerTemplates = (options?: { enabled?: boolean }) => {
+	const enabled = options?.enabled ?? true;
 	return useQuery({
 		queryKey: ['crawlerTemplates'],
 		queryFn: crawlerTemplateService.getCrawlerTemplates,
+		enabled,
 		refetchInterval: (query) => {
 			if (query.state.error) {
 				if (isRetryableError(query.state.error)) {

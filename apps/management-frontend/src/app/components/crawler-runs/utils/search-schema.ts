@@ -39,7 +39,9 @@ export function validateFiltersSearch(search: Record<string, unknown>): FiltersS
 			? [rawPhases]
 			: [];
 
-	const phases = phasesArray.filter((p): p is string => p.trim().length > 0);
+	const phases = phasesArray.filter(
+		(p): p is string => typeof p === 'string' && p.trim().length > 0,
+	);
 
 	return {
 		namespace,
