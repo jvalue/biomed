@@ -14,6 +14,7 @@ import { ArgoCronWorkflowBuilder } from './argo-cron-workflow.builder';
 @Injectable()
 export class ArgoScheduleEngine implements IScheduleEngine {
 	constructor(private readonly argoClientService: ArgoClientService) {}
+
 	private readonly logger = new Logger(ArgoScheduleEngine.name);
 
 	async createSchedule(dto: CreateScheduleDto, user: UserEntity): Promise<void> {
@@ -68,16 +69,18 @@ export class ArgoScheduleEngine implements IScheduleEngine {
 			existingWorkflow.spec.schedules = [updateScheduleDto.cronExpression];
 		}
 
+		this.logger.log(updateScheduleDto);
 		// Update retry strategy
 		if (updateScheduleDto.retryStrategy) {
 			const retry = updateScheduleDto.retryStrategy;
 			existingWorkflow.spec.workflowSpec.retryStrategy = {
+				retryPolicy: 'Always',
 				limit: retry.retries,
 				backoff: {
-					duration: retry.backoffDuration.toString(),
-					cap: retry.backoffCap.toString(),
+					duration: retry.backoffDuration?.toString(),
+					cap: retry.backoffCap?.toString(),
 					factor: retry.backoffFactor,
-					maxDuration: retry.backoffMaxDuration.toString(),
+					maxDuration: retry.backoffMaxDuration?.toString(),
 				},
 			};
 		}

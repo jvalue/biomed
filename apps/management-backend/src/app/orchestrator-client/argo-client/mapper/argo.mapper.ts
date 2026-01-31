@@ -69,11 +69,14 @@ export function mapArgoCronWorkflowDtoToScheduleDto(
 	if (cronWorkflow.spec.workflowSpec.retryStrategy) {
 		schedule.retryStrategy = {
 			retries: cronWorkflow.spec.workflowSpec.retryStrategy.limit ?? 0,
-			backoffDuration: cronWorkflow.spec.workflowSpec.retryStrategy.backoff?.duration ?? undefined,
+			backoffDuration: toNumberOrUndefined(
+				cronWorkflow.spec.workflowSpec.retryStrategy.backoff?.duration,
+			),
 			backoffFactor: cronWorkflow.spec.workflowSpec.retryStrategy.backoff?.factor ?? undefined,
-			backoffCap: cronWorkflow.spec.workflowSpec.retryStrategy.backoff?.cap ?? undefined,
-			backoffMaxDuration:
-				cronWorkflow.spec.workflowSpec.retryStrategy.backoff?.maxDuration ?? undefined,
+			backoffCap: toNumberOrUndefined(cronWorkflow.spec.workflowSpec.retryStrategy.backoff?.cap),
+			backoffMaxDuration: toNumberOrUndefined(
+				cronWorkflow.spec.workflowSpec.retryStrategy.backoff?.maxDuration,
+			),
 		};
 	}
 	schedule.schedule = cronWorkflow.spec.schedules ? cronWorkflow.spec.schedules[0] : '';
@@ -103,4 +106,14 @@ export function mapArgoCursorPaginatedListDtoToCursorBasedPaginationResponseDto<
 		metadata: { hasMore: listDto.metadata.continue > 0 },
 		data,
 	};
+}
+
+/**
+ * Converts a value to a number or undefined if conversion is not possible
+ * @param value
+ */
+function toNumberOrUndefined(value?: string): number | undefined {
+	if (!value) return undefined;
+	const num = Number(value);
+	return Number.isNaN(num) ? undefined : num;
 }
