@@ -43,6 +43,36 @@ export class CrawlerRunMetricEntity {
 	})
 	progress?: number;
 
+	@Column({
+		type: 'int',
+		nullable: true,
+	})
+	totalDatasetsToDownload?: number;
+
+	@Column({
+		type: 'int',
+		nullable: true,
+	})
+	downloadedDatasets?: number;
+
+	@Column({
+		type: 'int',
+		nullable: true,
+	})
+	totalGBToDownload?: number;
+
+	@Column({
+		type: 'int',
+		nullable: true,
+	})
+	downloadedGB?: number;
+
+	@Column({
+		type: 'timestamptz', // Changed from 'timestamp' to 'timestamptz' to store timezone info
+		nullable: true,
+	})
+	runStartedAt?: Date;
+
 	@OneToMany(
 		() => CrawlerRunEventEntity,
 		(e) => e.run,

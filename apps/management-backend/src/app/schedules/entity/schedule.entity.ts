@@ -49,7 +49,7 @@ export class ScheduleEntity {
 	})
 	targets?: TargetEntity[];
 
-	@CreateDateColumn()
+	@CreateDateColumn({ type: 'timestamptz' })
 	createdAt: Date;
 
 	/**
