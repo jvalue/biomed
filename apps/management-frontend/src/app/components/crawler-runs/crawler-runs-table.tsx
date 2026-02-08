@@ -505,9 +505,11 @@ export default function CrawlerRunsTable({
 					</div>
 				</>
 			) : (
-				<p className="text-sm text-muted-foreground">
-					{scheduleName ? 'No runs found for this schedule' : 'No runs found'}
-				</p>
+				<div className="flex justify-center items-center py-8">
+					<p className="text-sm text-muted-foreground text-center">
+						{scheduleName ? 'No runs found for this schedule' : 'No runs found'}
+					</p>
+				</div>
 			)}
 		</>
 	);
