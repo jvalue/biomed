@@ -1,4 +1,4 @@
-import { CrawlerRunDto } from '@/src/app/api/dto/crawler-runs/crawler-run.dto';
+import { CrawlerRunDto, CrawlerRunPhaseEnum } from '@/src/app/api/dto/crawler-runs/crawler-run.dto';
 import { CursorBasedPaginationResponseDto } from '@/src/app/api/dto/pagination/cursor-based-pagination-response.dto';
 import { managementBackendClient } from '../management-backend-client';
 
@@ -8,9 +8,9 @@ export const crawlerRunService = {
 			scheduleName?: string;
 			namespace?: string;
 			crawlerTemplateName?: string;
-			phases?: string[];
-			startedAfter?: string | Date;
-			finishedBefore?: string | Date;
+			phases?: CrawlerRunPhaseEnum[];
+			startedAfter?: Date;
+			finishedBefore?: Date;
 			limit?: number;
 			offset?: number;
 		} = {},
@@ -31,24 +31,16 @@ export const crawlerRunService = {
 
 		// date filters to ISO strings
 		if (params.startedAfter) {
-			const iso =
-				params.startedAfter instanceof Date
-					? params.startedAfter.toISOString()
-					: params.startedAfter;
-			qs.set('startedAfter', iso);
+			qs.set('startedAfter', params.startedAfter.toISOString());
 		}
 
 		if (params.finishedBefore) {
-			const iso =
-				params.finishedBefore instanceof Date
-					? params.finishedBefore.toISOString()
-					: params.finishedBefore;
-			qs.set('finishedBefore', iso);
+			qs.set('finishedBefore', params.finishedBefore.toISOString());
 		}
 
 		// pagination
-		if (typeof params.limit === 'number') qs.set('limit', String(params.limit));
-		if (typeof params.offset === 'number') qs.set('offset', String(params.offset));
+		if (params.limit !== undefined) qs.set('limit', String(params.limit));
+		if (params.offset !== undefined) qs.set('offset', String(params.offset));
 
 		const path = `crawler-runs${qs.toString() ? `?${qs.toString()}` : ''}`;
 		const { data } = await managementBackendClient.get(path);
