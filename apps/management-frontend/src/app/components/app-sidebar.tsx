@@ -61,7 +61,7 @@ export function AppSidebar() {
 										<Link
 											to="/crawler-runs"
 											activeProps={{ style: { fontWeight: 'bold' } }}
-											activeOptions={{ exact: true }}
+											activeOptions={{ exact: true, includeSearch: false }}
 										>
 											Crawler Runs
 										</Link>
