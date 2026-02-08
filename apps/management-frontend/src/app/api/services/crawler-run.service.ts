@@ -24,7 +24,7 @@ export const crawlerRunService = {
 
 		// phases
 		if (params.phases?.length) {
-			for (const p of params.phases) {
+			for (const p of params.phases ?? []) {
 				qs.append('phases', p);
 			}
 		}

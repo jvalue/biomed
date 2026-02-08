@@ -160,11 +160,11 @@ export default function CrawlerRunsTable({
 		limit: effectivePageSize,
 		offset,
 		scheduleName,
-		namespace: namespace || undefined,
-		crawlerTemplateName: crawlerTemplateName || undefined,
-		startedAfter: startedAfter || undefined,
-		finishedBefore: finishedBefore || undefined,
-		phases: phases.length ? phases : undefined,
+		namespace,
+		crawlerTemplateName,
+		startedAfter,
+		finishedBefore,
+		phases,
 	});
 
 	const shouldFetchTemplates = filterOptions.namespace || filterOptions.template;
