@@ -1,3 +1,4 @@
+import { CrawlerRunPhaseEnum } from '@/src/app/api/dto/crawler-runs/crawler-run.dto';
 import type { PageSearch } from '@/src/app/utils/validate-page-search';
 import { validatePageSearch } from '@/src/app/utils/validate-page-search';
 
@@ -32,23 +33,22 @@ export function validateFiltersSearch(search: Record<string, unknown>): FiltersS
 			? search.finishedBefore
 			: undefined;
 
-	const rawPhases = search.phases;
-	const phasesArray = Array.isArray(rawPhases)
-		? rawPhases
-		: typeof rawPhases === 'string'
-			? [rawPhases]
-			: [];
+	const validPhases = new Set(Object.values(CrawlerRunPhaseEnum));
 
-	const phases = phasesArray.filter(
-		(p): p is string => typeof p === 'string' && p.trim().length > 0,
-	);
+	const phases = (
+		Array.isArray(search.phases)
+			? search.phases
+			: typeof search.phases === 'string'
+				? [search.phases]
+				: []
+	).filter((p): p is CrawlerRunPhaseEnum => validPhases.has(p as CrawlerRunPhaseEnum));
 
 	return {
 		namespace,
 		template,
 		startedAfter,
 		finishedBefore,
-		phases: phases.length ? phases : undefined,
+		phases,
 	};
 }
 
