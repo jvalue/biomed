@@ -7,13 +7,13 @@ import { getPhaseClass } from '@/src/app/components/crawler-runs/utils/get-phase
 import { useLooseSearchNavigate } from '@/src/app/components/crawler-runs/utils/useLooseSearchNavigate';
 import { Badge } from '@/src/app/components/design-components/badge';
 import { Button } from '@/src/app/components/design-components/button';
+import { DateTimePicker } from '@/src/app/components/design-components/date-time-picker/date-time-picker';
 import {
 	DropdownMenu,
 	DropdownMenuCheckboxItem,
 	DropdownMenuContent,
 	DropdownMenuTrigger,
 } from '@/src/app/components/design-components/dropdown-menu';
-import { Input } from '@/src/app/components/design-components/input';
 import { Label } from '@/src/app/components/design-components/label';
 import {
 	Pagination,
@@ -33,11 +33,7 @@ import {
 	TableHeader,
 	TableRow,
 } from '@/src/app/components/design-components/table';
-import {
-	fromDatetimeLocalValue,
-	parseIsoDate,
-	toDatetimeLocalValue,
-} from '@/src/app/utils/datetime';
+import { parseIsoDate } from '@/src/app/utils/datetime';
 import { cn } from '@/src/utils';
 import { useCrawlerRuns } from '../../api/hooks/useCrawlerRuns';
 
@@ -79,6 +75,7 @@ export default function CrawlerRunsTable({
 	scrollOnPaginate = false,
 	visibleFilters,
 }: CrawlerRunsTableProps) {
+	const now = new Date();
 	const updateSearch = useLooseSearchNavigate();
 	const search = useSearch({ strict: false }) as Record<string, unknown>;
 
@@ -368,13 +365,13 @@ export default function CrawlerRunsTable({
 				{filterOptions.startedAfter && (
 					<div className="flex flex-col gap-1">
 						<span className="text-xs text-muted-foreground">Started After:</span>
-						<Input
-							type="datetime-local"
-							value={startedAfter ? toDatetimeLocalValue(startedAfter) : ''}
-							onChange={(e) =>
-								setStartedAfter(e.target.value ? fromDatetimeLocalValue(e.target.value) : undefined)
-							}
+						<DateTimePicker
+							value={startedAfter}
+							onChange={setStartedAfter}
+							granularity="minute"
+							placeholder="Select date & time"
 							className="h-9 w-48"
+							maxDate={finishedBefore ?? now}
 						/>
 					</div>
 				)}
@@ -382,15 +379,14 @@ export default function CrawlerRunsTable({
 				{filterOptions.finishedBefore && (
 					<div className="flex flex-col gap-1">
 						<span className="text-xs text-muted-foreground">Finished Before:</span>
-						<Input
-							type="datetime-local"
-							value={finishedBefore ? toDatetimeLocalValue(finishedBefore) : ''}
-							onChange={(e) =>
-								setFinishedBefore(
-									e.target.value ? fromDatetimeLocalValue(e.target.value) : undefined,
-								)
-							}
+						<DateTimePicker
+							value={finishedBefore}
+							onChange={setFinishedBefore}
+							granularity="minute"
+							placeholder="Select date & time"
 							className="h-9 w-48"
+							minDate={startedAfter}
+							maxDate={now}
 						/>
 					</div>
 				)}
