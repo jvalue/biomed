@@ -1,8 +1,11 @@
 import { Clock } from 'lucide-react';
 import * as React from 'react';
 import { useImperativeHandle } from 'react';
-import { TimePickerType } from '@/src/app/components/design-components/date-time-picker';
-import { Granularity, Period } from '@/src/app/components/design-components/date-time-picker/types';
+import {
+	Granularity,
+	Period,
+	TimePickerType,
+} from '@/src/app/components/design-components/date-time-picker/types';
 import {
 	display12HourValue,
 	getArrowByType,
