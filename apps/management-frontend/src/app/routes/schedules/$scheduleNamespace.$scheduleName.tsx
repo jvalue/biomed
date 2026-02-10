@@ -244,6 +244,7 @@ function RouteComponent() {
 									visibleFilters={{
 										namespace: false,
 										template: false,
+										scheduleName: false,
 									}}
 									scrollOnPaginate
 									search={search}

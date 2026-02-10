@@ -3,6 +3,7 @@ import { ChevronDown } from 'lucide-react';
 import { useLayoutEffect, useMemo, useRef } from 'react';
 import { CrawlerRunDto, CrawlerRunPhaseEnum } from '@/src/app/api/dto/crawler-runs/crawler-run.dto';
 import { useCrawlerTemplates } from '@/src/app/api/hooks/useCrawlerTemplates';
+import { useSchedules } from '@/src/app/api/hooks/useSchedules';
 import { getPhaseClass } from '@/src/app/components/crawler-runs/utils/get-phase-class';
 import { PageAndFiltersSearch } from '@/src/app/components/crawler-runs/utils/search-schema';
 import { Badge } from '@/src/app/components/design-components/badge';
@@ -42,6 +43,7 @@ const TABLE_SCROLL_KEY = '__crawler_runs_table_scroll__';
 const DEFAULT_FILTERS = {
 	namespace: true,
 	template: true,
+	scheduleName: true,
 	startedAfter: true,
 	finishedBefore: true,
 	phase: true,
@@ -57,6 +59,7 @@ export interface CrawlerRunsTableProps {
 	visibleFilters?: {
 		namespace?: boolean;
 		template?: boolean;
+		scheduleName?: boolean;
 		startedAfter?: boolean;
 		finishedBefore?: boolean;
 		phase?: boolean;
@@ -78,6 +81,11 @@ export default function CrawlerRunsTable({
 
 	const namespace = search.namespace ?? '';
 	const crawlerTemplateName = search.template ?? '';
+
+	const scheduleFromSearch = search.scheduleName ?? '';
+	const scheduleLockedByParent = !!scheduleName;
+	// parent scheduleName takes precedence
+	const effectiveScheduleName = scheduleName ?? (scheduleFromSearch || undefined);
 
 	const startedAfter = parseIsoDate(search.startedAfter);
 	const finishedBefore = parseIsoDate(search.finishedBefore);
@@ -110,6 +118,15 @@ export default function CrawlerRunsTable({
 			...prev,
 			page: undefined,
 			template: v || undefined,
+		}));
+	};
+
+	const setScheduleName = (v: string) => {
+		requestScrollToTable();
+		updateSearch((prev) => ({
+			...prev,
+			page: undefined,
+			scheduleName: v || undefined,
 		}));
 	};
 
@@ -152,18 +169,24 @@ export default function CrawlerRunsTable({
 			startedAfter: undefined,
 			finishedBefore: undefined,
 			phases: undefined,
+			scheduleName: undefined,
 		}));
 	};
 
 	const filterOptions = {
 		...DEFAULT_FILTERS,
 		...(visibleFilters ?? {}),
+		scheduleName:
+			(DEFAULT_FILTERS.scheduleName ?? false) &&
+			(visibleFilters?.scheduleName ?? true) &&
+			!scheduleLockedByParent,
 	};
 	const effectivePageSize = pageSize ?? DEFAULT_PAGE_SIZE;
 	const offset = (page - 1) * effectivePageSize;
 	const hasVisibleFilters =
 		filterOptions.namespace ||
 		filterOptions.template ||
+		filterOptions.scheduleName ||
 		filterOptions.startedAfter ||
 		filterOptions.finishedBefore ||
 		filterOptions.phase;
@@ -174,7 +197,7 @@ export default function CrawlerRunsTable({
 	const { data, isLoading, error } = useCrawlerRuns({
 		limit: effectivePageSize,
 		offset,
-		scheduleName,
+		scheduleName: effectiveScheduleName,
 		namespace,
 		crawlerTemplateName,
 		startedAfter,
@@ -182,12 +205,11 @@ export default function CrawlerRunsTable({
 		phases,
 	});
 
-	const shouldFetchTemplates = filterOptions.namespace || filterOptions.template;
 	const {
 		data: templateData,
 		isLoading: templatesIsLoading,
 		error: templatesError,
-	} = useCrawlerTemplates({ enabled: shouldFetchTemplates });
+	} = useCrawlerTemplates({ enabled: filterOptions.namespace || filterOptions.template });
 
 	const uniqueNamespaces = useMemo(() => {
 		return Array.from(new Set((templateData ?? []).map((t) => t.namespace).filter(Boolean))).sort(
@@ -204,6 +226,17 @@ export default function CrawlerRunsTable({
 			),
 		).sort((a, b) => a.localeCompare(b));
 	}, [templateData, namespace]);
+
+	const {
+		data: scheduleData,
+		isLoading: schedulesIsLoading,
+		error: schedulesError,
+	} = useSchedules({ enabled: filterOptions.scheduleName });
+	const uniqueSchedules = useMemo(() => {
+		return Array.from(new Set((scheduleData ?? []).map((s) => s.name).filter(Boolean))).sort(
+			(a, b) => a.localeCompare(b),
+		);
+	}, [scheduleData]);
 
 	useLayoutEffect(() => {
 		if (!scrollOnPaginate) return;
@@ -261,7 +294,7 @@ export default function CrawlerRunsTable({
 											<div className="flex items-center gap-2 py-1">
 												<RadioGroupItem value="" id="ns-all" />
 												<Label htmlFor="ns-all" className="cursor-pointer">
-													All Namespaces
+													all Namespaces
 												</Label>
 											</div>
 
@@ -305,7 +338,7 @@ export default function CrawlerRunsTable({
 											<div className="flex items-center gap-2 py-1">
 												<RadioGroupItem value="" id="template-all" />
 												<Label htmlFor="template-all" className="cursor-pointer">
-													All templates
+													all templates
 												</Label>
 											</div>
 
@@ -323,6 +356,49 @@ export default function CrawlerRunsTable({
 							</div>
 						)}
 					</>
+				)}
+				{!schedulesIsLoading && !schedulesError && filterOptions.scheduleName && (
+					<div className="flex flex-col gap-1">
+						<span className="text-xs text-muted-foreground">Schedule:</span>
+						<DropdownMenu>
+							<DropdownMenuTrigger asChild>
+								<Button
+									variant="outline"
+									size="sm"
+									className="h-9 w-48 justify-between font-normal"
+								>
+									<span
+										className={
+											effectiveScheduleName ? 'truncate' : 'truncate text-muted-foreground'
+										}
+									>
+										{effectiveScheduleName || 'Schedule'}
+									</span>
+									<ChevronDown className="h-4 w-4 opacity-50" />
+								</Button>
+							</DropdownMenuTrigger>
+
+							<DropdownMenuContent className="w-48 p-2">
+								<RadioGroup value={effectiveScheduleName} onValueChange={setScheduleName}>
+									<div className="flex items-center gap-2 py-1">
+										<RadioGroupItem value="" id="template-all" />
+										<Label htmlFor="template-all" className="cursor-pointer">
+											all schedules
+										</Label>
+									</div>
+
+									{uniqueSchedules?.map((schedule) => (
+										<div key={schedule} className="flex items-center gap-2 py-1">
+											<RadioGroupItem value={schedule} id={`template-${schedule}`} />
+											<Label htmlFor={`template-${schedule}`} className="cursor-pointer">
+												{schedule}
+											</Label>
+										</div>
+									))}
+								</RadioGroup>
+							</DropdownMenuContent>
+						</DropdownMenu>
+					</div>
 				)}
 
 				{filterOptions.phase && (
