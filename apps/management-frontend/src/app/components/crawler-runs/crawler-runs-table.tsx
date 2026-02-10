@@ -1,10 +1,10 @@
-import { useNavigate, useSearch } from '@tanstack/react-router';
+import { useNavigate } from '@tanstack/react-router';
 import { ChevronDown } from 'lucide-react';
-import { useLayoutEffect, useRef } from 'react';
+import { useLayoutEffect, useMemo, useRef } from 'react';
 import { CrawlerRunDto, CrawlerRunPhaseEnum } from '@/src/app/api/dto/crawler-runs/crawler-run.dto';
 import { useCrawlerTemplates } from '@/src/app/api/hooks/useCrawlerTemplates';
 import { getPhaseClass } from '@/src/app/components/crawler-runs/utils/get-phase-class';
-import { useLooseSearchNavigate } from '@/src/app/components/crawler-runs/utils/useLooseSearchNavigate';
+import { PageAndFiltersSearch } from '@/src/app/components/crawler-runs/utils/search-schema';
 import { Badge } from '@/src/app/components/design-components/badge';
 import { Button } from '@/src/app/components/design-components/button';
 import { DateTimePicker } from '@/src/app/components/design-components/date-time-picker/date-time-picker';
@@ -38,7 +38,7 @@ import { cn } from '@/src/utils';
 import { useCrawlerRuns } from '../../api/hooks/useCrawlerRuns';
 
 const DEFAULT_PAGE_SIZE = 20;
-const TABLE_PAGINATION_SCROLL_KEY = '__crawler_runs_table_scroll__';
+const TABLE_SCROLL_KEY = '__crawler_runs_table_scroll__';
 const DEFAULT_FILTERS = {
 	namespace: true,
 	template: true,
@@ -61,11 +61,8 @@ export interface CrawlerRunsTableProps {
 		finishedBefore?: boolean;
 		phase?: boolean;
 	};
-}
-function normalizeStringArray(v: unknown): string[] {
-	if (Array.isArray(v)) return v.filter((x): x is string => typeof x === 'string');
-	if (typeof v === 'string') return [v];
-	return [];
+	search: PageAndFiltersSearch;
+	updateSearch: (updater: (prev: PageAndFiltersSearch) => PageAndFiltersSearch) => void;
 }
 export default function CrawlerRunsTable({
 	page,
@@ -74,59 +71,79 @@ export default function CrawlerRunsTable({
 	scheduleName,
 	scrollOnPaginate = false,
 	visibleFilters,
+	search,
+	updateSearch,
 }: CrawlerRunsTableProps) {
 	const now = new Date();
-	const updateSearch = useLooseSearchNavigate();
-	const search = useSearch({ strict: false }) as Record<string, unknown>;
 
-	const namespace = typeof search.namespace === 'string' ? search.namespace : '';
-	const crawlerTemplateName = typeof search.template === 'string' ? search.template : '';
+	const namespace = search.namespace ?? '';
+	const crawlerTemplateName = search.template ?? '';
 
 	const startedAfter = parseIsoDate(search.startedAfter);
 	const finishedBefore = parseIsoDate(search.finishedBefore);
 
-	const phases = normalizeStringArray(search.phases) as CrawlerRunPhaseEnum[];
+	const phases = search.phases ?? [];
+
+	const requestScrollToTable = () => {
+		if (!scrollOnPaginate) return;
+		sessionStorage.setItem(TABLE_SCROLL_KEY, '1');
+
+		// immediate scroll so the user doesn’t see the top while loading
+		requestAnimationFrame(() => {
+			anchorRef.current?.scrollIntoView({ behavior: 'auto', block: 'start' });
+		});
+	};
 
 	// URL setters (also reset page)
-	const setNamespace = (v: string) =>
+	const setNamespace = (v: string) => {
+		requestScrollToTable();
 		updateSearch((prev) => ({
 			...prev,
 			page: undefined,
 			namespace: v || undefined,
 		}));
+	};
 
-	const setCrawlerTemplateName = (v: string) =>
+	const setCrawlerTemplateName = (v: string) => {
+		requestScrollToTable();
 		updateSearch((prev) => ({
 			...prev,
 			page: undefined,
 			template: v || undefined,
 		}));
+	};
 
-	const setStartedAfter = (d?: Date) =>
+	const setStartedAfter = (d?: Date) => {
+		requestScrollToTable();
 		updateSearch((prev) => ({
 			...prev,
 			page: undefined,
 			startedAfter: d ? d.toISOString() : undefined,
 		}));
+	};
 
-	const setFinishedBefore = (d?: Date) =>
+	const setFinishedBefore = (d?: Date) => {
+		requestScrollToTable();
 		updateSearch((prev) => ({
 			...prev,
 			page: undefined,
 			finishedBefore: d ? d.toISOString() : undefined,
 		}));
+	};
 
 	const setPhases = (updater: (prev: CrawlerRunPhaseEnum[]) => CrawlerRunPhaseEnum[]) => {
+		requestScrollToTable();
 		const next = updater(phases);
 
-		updateSearch((prevSearch) => ({
-			...prevSearch,
+		updateSearch((prev) => ({
+			...prev,
 			page: undefined,
 			phases: next.length ? next : undefined,
 		}));
 	};
 
-	const clearFilters = () =>
+	const clearFilters = () => {
+		requestScrollToTable();
 		updateSearch((prev) => ({
 			...prev,
 			page: undefined,
@@ -136,6 +153,7 @@ export default function CrawlerRunsTable({
 			finishedBefore: undefined,
 			phases: undefined,
 		}));
+	};
 
 	const filterOptions = {
 		...DEFAULT_FILTERS,
@@ -171,34 +189,36 @@ export default function CrawlerRunsTable({
 		error: templatesError,
 	} = useCrawlerTemplates({ enabled: shouldFetchTemplates });
 
-	const uniqueNamespaces = Array.from(
-		new Set((templateData ?? []).map((t) => t.namespace).filter(Boolean)),
-	).sort((a, b) => a.localeCompare(b));
-	const uniqueTemplateNames = Array.from(
-		new Set(
-			(templateData ?? [])
-				.filter((t) => (namespace ? t.namespace === namespace : true))
-				.map((t) => t.name)
-				.filter(Boolean),
-		),
-	).sort((a, b) => a.localeCompare(b));
+	const uniqueNamespaces = useMemo(() => {
+		return Array.from(new Set((templateData ?? []).map((t) => t.namespace).filter(Boolean))).sort(
+			(a, b) => a.localeCompare(b),
+		);
+	}, [templateData]);
+	const uniqueTemplateNames = useMemo(() => {
+		return Array.from(
+			new Set(
+				(templateData ?? [])
+					.filter((t) => (namespace ? t.namespace === namespace : true))
+					.map((t) => t.name)
+					.filter(Boolean),
+			),
+		).sort((a, b) => a.localeCompare(b));
+	}, [templateData, namespace]);
 
 	useLayoutEffect(() => {
 		if (!scrollOnPaginate) return;
-
-		const shouldScroll = sessionStorage.getItem(TABLE_PAGINATION_SCROLL_KEY) === '1';
-		if (!shouldScroll) return;
-
-		// wait until data is there and anchor exists
 		if (isLoading) return;
+
+		const shouldScroll = sessionStorage.getItem(TABLE_SCROLL_KEY) === '1';
+		if (!shouldScroll) return;
 		if (!anchorRef.current) return;
 
-		sessionStorage.removeItem(TABLE_PAGINATION_SCROLL_KEY);
+		sessionStorage.removeItem(TABLE_SCROLL_KEY);
 
 		requestAnimationFrame(() => {
 			anchorRef.current?.scrollIntoView({ behavior: 'auto', block: 'start' });
 		});
-	}, [scrollOnPaginate, page, isLoading, anchorRef]);
+	}, [scrollOnPaginate, isLoading]);
 
 	const runs: CrawlerRunDto[] = data?.data ?? [];
 	const hasNextPage = !!data?.metadata?.hasMore;
@@ -215,9 +235,6 @@ export default function CrawlerRunsTable({
 
 	return (
 		<>
-			{/* anchor for scrolling */}
-			<div ref={anchorRef} className="scroll-mt-24" />
-
 			{/* filter bar */}
 			<div className="flex flex-wrap items-end gap-3 rounded-xl border bg-muted/40 p-3 shadow-md m-3 mt-8">
 				{!templatesIsLoading && !templatesError && (
@@ -403,6 +420,9 @@ export default function CrawlerRunsTable({
 				)}
 			</div>
 
+			{/* anchor for scrolling */}
+			<div ref={anchorRef} className="scroll-mt-24" />
+
 			{/* table */}
 			{isLoading ? (
 				<div className="col-span-12 flex justify-center pt-6">
@@ -475,9 +495,7 @@ export default function CrawlerRunsTable({
 											disabled={!canPrev}
 											onClick={() => {
 												if (!canPrev) return;
-												if (scrollOnPaginate) {
-													sessionStorage.setItem(TABLE_PAGINATION_SCROLL_KEY, '1');
-												}
+												requestScrollToTable();
 												setPage(page - 1, { scrollToTable: scrollOnPaginate });
 											}}
 										/>
@@ -488,9 +506,7 @@ export default function CrawlerRunsTable({
 											disabled={!hasNextPage}
 											onClick={() => {
 												if (!hasNextPage) return;
-												if (scrollOnPaginate) {
-													sessionStorage.setItem(TABLE_PAGINATION_SCROLL_KEY, '1');
-												}
+												requestScrollToTable();
 												setPage(page + 1, { scrollToTable: scrollOnPaginate });
 											}}
 										/>

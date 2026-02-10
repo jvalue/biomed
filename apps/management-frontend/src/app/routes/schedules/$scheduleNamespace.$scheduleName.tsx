@@ -11,6 +11,7 @@ import {
 } from '@/src/app/api/hooks/useSchedules';
 import CrawlerRunsTable from '@/src/app/components/crawler-runs/crawler-runs-table';
 import { validatePageAndFiltersSearch } from '@/src/app/components/crawler-runs/utils/search-schema';
+import { useLooseSearchNavigate } from '@/src/app/components/crawler-runs/utils/useLooseSearchNavigate';
 import { Button } from '@/src/app/components/design-components/button';
 import {
 	Card,
@@ -57,6 +58,7 @@ function RouteComponent() {
 	};
 
 	const search = Route.useSearch();
+	const updateSearch = useLooseSearchNavigate();
 	const page = search.page ?? 1;
 
 	const navigate = Route.useNavigate();
@@ -244,6 +246,8 @@ function RouteComponent() {
 										template: false,
 									}}
 									scrollOnPaginate
+									search={search}
+									updateSearch={updateSearch}
 								/>
 							</CardContent>
 						</Card>
