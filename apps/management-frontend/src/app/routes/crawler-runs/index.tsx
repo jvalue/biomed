@@ -2,6 +2,7 @@ import { createFileRoute } from '@tanstack/react-router';
 import { useMemo } from 'react';
 import CrawlerRunsTable from '@/src/app/components/crawler-runs/crawler-runs-table';
 import { validatePageAndFiltersSearch } from '@/src/app/components/crawler-runs/utils/search-schema';
+import { useLooseSearchNavigate } from '@/src/app/components/crawler-runs/utils/useLooseSearchNavigate';
 import { AuthGuard } from '@/src/app/components/guards/auth-guard';
 import { PermissionGuard } from '@/src/app/components/guards/permission-guard';
 import { createSetPageSearch } from '@/src/app/utils/set-page-search';
@@ -16,6 +17,7 @@ function RouteComponent() {
 	const { ability } = useAuth();
 
 	const search = Route.useSearch();
+	const updateSearch = useLooseSearchNavigate();
 	const page = search.page ?? 1;
 
 	const navigate = Route.useNavigate();
@@ -33,7 +35,12 @@ function RouteComponent() {
 					In the following table you can see all runs (finished and still running) sorted by
 					starting date.
 				</p>
-				<CrawlerRunsTable page={page} setPage={setPage} />
+				<CrawlerRunsTable
+					search={search}
+					updateSearch={updateSearch}
+					page={page}
+					setPage={setPage}
+				/>
 			</PermissionGuard>
 		</AuthGuard>
 	);

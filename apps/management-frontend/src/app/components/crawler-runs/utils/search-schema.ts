@@ -13,7 +13,7 @@ export type FiltersSearch = {
 	finishedBefore?: string;
 
 	// repeated query param
-	phases: string[];
+	phases?: CrawlerRunPhaseEnum[];
 };
 
 export function validateFiltersSearch(search: Record<string, unknown>): FiltersSearch {
