@@ -7,6 +7,7 @@ import { validatePageSearch } from '@/src/app/utils/validate-page-search';
 export type FiltersSearch = {
 	namespace?: string;
 	template?: string;
+	scheduleName?: string;
 
 	// ISO strings in the URL
 	startedAfter?: string;
@@ -22,6 +23,11 @@ export function validateFiltersSearch(search: Record<string, unknown>): FiltersS
 
 	const template =
 		typeof search.template === 'string' && search.template.trim() ? search.template : undefined;
+
+	const scheduleName =
+		typeof search.scheduleName === 'string' && search.scheduleName.trim()
+			? search.scheduleName
+			: undefined;
 
 	const startedAfter =
 		typeof search.startedAfter === 'string' && search.startedAfter.trim()
@@ -46,6 +52,7 @@ export function validateFiltersSearch(search: Record<string, unknown>): FiltersS
 	return {
 		namespace,
 		template,
+		scheduleName,
 		startedAfter,
 		finishedBefore,
 		phases,
