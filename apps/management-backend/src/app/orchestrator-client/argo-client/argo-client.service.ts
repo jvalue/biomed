@@ -107,7 +107,10 @@ export class ArgoClientService implements IOrchestratorClient {
 		const argoQueryParamBuilder = new ArgoQueryParamBuilder();
 		// Label selectors
 		argoQueryParamBuilder.addLabelSelector(
-			'workflows.argoproj.io/workflow-template',
+			// Filtering will only work if this label is set in the workflow template and passed down to the workflow run.
+			// If the label is not set, these runs will noch be included. This is a trade-off we accept in order to
+			// be able to filter for workflow template name for scheduled runs
+			'customSetWorkflowTemplateName',
 			filterOptions?.crawlerTemplateName,
 		);
 		argoQueryParamBuilder.addLabelSelector(
