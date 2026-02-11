@@ -4,11 +4,13 @@ import { ScheduleDto } from '@/src/app/api/dto/schedule/schedule.dto';
 import { isRetryableError } from '@/src/app/api/hooks/hook-utils';
 import { scheduleService } from '@/src/app/api/services/schedule.service';
 
-export const useSchedules = (): UseQueryResult<ScheduleDto[]> => {
+export const useSchedules = (options?: { enabled?: boolean }): UseQueryResult<ScheduleDto[]> => {
+	const enabled = options?.enabled ?? true;
 	return useQuery({
 		queryKey: ['schedules'],
 		queryFn: scheduleService.getSchedules,
 		refetchInterval: 30000, // Auto-refresh
+		enabled,
 	});
 };
 

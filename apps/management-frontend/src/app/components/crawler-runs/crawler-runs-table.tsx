@@ -1,7 +1,21 @@
 import { useNavigate } from '@tanstack/react-router';
-import { useLayoutEffect, useRef } from 'react';
-import { CrawlerRunDto } from '@/src/app/api/dto/crawler-runs/crawler-run.dto';
-import { getPhaseClass } from '@/src/app/components/crawler-runs/crawler-runs-utils';
+import { ChevronDown } from 'lucide-react';
+import { useLayoutEffect, useMemo, useRef } from 'react';
+import { CrawlerRunDto, CrawlerRunPhaseEnum } from '@/src/app/api/dto/crawler-runs/crawler-run.dto';
+import { useCrawlerTemplates } from '@/src/app/api/hooks/useCrawlerTemplates';
+import { useSchedules } from '@/src/app/api/hooks/useSchedules';
+import { getPhaseClass } from '@/src/app/components/crawler-runs/utils/get-phase-class';
+import { PageAndFiltersSearch } from '@/src/app/components/crawler-runs/utils/search-schema';
+import { Badge } from '@/src/app/components/design-components/badge';
+import { Button } from '@/src/app/components/design-components/button';
+import { DateTimePicker } from '@/src/app/components/design-components/date-time-picker/date-time-picker';
+import {
+	DropdownMenu,
+	DropdownMenuCheckboxItem,
+	DropdownMenuContent,
+	DropdownMenuTrigger,
+} from '@/src/app/components/design-components/dropdown-menu';
+import { Label } from '@/src/app/components/design-components/label';
 import {
 	Pagination,
 	PaginationContent,
@@ -9,6 +23,7 @@ import {
 	PaginationNext,
 	PaginationPrevious,
 } from '@/src/app/components/design-components/pagination';
+import { RadioGroup, RadioGroupItem } from '@/src/app/components/design-components/radio-group';
 import { Spinner } from '@/src/app/components/design-components/spinner';
 import {
 	Table,
@@ -19,10 +34,20 @@ import {
 	TableHeader,
 	TableRow,
 } from '@/src/app/components/design-components/table';
+import { parseIsoDate } from '@/src/app/utils/datetime';
+import { cn } from '@/src/utils';
 import { useCrawlerRuns } from '../../api/hooks/useCrawlerRuns';
 
 const DEFAULT_PAGE_SIZE = 20;
-const TABLE_PAGINATION_SCROLL_KEY = '__crawler_runs_table_scroll__';
+const TABLE_SCROLL_KEY = '__crawler_runs_table_scroll__';
+const DEFAULT_FILTERS = {
+	namespace: true,
+	template: true,
+	scheduleName: true,
+	startedAfter: true,
+	finishedBefore: true,
+	phase: true,
+};
 
 export interface CrawlerRunsTableProps {
 	page: number;
@@ -31,17 +56,142 @@ export interface CrawlerRunsTableProps {
 	scheduleName?: string;
 	/** When enabled, scrolls back to the table top after pagination changes. Useful when the table appears in the middle or bottom of the page. */
 	scrollOnPaginate?: boolean;
+	visibleFilters?: {
+		namespace?: boolean;
+		template?: boolean;
+		scheduleName?: boolean;
+		startedAfter?: boolean;
+		finishedBefore?: boolean;
+		phase?: boolean;
+	};
+	search: PageAndFiltersSearch;
+	updateSearch: (updater: (prev: PageAndFiltersSearch) => PageAndFiltersSearch) => void;
 }
-
 export default function CrawlerRunsTable({
 	page,
 	setPage,
 	pageSize,
 	scheduleName,
 	scrollOnPaginate = false,
+	visibleFilters,
+	search,
+	updateSearch,
 }: CrawlerRunsTableProps) {
+	const now = new Date();
+
+	const namespace = search.namespace ?? '';
+	const crawlerTemplateName = search.template ?? '';
+
+	const scheduleFromSearch = search.scheduleName ?? '';
+	const scheduleLockedByParent = !!scheduleName;
+	// parent scheduleName takes precedence
+	const effectiveScheduleName = scheduleName ?? (scheduleFromSearch || undefined);
+
+	const startedAfter = parseIsoDate(search.startedAfter);
+	const finishedBefore = parseIsoDate(search.finishedBefore);
+
+	const phases = search.phases ?? [];
+
+	const filterFieldClassName = 'flex flex-col gap-1 flex-initial basis-64 min-w-48';
+
+	const requestScrollToTable = () => {
+		if (!scrollOnPaginate) return;
+		sessionStorage.setItem(TABLE_SCROLL_KEY, '1');
+
+		// immediate scroll so the user doesn’t see the top while loading
+		requestAnimationFrame(() => {
+			anchorRef.current?.scrollIntoView({ behavior: 'auto', block: 'start' });
+		});
+	};
+
+	// URL setters (also reset page)
+	const setNamespace = (v: string) => {
+		requestScrollToTable();
+		updateSearch((prev) => ({
+			...prev,
+			page: undefined,
+			namespace: v || undefined,
+		}));
+	};
+
+	const setCrawlerTemplateName = (v: string) => {
+		requestScrollToTable();
+		updateSearch((prev) => ({
+			...prev,
+			page: undefined,
+			template: v || undefined,
+		}));
+	};
+
+	const setScheduleName = (v: string) => {
+		requestScrollToTable();
+		updateSearch((prev) => ({
+			...prev,
+			page: undefined,
+			scheduleName: v || undefined,
+		}));
+	};
+
+	const setStartedAfter = (d?: Date) => {
+		requestScrollToTable();
+		updateSearch((prev) => ({
+			...prev,
+			page: undefined,
+			startedAfter: d ? d.toISOString() : undefined,
+		}));
+	};
+
+	const setFinishedBefore = (d?: Date) => {
+		requestScrollToTable();
+		updateSearch((prev) => ({
+			...prev,
+			page: undefined,
+			finishedBefore: d ? d.toISOString() : undefined,
+		}));
+	};
+
+	const setPhases = (updater: (prev: CrawlerRunPhaseEnum[]) => CrawlerRunPhaseEnum[]) => {
+		requestScrollToTable();
+		const next = updater(phases);
+
+		updateSearch((prev) => ({
+			...prev,
+			page: undefined,
+			phases: next.length ? next : undefined,
+		}));
+	};
+
+	const clearFilters = () => {
+		requestScrollToTable();
+		updateSearch((prev) => ({
+			...prev,
+			page: undefined,
+			namespace: undefined,
+			template: undefined,
+			startedAfter: undefined,
+			finishedBefore: undefined,
+			phases: undefined,
+			scheduleName: undefined,
+		}));
+	};
+
+	const filterOptions = {
+		...DEFAULT_FILTERS,
+		...(visibleFilters ?? {}),
+		scheduleName:
+			(DEFAULT_FILTERS.scheduleName ?? false) &&
+			(visibleFilters?.scheduleName ?? true) &&
+			!scheduleLockedByParent,
+	};
 	const effectivePageSize = pageSize ?? DEFAULT_PAGE_SIZE;
 	const offset = (page - 1) * effectivePageSize;
+	const hasVisibleFilters =
+		filterOptions.namespace ||
+		filterOptions.template ||
+		filterOptions.scheduleName ||
+		filterOptions.startedAfter ||
+		filterOptions.finishedBefore ||
+		filterOptions.phase;
 
 	const anchorRef = useRef<HTMLDivElement | null>(null);
 	const navigate = useNavigate();
@@ -49,25 +199,61 @@ export default function CrawlerRunsTable({
 	const { data, isLoading, error } = useCrawlerRuns({
 		limit: effectivePageSize,
 		offset,
-		scheduleName,
+		scheduleName: effectiveScheduleName,
+		namespace,
+		crawlerTemplateName,
+		startedAfter,
+		finishedBefore,
+		phases,
 	});
+
+	const {
+		data: templateData,
+		isLoading: templatesIsLoading,
+		error: templatesError,
+	} = useCrawlerTemplates({ enabled: filterOptions.namespace || filterOptions.template });
+
+	const uniqueNamespaces = useMemo(() => {
+		return Array.from(new Set((templateData ?? []).map((t) => t.namespace).filter(Boolean))).sort(
+			(a, b) => a.localeCompare(b),
+		);
+	}, [templateData]);
+	const uniqueTemplateNames = useMemo(() => {
+		return Array.from(
+			new Set(
+				(templateData ?? [])
+					.filter((t) => (namespace ? t.namespace === namespace : true))
+					.map((t) => t.name)
+					.filter(Boolean),
+			),
+		).sort((a, b) => a.localeCompare(b));
+	}, [templateData, namespace]);
+
+	const {
+		data: scheduleData,
+		isLoading: schedulesIsLoading,
+		error: schedulesError,
+	} = useSchedules({ enabled: filterOptions.scheduleName });
+	const uniqueSchedules = useMemo(() => {
+		return Array.from(new Set((scheduleData ?? []).map((s) => s.name).filter(Boolean))).sort(
+			(a, b) => a.localeCompare(b),
+		);
+	}, [scheduleData]);
 
 	useLayoutEffect(() => {
 		if (!scrollOnPaginate) return;
-
-		const shouldScroll = sessionStorage.getItem(TABLE_PAGINATION_SCROLL_KEY) === '1';
-		if (!shouldScroll) return;
-
-		// wait until data is there and anchor exists
 		if (isLoading) return;
+
+		const shouldScroll = sessionStorage.getItem(TABLE_SCROLL_KEY) === '1';
+		if (!shouldScroll) return;
 		if (!anchorRef.current) return;
 
-		sessionStorage.removeItem(TABLE_PAGINATION_SCROLL_KEY);
+		sessionStorage.removeItem(TABLE_SCROLL_KEY);
 
 		requestAnimationFrame(() => {
 			anchorRef.current?.scrollIntoView({ behavior: 'auto', block: 'start' });
 		});
-	}, [scrollOnPaginate, page, isLoading, anchorRef]);
+	}, [scrollOnPaginate, isLoading, page, data]);
 
 	const runs: CrawlerRunDto[] = data?.data ?? [];
 	const hasNextPage = !!data?.metadata?.hasMore;
@@ -84,9 +270,240 @@ export default function CrawlerRunsTable({
 
 	return (
 		<>
+			{/* filter bar */}
+			<div className="flex flex-wrap items-end gap-3 rounded-xl border bg-muted/40 p-3 shadow-md m-3 mt-8">
+				{!templatesIsLoading && !templatesError && (
+					<>
+						{filterOptions.namespace && (
+							<div className={filterFieldClassName}>
+								<span className="text-xs text-muted-foreground">Namespace:</span>
+								<DropdownMenu>
+									<DropdownMenuTrigger asChild>
+										<Button
+											variant="outline"
+											size="sm"
+											className="h-9 w-full justify-between font-normal"
+										>
+											<span className={namespace ? 'truncate' : 'truncate text-muted-foreground'}>
+												{namespace || 'Namespace'}
+											</span>
+											<ChevronDown className="h-4 w-4 opacity-50" />
+										</Button>
+									</DropdownMenuTrigger>
+
+									<DropdownMenuContent className="min-w-[var(--radix-dropdown-menu-trigger-width)] w-auto p-2">
+										<RadioGroup value={namespace} onValueChange={setNamespace}>
+											<div className="flex items-center gap-2 py-1">
+												<RadioGroupItem value="" id="ns-all" />
+												<Label htmlFor="ns-all" className="cursor-pointer">
+													all Namespaces
+												</Label>
+											</div>
+
+											{uniqueNamespaces?.map((ns) => (
+												<div key={ns} className="flex items-center gap-2 py-1">
+													<RadioGroupItem value={ns} id={`ns-${ns}`} />
+													<Label htmlFor={`ns-${ns}`} className="cursor-pointer">
+														{ns}
+													</Label>
+												</div>
+											))}
+										</RadioGroup>
+									</DropdownMenuContent>
+								</DropdownMenu>
+							</div>
+						)}
+
+						{filterOptions.template && (
+							<div className={filterFieldClassName}>
+								<span className="text-xs text-muted-foreground">Template:</span>
+								<DropdownMenu>
+									<DropdownMenuTrigger asChild>
+										<Button
+											variant="outline"
+											size="sm"
+											className="h-9 w-full justify-between font-normal"
+										>
+											<span
+												className={
+													crawlerTemplateName ? 'truncate' : 'truncate text-muted-foreground'
+												}
+											>
+												{crawlerTemplateName || 'Template'}
+											</span>
+											<ChevronDown className="h-4 w-4 opacity-50" />
+										</Button>
+									</DropdownMenuTrigger>
+
+									<DropdownMenuContent className="min-w-[var(--radix-dropdown-menu-trigger-width)] w-auto p-2">
+										<RadioGroup value={crawlerTemplateName} onValueChange={setCrawlerTemplateName}>
+											<div className="flex items-center gap-2 py-1">
+												<RadioGroupItem value="" id="template-all" />
+												<Label htmlFor="template-all" className="cursor-pointer">
+													all templates
+												</Label>
+											</div>
+
+											{uniqueTemplateNames?.map((template) => (
+												<div key={template} className="flex items-center gap-2 py-1">
+													<RadioGroupItem value={template} id={`template-${template}`} />
+													<Label htmlFor={`template-${template}`} className="cursor-pointer">
+														{template}
+													</Label>
+												</div>
+											))}
+										</RadioGroup>
+									</DropdownMenuContent>
+								</DropdownMenu>
+							</div>
+						)}
+					</>
+				)}
+				{!schedulesIsLoading && !schedulesError && filterOptions.scheduleName && (
+					<div className={filterFieldClassName}>
+						<span className="text-xs text-muted-foreground">Schedule:</span>
+						<DropdownMenu>
+							<DropdownMenuTrigger asChild>
+								<Button
+									variant="outline"
+									size="sm"
+									className="h-9 w-full justify-between font-normal"
+								>
+									<span
+										className={
+											effectiveScheduleName ? 'truncate' : 'truncate text-muted-foreground'
+										}
+									>
+										{effectiveScheduleName || 'Schedule'}
+									</span>
+									<ChevronDown className="h-4 w-4 opacity-50" />
+								</Button>
+							</DropdownMenuTrigger>
+
+							<DropdownMenuContent className="min-w-[var(--radix-dropdown-menu-trigger-width)] w-auto p-2">
+								<RadioGroup value={effectiveScheduleName} onValueChange={setScheduleName}>
+									<div className="flex items-center gap-2 py-1">
+										<RadioGroupItem value="" id="schedule-all" />
+										<Label htmlFor="schedule-all" className="cursor-pointer">
+											all schedules
+										</Label>
+									</div>
+
+									{uniqueSchedules?.map((schedule) => (
+										<div key={schedule} className="flex items-center gap-2 py-1">
+											<RadioGroupItem value={schedule} id={`schedule-${schedule}`} />
+											<Label htmlFor={`schedule-${schedule}`} className="cursor-pointer">
+												{schedule}
+											</Label>
+										</div>
+									))}
+								</RadioGroup>
+							</DropdownMenuContent>
+						</DropdownMenu>
+					</div>
+				)}
+
+				{filterOptions.phase && (
+					<div className={filterFieldClassName}>
+						<span className="text-xs text-muted-foreground">Phase:</span>
+						<DropdownMenu>
+							<DropdownMenuTrigger asChild>
+								<Button
+									variant="outline"
+									size="sm"
+									className="h-9 w-full justify-between font-normal"
+								>
+									<div className="flex max-w-[10rem] items-center gap-1 overflow-hidden">
+										{phases.length === 0 ? (
+											<span className="text-muted-foreground">Phase</span>
+										) : phases.length <= 2 ? (
+											phases.map((phase) => (
+												<Badge
+													key={phase}
+													className={cn(
+														'px-1.5 py-0 text-[10px] font-normal',
+														getPhaseClass(phase),
+													)}
+												>
+													{phase}
+												</Badge>
+											))
+										) : (
+											<Badge variant="secondary" className="px-1.5 py-0 text-[10px] font-normal">
+												{phases.length} selected
+											</Badge>
+										)}
+									</div>
+									<ChevronDown className="h-4 w-4 opacity-50" />
+								</Button>
+							</DropdownMenuTrigger>
+
+							<DropdownMenuContent className="min-w-[var(--radix-dropdown-menu-trigger-width)] w-auto">
+								{Object.values(CrawlerRunPhaseEnum).map((phase) => (
+									<DropdownMenuCheckboxItem
+										key={phase}
+										checked={phases.includes(phase)}
+										onCheckedChange={(checked) => {
+											setPhases((prev) =>
+												checked ? [...prev, phase] : prev.filter((p) => p !== phase),
+											);
+										}}
+									>
+										{phase}
+									</DropdownMenuCheckboxItem>
+								))}
+							</DropdownMenuContent>
+						</DropdownMenu>
+					</div>
+				)}
+
+				{filterOptions.startedAfter && (
+					<div className={filterFieldClassName}>
+						<span className="text-xs text-muted-foreground">Started After:</span>
+						<DateTimePicker
+							value={startedAfter}
+							onChange={setStartedAfter}
+							granularity="minute"
+							placeholder="Select date & time"
+							className="h-9 w-full"
+							maxDate={finishedBefore ?? now}
+						/>
+					</div>
+				)}
+
+				{filterOptions.finishedBefore && (
+					<div className={filterFieldClassName}>
+						<span className="text-xs text-muted-foreground">Finished Before:</span>
+						<DateTimePicker
+							value={finishedBefore}
+							onChange={setFinishedBefore}
+							granularity="minute"
+							placeholder="Select date & time"
+							className="h-9 w-full"
+							minDate={startedAfter}
+							maxDate={now}
+						/>
+					</div>
+				)}
+
+				{hasVisibleFilters && (
+					<div className="flex items-end ml-auto">
+						<Button
+							variant="ghost"
+							size="sm"
+							className="h-9 text-muted-foreground hover:text-destructive"
+							onClick={clearFilters}
+						>
+							Clear filters
+						</Button>
+					</div>
+				)}
+			</div>
+
 			{/* anchor for scrolling */}
 			<div ref={anchorRef} className="scroll-mt-24" />
 
+			{/* table */}
 			{isLoading ? (
 				<div className="col-span-12 flex justify-center pt-6">
 					<Spinner className="size-10" />
@@ -158,9 +575,7 @@ export default function CrawlerRunsTable({
 											disabled={!canPrev}
 											onClick={() => {
 												if (!canPrev) return;
-												if (scrollOnPaginate) {
-													sessionStorage.setItem(TABLE_PAGINATION_SCROLL_KEY, '1');
-												}
+												requestScrollToTable();
 												setPage(page - 1, { scrollToTable: scrollOnPaginate });
 											}}
 										/>
@@ -171,9 +586,7 @@ export default function CrawlerRunsTable({
 											disabled={!hasNextPage}
 											onClick={() => {
 												if (!hasNextPage) return;
-												if (scrollOnPaginate) {
-													sessionStorage.setItem(TABLE_PAGINATION_SCROLL_KEY, '1');
-												}
+												requestScrollToTable();
 												setPage(page + 1, { scrollToTable: scrollOnPaginate });
 											}}
 										/>
@@ -184,9 +597,11 @@ export default function CrawlerRunsTable({
 					</div>
 				</>
 			) : (
-				<p className="text-sm text-muted-foreground">
-					{scheduleName ? 'No runs found for this schedule' : 'No runs found'}
-				</p>
+				<div className="flex justify-center items-center py-8">
+					<p className="text-sm text-muted-foreground text-center">
+						{scheduleName ? 'No runs found for this schedule' : 'No runs found'}
+					</p>
+				</div>
 			)}
 		</>
 	);
