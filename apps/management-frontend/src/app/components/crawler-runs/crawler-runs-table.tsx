@@ -92,7 +92,7 @@ export default function CrawlerRunsTable({
 
 	const phases = search.phases ?? [];
 
-	const filterFieldClass = 'flex flex-col gap-1 flex-initial basis-64 min-w-48';
+	const filterFieldClassName = 'flex flex-col gap-1 flex-initial basis-64 min-w-48';
 
 	const requestScrollToTable = () => {
 		if (!scrollOnPaginate) return;
@@ -253,7 +253,7 @@ export default function CrawlerRunsTable({
 		requestAnimationFrame(() => {
 			anchorRef.current?.scrollIntoView({ behavior: 'auto', block: 'start' });
 		});
-	}, [scrollOnPaginate, isLoading]);
+	}, [scrollOnPaginate, isLoading, page, data]);
 
 	const runs: CrawlerRunDto[] = data?.data ?? [];
 	const hasNextPage = !!data?.metadata?.hasMore;
@@ -275,7 +275,7 @@ export default function CrawlerRunsTable({
 				{!templatesIsLoading && !templatesError && (
 					<>
 						{filterOptions.namespace && (
-							<div className={filterFieldClass}>
+							<div className={filterFieldClassName}>
 								<span className="text-xs text-muted-foreground">Namespace:</span>
 								<DropdownMenu>
 									<DropdownMenuTrigger asChild>
@@ -315,7 +315,7 @@ export default function CrawlerRunsTable({
 						)}
 
 						{filterOptions.template && (
-							<div className={filterFieldClass}>
+							<div className={filterFieldClassName}>
 								<span className="text-xs text-muted-foreground">Template:</span>
 								<DropdownMenu>
 									<DropdownMenuTrigger asChild>
@@ -360,7 +360,7 @@ export default function CrawlerRunsTable({
 					</>
 				)}
 				{!schedulesIsLoading && !schedulesError && filterOptions.scheduleName && (
-					<div className={filterFieldClass}>
+					<div className={filterFieldClassName}>
 						<span className="text-xs text-muted-foreground">Schedule:</span>
 						<DropdownMenu>
 							<DropdownMenuTrigger asChild>
@@ -383,16 +383,16 @@ export default function CrawlerRunsTable({
 							<DropdownMenuContent className="min-w-[var(--radix-dropdown-menu-trigger-width)] w-auto p-2">
 								<RadioGroup value={effectiveScheduleName} onValueChange={setScheduleName}>
 									<div className="flex items-center gap-2 py-1">
-										<RadioGroupItem value="" id="template-all" />
-										<Label htmlFor="template-all" className="cursor-pointer">
+										<RadioGroupItem value="" id="schedule-all" />
+										<Label htmlFor="schedule-all" className="cursor-pointer">
 											all schedules
 										</Label>
 									</div>
 
 									{uniqueSchedules?.map((schedule) => (
 										<div key={schedule} className="flex items-center gap-2 py-1">
-											<RadioGroupItem value={schedule} id={`template-${schedule}`} />
-											<Label htmlFor={`template-${schedule}`} className="cursor-pointer">
+											<RadioGroupItem value={schedule} id={`schedule-${schedule}`} />
+											<Label htmlFor={`schedule-${schedule}`} className="cursor-pointer">
 												{schedule}
 											</Label>
 										</div>
@@ -404,7 +404,7 @@ export default function CrawlerRunsTable({
 				)}
 
 				{filterOptions.phase && (
-					<div className={filterFieldClass}>
+					<div className={filterFieldClassName}>
 						<span className="text-xs text-muted-foreground">Phase:</span>
 						<DropdownMenu>
 							<DropdownMenuTrigger asChild>
@@ -458,7 +458,7 @@ export default function CrawlerRunsTable({
 				)}
 
 				{filterOptions.startedAfter && (
-					<div className={filterFieldClass}>
+					<div className={filterFieldClassName}>
 						<span className="text-xs text-muted-foreground">Started After:</span>
 						<DateTimePicker
 							value={startedAfter}
@@ -472,7 +472,7 @@ export default function CrawlerRunsTable({
 				)}
 
 				{filterOptions.finishedBefore && (
-					<div className={filterFieldClass}>
+					<div className={filterFieldClassName}>
 						<span className="text-xs text-muted-foreground">Finished Before:</span>
 						<DateTimePicker
 							value={finishedBefore}

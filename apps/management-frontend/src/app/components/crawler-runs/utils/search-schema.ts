@@ -29,25 +29,31 @@ export function validateFiltersSearch(search: Record<string, unknown>): FiltersS
 			? search.scheduleName
 			: undefined;
 
-	const startedAfter =
-		typeof search.startedAfter === 'string' && search.startedAfter.trim()
-			? search.startedAfter
-			: undefined;
+	function parseISODateParam(value: unknown): string | undefined {
+		if (typeof value !== 'string') return undefined;
 
-	const finishedBefore =
-		typeof search.finishedBefore === 'string' && search.finishedBefore.trim()
-			? search.finishedBefore
-			: undefined;
+		const trimmed = value.trim();
+		if (!trimmed) return undefined;
+
+		// strict ISO 8601 check
+		const iso = /^\d{4}-\d{2}-\d{2}(T\d{2}:\d{2}(:\d{2}(\.\d{3})?)?(Z|[+-]\d{2}:\d{2})?)?$/;
+
+		return iso.test(trimmed) ? trimmed : undefined;
+	}
+
+	const startedAfter = parseISODateParam(search.startedAfter);
+	const finishedBefore = parseISODateParam(search.finishedBefore);
 
 	const validPhases = new Set(Object.values(CrawlerRunPhaseEnum));
 
-	const phases = (
+	const phasesRaw = (
 		Array.isArray(search.phases)
 			? search.phases
 			: typeof search.phases === 'string'
 				? [search.phases]
 				: []
 	).filter((p): p is CrawlerRunPhaseEnum => validPhases.has(p as CrawlerRunPhaseEnum));
+	const phases = phasesRaw.length ? phasesRaw : undefined;
 
 	return {
 		namespace,
