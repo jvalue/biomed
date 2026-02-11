@@ -12,6 +12,7 @@ export function useLooseSearchNavigate<TSearch extends AnySearch = AnySearch>() 
 
 	return (updater: (prev: TSearch) => TSearch) => {
 		navigate({
+			resetScroll: false,
 			search: updater as unknown as SearchReducer,
 		});
 	};

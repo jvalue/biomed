@@ -204,6 +204,7 @@ interface TimePickerRef {
 	minuteRef: HTMLInputElement | null;
 	hourRef: HTMLInputElement | null;
 	secondRef: HTMLInputElement | null;
+	periodRef: HTMLButtonElement | null;
 }
 
 export const TimePicker = React.forwardRef<TimePickerRef, TimePickerProps>(
@@ -222,7 +223,7 @@ export const TimePicker = React.forwardRef<TimePickerRef, TimePickerProps>(
 				secondRef: secondRef.current,
 				periodRef: periodRef.current,
 			}),
-			[minuteRef, hourRef, secondRef],
+			[minuteRef, hourRef, secondRef, periodRef],
 		);
 		return (
 			<div className="flex items-center justify-center gap-2">
