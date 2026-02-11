@@ -291,7 +291,7 @@ export default function CrawlerRunsTable({
 										</Button>
 									</DropdownMenuTrigger>
 
-									<DropdownMenuContent className="w-48 p-2">
+									<DropdownMenuContent className="min-w-[var(--radix-dropdown-menu-trigger-width)] w-auto p-2">
 										<RadioGroup value={namespace} onValueChange={setNamespace}>
 											<div className="flex items-center gap-2 py-1">
 												<RadioGroupItem value="" id="ns-all" />
@@ -335,7 +335,7 @@ export default function CrawlerRunsTable({
 										</Button>
 									</DropdownMenuTrigger>
 
-									<DropdownMenuContent className="w-48 p-2">
+									<DropdownMenuContent className="min-w-[var(--radix-dropdown-menu-trigger-width)] w-auto p-2">
 										<RadioGroup value={crawlerTemplateName} onValueChange={setCrawlerTemplateName}>
 											<div className="flex items-center gap-2 py-1">
 												<RadioGroupItem value="" id="template-all" />
@@ -380,7 +380,7 @@ export default function CrawlerRunsTable({
 								</Button>
 							</DropdownMenuTrigger>
 
-							<DropdownMenuContent className="w-48 p-2">
+							<DropdownMenuContent className="min-w-[var(--radix-dropdown-menu-trigger-width)] w-auto p-2">
 								<RadioGroup value={effectiveScheduleName} onValueChange={setScheduleName}>
 									<div className="flex items-center gap-2 py-1">
 										<RadioGroupItem value="" id="template-all" />
@@ -438,7 +438,7 @@ export default function CrawlerRunsTable({
 								</Button>
 							</DropdownMenuTrigger>
 
-							<DropdownMenuContent className="w-48">
+							<DropdownMenuContent className="min-w-[var(--radix-dropdown-menu-trigger-width)] w-auto">
 								{Object.values(CrawlerRunPhaseEnum).map((phase) => (
 									<DropdownMenuCheckboxItem
 										key={phase}
