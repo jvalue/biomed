@@ -35,7 +35,7 @@ export class CrawlerTemplatesService {
 			namespace,
 		);
 		if (!template) {
-			throw new NotFoundException(`Crawler Template ${namespace}/${templateName} not found`);
+			throw new NotFoundException(`Crawler template ${namespace}/${templateName} not found`);
 		}
 		return template;
 	}
