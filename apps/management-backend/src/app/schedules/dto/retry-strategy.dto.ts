@@ -1,9 +1,9 @@
 import { ApiProperty } from '@nestjs/swagger';
-import { IsNumber, IsOptional, Min } from 'class-validator';
+import { IsInt, IsNumber, IsOptional, Min } from 'class-validator';
 
 export class RetryStrategyDto {
 	@ApiProperty({ description: 'Number of retries in case of failure' })
-	@IsNumber()
+	@IsInt()
 	@Min(0)
 	retries!: number;
 
@@ -13,7 +13,10 @@ export class RetryStrategyDto {
 	@IsOptional()
 	backoffDuration?: number;
 
-	@ApiProperty({ description: 'Multiplier to increase delay between retries', required: false })
+	@ApiProperty({
+		description: 'Multiplier to increase/decrease delay between retries',
+		required: false,
+	})
 	@IsNumber()
 	@Min(0)
 	@IsOptional()

@@ -71,6 +71,10 @@ export class ArgoScheduleEngine implements IScheduleEngine {
 
 		// Update retry strategy
 		if (updateScheduleDto.retryStrategy) {
+			if (updateScheduleDto.retryStrategy.retries === 0) {
+				// If retries is set to 0, we remove the retry strategy from the workflow
+				delete existingWorkflow.spec.workflowSpec.retryStrategy;
+			}
 			const retry = updateScheduleDto.retryStrategy;
 			existingWorkflow.spec.workflowSpec.retryStrategy = {
 				retryPolicy: 'Always',
@@ -82,9 +86,6 @@ export class ArgoScheduleEngine implements IScheduleEngine {
 					maxDuration: retry.backoffMaxDuration?.toString(),
 				},
 			};
-		} else {
-			// If no retry strategy is provided, remove existing one
-			delete existingWorkflow.spec.workflowSpec.retryStrategy;
 		}
 
 		// Update parameters

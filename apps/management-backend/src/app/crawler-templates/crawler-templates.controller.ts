@@ -48,7 +48,7 @@ export class CrawlerTemplatesController {
 	})
 	@RequirePermission('read', 'crawler-template')
 	@Get(':namespace/:templateName')
-	async getCrawlerTemplateByNameAndNamespace(
+	async getCrawlerTemplateByNamespaceAndName(
 		@Param('namespace') namespace: string,
 		@Param('templateName') templateName: string,
 	): Promise<CrawlerTemplateDto> {
