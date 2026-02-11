@@ -27,7 +27,7 @@ export const useCrawlerTemplateByNameAndNamespace = (
 	enabled: boolean = true,
 ) => {
 	return useQuery({
-		queryKey: ['crawlerTemplates', name, namespace],
+		queryKey: ['crawlerTemplates', namespace, name],
 		queryFn: () => crawlerTemplateService.getCrawlerTemplateByNameAndNamespace(name, namespace),
 		refetchInterval: (query) => {
 			if (query.state.error) {

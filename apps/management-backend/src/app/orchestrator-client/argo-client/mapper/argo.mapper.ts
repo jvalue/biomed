@@ -113,7 +113,7 @@ export function mapArgoCursorPaginatedListDtoToCursorBasedPaginationResponseDto<
  * @param value
  */
 function toNumberOrUndefined(value?: string): number | undefined {
-	if (!value) return undefined;
+	if (!value?.trim()) return undefined;
 	const num = Number(value);
 	return Number.isNaN(num) ? undefined : num;
 }

@@ -268,9 +268,9 @@ export function ScheduleFormDialog({
 		}
 
 		// Build retry strategy
-		const retryStrategyDto: RetryStrategyDto | undefined = retries !== 0 ? { retries } : undefined;
+		const retryStrategyDto: RetryStrategyDto = retries > 0 ? { retries } : { retries: 0 };
 
-		if (retryStrategyDto && backoffDuration) {
+		if (retryStrategyDto?.retries > 0 && backoffDuration) {
 			retryStrategyDto.backoffDuration = durationToSeconds(backoffDuration);
 			if (backoffFactor) {
 				retryStrategyDto.backoffFactor = Number(backoffFactor);
@@ -586,12 +586,14 @@ export function ScheduleFormDialog({
 						onClick={handleSubmit}
 						disabled={
 							isPending ||
-							(!scheduleName && mode === 'create') ||
-							(mode === 'create' && (nameIsInvalid || scheduleNameExists)) ||
 							!cronExpression ||
 							cronIsInvalid ||
 							retryValidationError !== null ||
-							(mode === 'create' && scheduleNameQuery.isLoading)
+							(mode === 'create' &&
+								(!scheduleName ||
+									nameIsInvalid ||
+									scheduleNameExists ||
+									scheduleNameQuery.isLoading))
 						}
 						className="bg-primary hover:bg-primary/90"
 					>
