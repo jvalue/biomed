@@ -92,6 +92,8 @@ export default function CrawlerRunsTable({
 
 	const phases = search.phases ?? [];
 
+	const filterFieldClass = 'flex flex-col gap-1 flex-initial basis-64 min-w-48';
+
 	const requestScrollToTable = () => {
 		if (!scrollOnPaginate) return;
 		sessionStorage.setItem(TABLE_SCROLL_KEY, '1');
@@ -273,14 +275,14 @@ export default function CrawlerRunsTable({
 				{!templatesIsLoading && !templatesError && (
 					<>
 						{filterOptions.namespace && (
-							<div className="flex flex-col gap-1">
+							<div className={filterFieldClass}>
 								<span className="text-xs text-muted-foreground">Namespace:</span>
 								<DropdownMenu>
 									<DropdownMenuTrigger asChild>
 										<Button
 											variant="outline"
 											size="sm"
-											className="h-9 w-48 justify-between font-normal"
+											className="h-9 w-full justify-between font-normal"
 										>
 											<span className={namespace ? 'truncate' : 'truncate text-muted-foreground'}>
 												{namespace || 'Namespace'}
@@ -313,14 +315,14 @@ export default function CrawlerRunsTable({
 						)}
 
 						{filterOptions.template && (
-							<div className="flex flex-col gap-1">
+							<div className={filterFieldClass}>
 								<span className="text-xs text-muted-foreground">Template:</span>
 								<DropdownMenu>
 									<DropdownMenuTrigger asChild>
 										<Button
 											variant="outline"
 											size="sm"
-											className="h-9 w-48 justify-between font-normal"
+											className="h-9 w-full justify-between font-normal"
 										>
 											<span
 												className={
@@ -358,14 +360,14 @@ export default function CrawlerRunsTable({
 					</>
 				)}
 				{!schedulesIsLoading && !schedulesError && filterOptions.scheduleName && (
-					<div className="flex flex-col gap-1">
+					<div className={filterFieldClass}>
 						<span className="text-xs text-muted-foreground">Schedule:</span>
 						<DropdownMenu>
 							<DropdownMenuTrigger asChild>
 								<Button
 									variant="outline"
 									size="sm"
-									className="h-9 w-48 justify-between font-normal"
+									className="h-9 w-full justify-between font-normal"
 								>
 									<span
 										className={
@@ -402,14 +404,14 @@ export default function CrawlerRunsTable({
 				)}
 
 				{filterOptions.phase && (
-					<div className="flex flex-col gap-1">
+					<div className={filterFieldClass}>
 						<span className="text-xs text-muted-foreground">Phase:</span>
 						<DropdownMenu>
 							<DropdownMenuTrigger asChild>
 								<Button
 									variant="outline"
 									size="sm"
-									className="h-9 w-48 justify-between font-normal"
+									className="h-9 w-full justify-between font-normal"
 								>
 									<div className="flex max-w-[10rem] items-center gap-1 overflow-hidden">
 										{phases.length === 0 ? (
@@ -456,28 +458,28 @@ export default function CrawlerRunsTable({
 				)}
 
 				{filterOptions.startedAfter && (
-					<div className="flex flex-col gap-1">
+					<div className={filterFieldClass}>
 						<span className="text-xs text-muted-foreground">Started After:</span>
 						<DateTimePicker
 							value={startedAfter}
 							onChange={setStartedAfter}
 							granularity="minute"
 							placeholder="Select date & time"
-							className="h-9 w-48"
+							className="h-9 w-full"
 							maxDate={finishedBefore ?? now}
 						/>
 					</div>
 				)}
 
 				{filterOptions.finishedBefore && (
-					<div className="flex flex-col gap-1">
+					<div className={filterFieldClass}>
 						<span className="text-xs text-muted-foreground">Finished Before:</span>
 						<DateTimePicker
 							value={finishedBefore}
 							onChange={setFinishedBefore}
 							granularity="minute"
 							placeholder="Select date & time"
-							className="h-9 w-48"
+							className="h-9 w-full"
 							minDate={startedAfter}
 							maxDate={now}
 						/>
@@ -485,14 +487,16 @@ export default function CrawlerRunsTable({
 				)}
 
 				{hasVisibleFilters && (
-					<Button
-						variant="ghost"
-						size="sm"
-						className="ml-auto h-9 text-muted-foreground hover:text-destructive"
-						onClick={clearFilters}
-					>
-						Clear filters
-					</Button>
+					<div className="flex items-end ml-auto">
+						<Button
+							variant="ghost"
+							size="sm"
+							className="h-9 text-muted-foreground hover:text-destructive"
+							onClick={clearFilters}
+						>
+							Clear filters
+						</Button>
+					</div>
 				)}
 			</div>
 
