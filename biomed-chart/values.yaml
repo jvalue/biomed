@@ -9,11 +9,8 @@ management-frontend:
     hosts:
       - host: ""
         paths:
-          - path: /crawler-management(/|$)(.*)
-            pathType: ImplementationSpecific
-    annotations:
-      nginx.ingress.kubernetes.io/use-regex: "true"
-      nginx.ingress.kubernetes.io/rewrite-target: /$2
+          - path: /crawler-management
+            pathType: Prefix
 
 # Management-Backend
 management-backend:
@@ -26,11 +23,8 @@ management-backend:
     hosts:
       - host: ""
         paths:
-          - path: /crawler-management-backend(/|$)(.*)
-            pathType: ImplementationSpecific
-    annotations:
-      nginx.ingress.kubernetes.io/use-regex: "true"
-      nginx.ingress.kubernetes.io/rewrite-target: /$2
+          - path: /crawler-management-backend
+            pathType: Prefix
 
 # Biomed-db
 database:

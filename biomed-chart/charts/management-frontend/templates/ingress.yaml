@@ -5,11 +5,11 @@ metadata:
   name: {{ include "management-frontend.fullname" . }}
   labels:
     {{- include "management-frontend.labels" . | nindent 4 }}
-  {{- with .Values.ingress.annotations }}
   annotations:
-    checksum/config: {{ toYaml .Values | sha256sum }}
+    traefik.ingress.kubernetes.io/router.middlewares: {{ .Release.Namespace }}-{{ include "management-frontend.fullname" . }}-strip-prefix@kubernetescrd
+    {{- with .Values.ingress.annotations }}
     {{- toYaml . | nindent 4 }}
-  {{- end }}
+    {{- end }}
 spec:
   {{- if .Values.ingress.className }}
   ingressClassName: {{ .Values.ingress.className }}
