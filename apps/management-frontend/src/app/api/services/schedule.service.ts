@@ -2,6 +2,7 @@ import { CreateScheduleDto } from '@/src/app/api/dto/schedule/create-schedule.dt
 import { ScheduleHistoricalMetricsItemDto } from '@/src/app/api/dto/schedule/metrics/schedule-historical-metrics-item.dto';
 import { ScheduleOverallMetricsDto } from '@/src/app/api/dto/schedule/metrics/schedule-overall-metrics.dto';
 import { ScheduleDto } from '@/src/app/api/dto/schedule/schedule.dto';
+import { UpdateScheduleDto } from '@/src/app/api/dto/schedule/update-schedule.dto';
 import { managementBackendClient } from '../management-backend-client';
 
 export const scheduleService = {
@@ -28,6 +29,21 @@ export const scheduleService = {
 	 */
 	createSchedule: async (createScheduleDto: CreateScheduleDto): Promise<void> => {
 		await managementBackendClient.post('schedules', createScheduleDto);
+	},
+
+	/**
+	 * Update a schedule
+	 * @param name
+	 * @param namespace
+	 * @param updateScheduleDto
+	 */
+	updateSchedule: async (
+		name: string,
+		namespace: string,
+		updateScheduleDto: UpdateScheduleDto,
+	): Promise<void> => {
+		const path = `schedules/${encodeURIComponent(namespace)}/${encodeURIComponent(name)}`;
+		await managementBackendClient.patch(path, updateScheduleDto);
 	},
 
 	/**

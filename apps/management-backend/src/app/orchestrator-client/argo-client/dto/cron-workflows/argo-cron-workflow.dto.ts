@@ -25,21 +25,21 @@ class ArgoCronWorkflowSpecWorkflowSpecWorkflowTemplateRefDto {
 }
 
 class ArgoRetryStrategyBackoffDto {
-	@IsNumber()
+	@IsString()
 	@IsOptional()
-	duration?: number;
+	duration?: string;
 
 	@IsNumber()
 	@IsOptional()
 	factor?: number;
 
-	@IsNumber()
+	@IsString()
 	@IsOptional()
-	cap?: number;
+	cap?: string;
 
-	@IsNumber()
+	@IsString()
 	@IsOptional()
-	maxDuration?: number;
+	maxDuration?: string;
 }
 
 class ArgoCronWorkflowSpecWorkflowSpecRetryStrategyDto {
