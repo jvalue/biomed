@@ -370,6 +370,56 @@ export class ArgoClientService implements IOrchestratorClient {
 	}
 
 	/**
+	 * Get a cron workflow by name and namespace (similar to getScheduleByNameAndNamespace but returns the raw ArgoCronWorkflow object)
+	 * @param name The name of the cron workflow
+	 * @param namespace The namespace of the cron workflow
+	 */
+	async getCronWorkflow(name: string, namespace: string): Promise<ArgoCronWorkflow | null> {
+		this.logger.log(`Getting cron workflow ${name} in namespace ${namespace}`);
+
+		const url = `/cron-workflows/${namespace}/${name}`;
+
+		try {
+			const response = await this.http.get<ArgoCronWorkflow>(url);
+			return response.data;
+		} catch (err) {
+			if (err.response && err.response.status === 404) {
+				return null;
+			}
+			this.logger.error(`Error getting cron workflow ${name} from namespace ${namespace}:`, err);
+			throw err;
+		}
+	}
+
+	/**
+	 * Update a cron workflow
+	 * @param name The name of the cron workflow
+	 * @param namespace The namespace of the cron workflow
+	 * @param cronWorkflow The updated cron workflow object
+	 */
+	async updateCronWorkflow(
+		name: string,
+		namespace: string,
+		cronWorkflow: ArgoCronWorkflow,
+	): Promise<void> {
+		this.logger.log(`Updating cron workflow ${name} in namespace ${namespace}`);
+
+		const url = `/cron-workflows/${namespace}/${name}`;
+
+		const body = {
+			cronWorkflow: cronWorkflow,
+		};
+
+		try {
+			await this.http.put(url, body);
+			this.logger.log(`Cron workflow ${name} updated successfully`);
+		} catch (err) {
+			this.logger.error(`Error updating cron workflow ${name}:`, err);
+			throw err;
+		}
+	}
+
+	/**
 	 * Creates a cron workflow schedule
 	 * @param cronWorkflowObject The cron workflow object to create
 	 * @param namespace The namespace to create the cron workflow in

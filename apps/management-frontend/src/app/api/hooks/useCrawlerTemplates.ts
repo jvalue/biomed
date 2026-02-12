@@ -23,6 +23,30 @@ export const useCrawlerTemplates = (options?: { enabled?: boolean }) => {
 	});
 };
 
+export const useCrawlerTemplateByNameAndNamespace = (
+	name: string,
+	namespace: string,
+	enabled: boolean = true,
+) => {
+	return useQuery({
+		queryKey: ['crawlerTemplates', namespace, name],
+		queryFn: () => crawlerTemplateService.getCrawlerTemplateByNameAndNamespace(name, namespace),
+		refetchInterval: (query) => {
+			if (query.state.error) {
+				if (isRetryableError(query.state.error)) {
+					return 60000; // Retry every minute on retryable errors
+				} else {
+					return false; // Do not retry on non-retryable errors
+				}
+			}
+			return 30000;
+		},
+		enabled,
+		// Handled by the refetchInterval logic
+		retry: false,
+	});
+};
+
 type SubmitCrawlerRunVariables = {
 	// The namespace of the crawler template
 	crawlerTemplateNamespace: string;
