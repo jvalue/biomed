@@ -1,0 +1,10 @@
+{{- if .Values.ingress.enabled -}}
+apiVersion: traefik.io/v1alpha1
+kind: Middleware
+metadata:
+  name: {{ include "management-frontend.fullname" . }}-strip-prefix
+spec:
+  stripPrefix:
+    prefixes:
+      - /crawler-management
+{{- end }}
