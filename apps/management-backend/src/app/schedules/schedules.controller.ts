@@ -29,6 +29,7 @@ import { HistoricalMetricsQueryDto } from './dto/historical-metrics-query.dto';
 import { ScheduleDto } from './dto/schedule.dto';
 import { ScheduleHistoricalMetricsItemDto } from './dto/schedule-historical-metrics-item.dto';
 import { ScheduleOverallMetricsDto } from './dto/schedule-overall-metrics.dto';
+import { UpdateScheduleDto } from './dto/update-schedule.dto';
 import { SchedulesService } from './schedules.service';
 
 @Controller('schedules')
@@ -84,6 +85,25 @@ export class SchedulesController {
 		@Body() body: CreateScheduleDto,
 	): Promise<void> {
 		return this.schedulesService.createSchedule(body, user);
+	}
+
+	@ApiOperation({ summary: 'Update a Schedule' })
+	@ApiOkResponse({ description: 'The Schedule has been updated' })
+	@ApiResponse({
+		status: 403,
+		description: 'You do not have permission to update schedules',
+	})
+	@ApiNotFoundResponse({ description: 'Schedule with given name in given namespace not found' })
+	@RequirePermission('update', 'schedule')
+	@ApiParam({ name: 'namespace', description: 'The namespace of the Schedule' })
+	@ApiParam({ name: 'name', description: 'The name of the Schedule' })
+	@Patch(':namespace/:name')
+	async updateSchedule(
+		@Param('namespace') namespace: string,
+		@Param('name') name: string,
+		@Body() body: UpdateScheduleDto,
+	): Promise<void> {
+		return this.schedulesService.updateSchedule(name, namespace, body);
 	}
 
 	@ApiOperation({ summary: 'Delete a Schedule' })

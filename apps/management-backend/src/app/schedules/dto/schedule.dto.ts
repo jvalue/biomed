@@ -2,7 +2,7 @@ import { ApiProperty } from '@nestjs/swagger';
 import { Type } from 'class-transformer';
 import { IsArray, IsBoolean, IsDate, IsNumber, IsOptional, IsString } from 'class-validator';
 import { ScheduleErrorDetails, ScheduleErrorType } from '../enums/schedule-error-type.enum';
-import { RetryStrategyDto } from './create-schedule.dto';
+import { RetryStrategyDto } from './retry-strategy.dto';
 
 export class ScheduleParameterDto {
 	@ApiProperty({

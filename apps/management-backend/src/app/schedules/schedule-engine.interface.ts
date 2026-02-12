@@ -1,5 +1,8 @@
 import { UserEntity } from '../users/entity/user.entity';
 import { CreateScheduleDto } from './dto/create-schedule.dto';
+import { UpdateScheduleDto } from './dto/update-schedule.dto';
+
+export const SCHEDULE_ENGINE = 'SCHEDULE_ENGINE';
 
 export interface IScheduleEngine {
 	/**
@@ -9,6 +12,16 @@ export interface IScheduleEngine {
 	 * @returns The link to the created PR of the schedule
 	 */
 	createSchedule(createScheduleDto: CreateScheduleDto, user: UserEntity): Promise<void>;
-}
 
-export const SCHEDULE_ENGINE = 'SCHEDULE_ENGINE';
+	/**
+	 * Updates a schedule
+	 * @param name The name of the schedule
+	 * @param namespace The namespace of the schedule
+	 * @param updateScheduleDto The updated schedule data
+	 */
+	updateSchedule(
+		name: string,
+		namespace: string,
+		updateScheduleDto: UpdateScheduleDto,
+	): Promise<void>;
+}
