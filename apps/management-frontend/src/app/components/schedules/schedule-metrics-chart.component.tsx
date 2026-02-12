@@ -90,7 +90,7 @@ export default function ScheduleMetricsChartComponent({
 			return { fromDate: undefined, toDate: undefined };
 		}
 		const from = new Date();
-		from.setDate(from.getDate() - parseInt(dateRange));
+		from.setDate(from.getDate() - parseInt(dateRange, 10));
 		return { fromDate: from, toDate: to };
 	}, [dateRange]);
 

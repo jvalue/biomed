@@ -2,6 +2,7 @@ import { Body, Controller, Get, Param, Post, Query, UseGuards } from '@nestjs/co
 import {
 	ApiBody,
 	ApiForbiddenResponse,
+	ApiNotFoundResponse,
 	ApiOkResponse,
 	ApiOperation,
 	ApiParam,
@@ -29,6 +30,32 @@ export class CrawlerTemplatesController {
 		@Query() filterParams?: CrawlerTemplatesFilterDto,
 	): Promise<CrawlerTemplateDto[]> {
 		return this.crawlerTemplatesService.listCrawlerTemplates(filterParams);
+	}
+
+	@ApiOperation({ summary: 'Get a specific Crawler Template by name and namespace' })
+	@ApiOkResponse({ type: CrawlerTemplateDto, description: 'The requested Crawler Template' })
+	@ApiForbiddenResponse({ description: 'You do not have permission to access crawler templates' })
+	@ApiNotFoundResponse({ description: 'The specified Crawler Template was not found' })
+	@ApiParam({
+		name: 'namespace',
+		type: String,
+		description: 'The Kubernetes Namespace where the crawler Template is located',
+	})
+	@ApiParam({
+		name: 'templateName',
+		type: String,
+		description: 'The name of the crawler Template',
+	})
+	@RequirePermission('read', 'crawler-template')
+	@Get(':namespace/:templateName')
+	async getCrawlerTemplateByNamespaceAndName(
+		@Param('namespace') namespace: string,
+		@Param('templateName') templateName: string,
+	): Promise<CrawlerTemplateDto> {
+		return this.crawlerTemplatesService.getCrawlerTemplateByNameAndNamespace(
+			templateName,
+			namespace,
+		);
 	}
 
 	@ApiOperation({ summary: 'Submit a run for a given crawler Template' })

@@ -1,6 +1,7 @@
 import { UseQueryResult, useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { CreateScheduleDto } from '@/src/app/api/dto/schedule/create-schedule.dto';
 import { ScheduleDto } from '@/src/app/api/dto/schedule/schedule.dto';
+import { UpdateScheduleDto } from '@/src/app/api/dto/schedule/update-schedule.dto';
 import { isRetryableError } from '@/src/app/api/hooks/hook-utils';
 import { scheduleService } from '@/src/app/api/services/schedule.service';
 
@@ -60,12 +61,40 @@ export const useScheduleNameExists = (
  */
 export const useCreateSchedule = () => {
 	const queryClient = useQueryClient();
+
 	return useMutation({
 		mutationFn: (createScheduleDto: CreateScheduleDto) =>
 			scheduleService.createSchedule(createScheduleDto),
 		onSuccess: () => {
-			// Invalidate and refetch schedules query to reflect changes
 			queryClient.invalidateQueries({ queryKey: ['schedules'] });
+		},
+	});
+};
+
+/**
+ * Update an existing schedule
+ * @param name
+ * @param namespace
+ * @param dto
+ */
+export const useUpdateSchedule = () => {
+	const queryClient = useQueryClient();
+
+	return useMutation({
+		mutationFn: ({
+			name,
+			namespace,
+			dto,
+		}: {
+			name: string;
+			namespace: string;
+			dto: UpdateScheduleDto;
+		}) => scheduleService.updateSchedule(name, namespace, dto),
+		onSuccess: (_, variables) => {
+			queryClient.invalidateQueries({ queryKey: ['schedules'] });
+			queryClient.invalidateQueries({
+				queryKey: ['schedules', variables.namespace, variables.name],
+			});
 		},
 	});
 };

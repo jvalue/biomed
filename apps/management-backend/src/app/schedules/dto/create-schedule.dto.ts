@@ -2,29 +2,8 @@ import { ApiProperty } from '@nestjs/swagger';
 import { Type } from 'class-transformer';
 import { IsArray, IsNotEmpty, IsOptional, IsString, Matches, Validate } from 'class-validator';
 import { IsCronExpression } from '../infrastructure/argo/cron.validator';
+import { RetryStrategyDto } from './retry-strategy.dto';
 import { ScheduleParameterDto } from './schedule.dto';
-
-export class RetryStrategyDto {
-	@ApiProperty({ description: 'Number of retries in case of failure' })
-	@IsNotEmpty()
-	retries!: number;
-
-	@ApiProperty({ description: 'Initial delay before first retry in seconds', required: false })
-	@IsOptional()
-	backoffDuration?: number;
-
-	@ApiProperty({ description: 'Multiplier to increase delay between retries', required: false })
-	@IsOptional()
-	backoffFactor?: number;
-
-	@ApiProperty({ description: 'Maximum delay between retries in seconds', required: false })
-	@IsOptional()
-	backoffCap?: number;
-
-	@ApiProperty({ description: 'Maximum duration overall for backoff in seconds', required: false })
-	@IsOptional()
-	backoffMaxDuration?: number;
-}
 
 export class CreateScheduleDto {
 	@ApiProperty({ description: 'Name of the schedule' })
