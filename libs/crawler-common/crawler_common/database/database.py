@@ -8,10 +8,10 @@ from typing import TYPE_CHECKING, Optional
 from sqlalchemy import create_engine, Engine
 from sqlalchemy.orm import sessionmaker, Session
 
-from crawler_common.models import Base, FTPDiscoveryEntry
+from crawler_common.models.db import Base, FTPDiscoveryEntry
 
 if TYPE_CHECKING:
-    from crawler_common.ftp_node import FTPNode
+    from crawler_common.ftp.ftp_node import FTPNode
 
 logger = logging.getLogger(__name__)
 
@@ -36,7 +36,7 @@ def get_database_url_from_env(dotenv_path=None) -> str:
     Returns:
         PostgreSQL connection URL.
     """
-    from crawler_common.ftp_conf import load_database_config
+    from crawler_common.ftp.ftp_conf import load_database_config
 
     config = load_database_config(dotenv_path)
     return create_postgres_url(
@@ -76,7 +76,7 @@ def get_session(engine: Engine) -> Session:
     Returns:
         A new Session instance.
     """
-    SessionLocal = sessionmaker(bind=engine)
+    SessionLocal = sessionmaker(bind=engine)()
     return SessionLocal()
 
 

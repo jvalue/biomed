@@ -5,7 +5,7 @@ from datetime import datetime
 import pytest
 from pydantic import ValidationError
 
-from crawler_common.models import CrawlRequest, CrawlResponse
+from crawler_common.models.api import CrawlRequest, CrawlResponse
 
 
 def test_crawl_request_valid(sample_url):

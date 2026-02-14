@@ -10,9 +10,6 @@ dependencies = [
     "sqlalchemy>=2.0.0",
 ]
 
-[tool.hatch.build.targets.wheel]
-packages = ["crawler_general"]
-
 [tool.hatch.metadata]
 allow-direct-references = true
 

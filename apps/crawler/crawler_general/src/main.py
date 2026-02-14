@@ -3,15 +3,15 @@ import logging
 from pathlib import Path
 from datetime import datetime, timezone
 
-from crawler_common import ftp_tools
-from crawler_common import ftp_conf
+from crawler_common.ftp import ftp_tools
+from crawler_common.ftp import ftp_conf
 from crawler_common.database import (
     get_database_url_from_env,
     init_database,
     get_session,
     insert_ftp_nodes_to_database,
 )
-from crawler_common.models import FTPDiscoveryRun, FTPDiscoveryEntry, Base
+from crawler_common.models.db import FTPDiscoveryRun, FTPDiscoveryEntry, Base
 
 
 # Configure logging
