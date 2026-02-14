@@ -4,7 +4,7 @@ import pytest
 from unittest.mock import AsyncMock, patch
 
 from crawler_common.http_client import HttpClient
-from crawler_common.models import CrawlRequest
+from crawler_common.models.api import CrawlRequest
 
 
 @pytest.mark.asyncio
