@@ -7,7 +7,7 @@ from urllib.parse import urlparse
 import logging
 from datetime import datetime, timezone
 
-from crawler_common.ftp_node import FTPNode
+from crawler_common.ftp.ftp_node import FTPNode
 
 logger = logging.getLogger(__name__)
 

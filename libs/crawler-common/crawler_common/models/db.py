@@ -1,64 +1,21 @@
-"""Common data models for crawler applications."""
+"""Database (SQLAlchemy) models for crawler persistence."""
+
+from __future__ import annotations
 
 from datetime import datetime, timezone
-from typing import Optional, Protocol, TYPE_CHECKING
+from typing import TYPE_CHECKING
 
-from pydantic import BaseModel, field_serializer, HttpUrl
-from sqlalchemy import (
-    Column,
-    Integer,
-    BigInteger,
-    String,
-    Boolean,
-    DateTime,
-    ForeignKey,
-)
-from sqlalchemy.orm import DeclarativeBase, relationship, Mapped, mapped_column
+from sqlalchemy import BigInteger, Boolean, DateTime, ForeignKey, Integer, String
+from sqlalchemy.orm import DeclarativeBase, Mapped, mapped_column, relationship
 
 if TYPE_CHECKING:
-    from crawler_common.ftp_node import FTPNode
+    from crawler_common.ftp.ftp_node import FTPNode
 
 
 class Base(DeclarativeBase):
     pass
 
 
-class FTPNodeProtocol(Protocol):
-    """Protocol defining the common interface for FTP node-like objects."""
-
-    name: str
-    is_dir: bool
-    path: str
-    size: int | None
-    modified: datetime | None
-
-
-class CrawlRequest(BaseModel):
-    """Request model for crawling a URL."""
-
-    url: HttpUrl
-    method: str = "GET"
-    headers: Optional[dict[str, str]] = None
-    timeout: int = 30
-
-
-class CrawlResponse(BaseModel):
-    """Response model from a crawl operation."""
-
-    url: str
-    status_code: int
-    content: str
-    content_type: Optional[str] = None
-    timestamp: datetime = datetime.now(timezone.utc)
-    duration_ms: float
-
-    @field_serializer("timestamp")
-    def serialize_timestamp(self, value: datetime) -> str:
-        """Serialize timestamp to ISO format."""
-        return value.isoformat()
-
-
-# SQLAlchemy ORM Models for FTP Discovery Results
 class FTPDiscoveryRun(Base):
     """Represents a single FTP discovery run."""
 
@@ -68,7 +25,9 @@ class FTPDiscoveryRun(Base):
     started_at: Mapped[datetime] = mapped_column(
         DateTime(timezone=True), default=lambda: datetime.now(timezone.utc)
     )
-    completed_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
+    completed_at: Mapped[datetime | None] = mapped_column(
+        DateTime(timezone=True), nullable=True
+    )
     ftp_url: Mapped[str] = mapped_column(String(255), nullable=False)
     max_depth: Mapped[int] = mapped_column(Integer, default=3)
     entries: Mapped[list["FTPDiscoveryEntry"]] = relationship(

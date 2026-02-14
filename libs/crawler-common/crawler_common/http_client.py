@@ -6,7 +6,7 @@ import time
 
 import httpx
 
-from crawler_common.models import CrawlRequest, CrawlResponse
+from crawler_common.models.api import CrawlRequest, CrawlResponse
 
 
 class HttpClient:

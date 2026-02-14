@@ -2,7 +2,7 @@
 
 from pathlib import Path
 
-from crawler_common.ftp_node import FTPNode
+from crawler_common.ftp.ftp_node import FTPNode
 from crawler_general.main import main
 
 
