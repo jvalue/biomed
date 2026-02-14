@@ -75,7 +75,6 @@ class FTPDiscoveryEntry(Base):
         return cls(
             run_id=int(run_id),
             path=str(node.path),
-            name=str(node.name),
             is_dir=bool(node.is_dir),
             size=int(node.size) if node.size is not None else None,
             modified=node.modified,

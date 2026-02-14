@@ -5,7 +5,7 @@ from __future__ import annotations
 import logging
 from typing import TYPE_CHECKING, Optional
 
-from sqlalchemy import create_engine, Engine
+from sqlalchemy import create_engine, Engine, select
 from sqlalchemy.orm import sessionmaker, Session
 
 from crawler_common.models.db import Base, FTPDiscoveryEntry
@@ -76,7 +76,7 @@ def get_session(engine: Engine) -> Session:
     Returns:
         A new Session instance.
     """
-    SessionLocal = sessionmaker(bind=engine)()
+    SessionLocal = sessionmaker(bind=engine)
     return SessionLocal()
 
 
@@ -100,20 +100,77 @@ def set_engine(engine: Engine) -> None:
 
 
 def insert_ftp_nodes_to_database(
-    node: FTPNode, run_id: int, session: Session, current_depth: int = 0
+    node: FTPNode,
+    run_id: int,
+    session: Session,
+    current_depth: int = 0,
+    batch_size: int = 500,
+    only_changed: bool = True,
 ) -> None:
-    """Recursively insert FTP nodes and their children into the database.
+    """Insert FTP nodes and their children into the database in batches.
 
     Args:
         node: FTPNode to insert and traverse.
         run_id: The FTPDiscoveryRun ID to associate entries with.
         session: SQLAlchemy session for database operations.
         current_depth: Current depth in the FTP tree hierarchy.
+        batch_size: Number of entries per batch flush.
+        only_changed: If True, skip entries that already exist with same values.
     """
-    entry = FTPDiscoveryEntry.from_ftp_node(node, run_id, current_depth)
-    session.add(entry)
+    def iter_nodes(root: FTPNode, start_depth: int) -> list[tuple[FTPNode, int]]:
+        stack: list[tuple[FTPNode, int]] = [(root, start_depth)]
+        ordered: list[tuple[FTPNode, int]] = []
 
-    # Recursively insert children if this is a directory
-    if hasattr(node, "children") and node.children:
-        for child in node.children:
-            insert_ftp_nodes_to_database(child, run_id, session, current_depth + 1)
+        while stack:
+            current_node, depth = stack.pop()
+            ordered.append((current_node, depth))
+
+            if hasattr(current_node, "children") and current_node.children:
+                for child in reversed(current_node.children):
+                    stack.append((child, depth + 1))
+
+        return ordered
+
+    def entry_keys(entries: list[FTPDiscoveryEntry]) -> tuple[list[tuple], list[str]]:
+        keys = [(e.path, e.is_dir, e.size, e.modified) for e in entries]
+        return keys, [k[0] for k in keys]
+
+    def select_existing(paths: list[str]) -> set[tuple]:
+        if not paths:
+            return set()
+
+        rows = session.execute(
+            select(
+                FTPDiscoveryEntry.path,
+                FTPDiscoveryEntry.is_dir,
+                FTPDiscoveryEntry.size,
+                FTPDiscoveryEntry.modified,
+            ).where(FTPDiscoveryEntry.path.in_(paths))
+        ).all()
+        return set(rows)
+
+    def flush_batch(entries: list[FTPDiscoveryEntry]) -> None:
+        if not entries:
+            return
+
+        if not only_changed:
+            session.add_all(entries)
+            session.flush()
+            return
+
+        keys, paths = entry_keys(entries)
+        existing_keys = select_existing(paths)
+        new_entries = [e for e, key in zip(entries, keys) if key not in existing_keys]
+
+        if new_entries:
+            session.add_all(new_entries)
+            session.flush()
+
+    batch: list[FTPDiscoveryEntry] = []
+    for current_node, depth in iter_nodes(node, current_depth):
+        batch.append(FTPDiscoveryEntry.from_ftp_node(current_node, run_id, depth))
+        if len(batch) >= batch_size:
+            flush_batch(batch)
+            batch.clear()
+
+    flush_batch(batch)
