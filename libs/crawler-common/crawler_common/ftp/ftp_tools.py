@@ -172,39 +172,6 @@ def _traverse_ftp(
     return truncated
 
 
-def write_ftp_structure_to_file(root: FTPNode, output_path: str) -> None:
-    """Write FTP directory structure to a text file in tree format."""
-
-    with open(output_path, "w", encoding="utf-8") as f:
-        f.write(f"{root.name}\n")
-        _write_tree(root, f, prefix="")
-
-
-def _write_tree(node: FTPNode, file, prefix: str) -> None:
-    """Recursively write tree structure with proper formatting."""
-
-    children = node.children
-    for i, child in enumerate(children):
-        is_last = i == len(children) - 1
-        connector = "└── " if is_last else "├── "
-        name = f"{child.name}/" if child.is_dir else child.name
-        meta_parts: list[str] = []
-        # Only include size for files, not directories
-        if (not child.is_dir) and (child.size is not None):
-            meta_parts.append(f"size={child.size}")
-        if child.modified is not None:
-            # ISO-like UTC formatting
-            meta_parts.append(
-                f"modified={child.modified.astimezone(timezone.utc).strftime('%Y-%m-%dT%H:%M:%SZ')}"
-            )
-        meta = f" ({', '.join(meta_parts)})" if meta_parts else ""
-
-        file.write(f"{prefix}{connector}{name}{meta}\n")
-
-        if child.is_dir and child.children:
-            extension = "    " if is_last else "│   "
-            _write_tree(child, file, prefix + extension)
-
 
 def _parse_modify_ts(value: str) -> datetime | None:
     """Parse RFC 3659 modify timestamp 'YYYYMMDDHHMMSS[.sss]' into UTC datetime."""
