@@ -21,7 +21,7 @@ def get_root_folders(ftp_url: str, ftp_user: str, ftp_password: str) -> list[str
         # Return only directories
         return [child.name for child in root.children if child.is_dir]
     except ftplib.all_errors as exc:  # pragma: no cover - network dependent
-        print(f"FTP error: {exc}")
+        logger.exception(f"FTP error: {exc}")
         raise
 
 
@@ -55,7 +55,7 @@ def get_ftp_structure(
         logger.info("FTP traversal completed")
         return root
     except ftplib.all_errors as exc:  # pragma: no cover - network dependent
-        print(f"FTP error: {exc}")
+        logger.exception(f"FTP error: {exc}")
         raise
     finally:
         if ftp is not None:
@@ -116,61 +116,86 @@ def _traverse_ftp(
 
     logger.info(f"Traversing: {current_path} (depth {depth}/{max_depth})")
 
-    # Try to change into the directory and list entries; return early on errors.
-    try:
-        ftp.cwd(current_path)
-        entries = list(ftp.mlsd())
-        logger.debug(f"Found {len(entries)} entries in {current_path}")
-    except ftplib.error_perm:
-        # Skip directories without permission
-        logger.warning(f"Permission denied: {current_path}")
-        return False
-    except ftplib.all_errors as exc:  # pragma: no cover - network dependent
-        print(f"Error traversing {current_path}: {exc}")
+    entries = _list_entries(ftp, current_path)
+    if entries is None:
         return False
 
     truncated = False
-
-    # Helper: build a node from MLSD entry facts
-    def _build_node(name: str, facts: dict, path: str) -> FTPNode:
-        node = FTPNode(name=name, is_dir=(facts.get("type") == "dir"), path=path)
-        f_size, f_modified = _extract_metadata_from_facts(facts)
-        node.size = f_size
-        node.modified = f_modified
-        return node
-
-    # Helper: ensure file metadata using SIZE/MDTM fallbacks when necessary
-    def _ensure_file_metadata(node: FTPNode, path: str) -> None:
-        if node.is_dir:
-            return
-        if node.size is None or node.modified is None:
-            fetched_size, fetched_modified = _fetch_file_metadata(ftp, path)
-            if node.size is None:
-                node.size = fetched_size
-            if node.modified is None:
-                node.modified = fetched_modified
 
     for name, facts in entries:
         if name in {".", ".."}:
             continue
 
-        path = f"{current_path.rstrip('/')}/{name}"
+        path = _child_path(current_path, name)
         node = _build_node(name, facts, path)
-        _ensure_file_metadata(node, path)
+        _ensure_file_metadata(ftp, node, path)
         parent.children.append(node)
 
-        # If it's a directory, decide whether to descend or mark as truncated.
         if not node.is_dir:
             continue
 
-        if depth < max_depth - 1:
-            if _traverse_ftp(ftp, node, path, depth + 1, max_depth):
-                truncated = True
-        else:
+        if _maybe_descend(ftp, node, path, depth, max_depth):
             truncated = True
-            logger.debug(f"Max depth reached at {path}; not descending further")
 
     return truncated
+
+
+def _list_entries(
+    ftp: ftplib.FTP, current_path: str
+) -> list[tuple[str, dict]] | None:
+    """List entries in the current directory, handling FTP errors."""
+    try:
+        ftp.cwd(current_path)
+        entries = list(ftp.mlsd())
+        logger.debug(f"Found {len(entries)} entries in {current_path}")
+        return entries
+    except ftplib.error_perm:
+        logger.warning(f"Permission denied: {current_path}")
+        return None
+    except ftplib.all_errors as exc:  # pragma: no cover - network dependent
+        logger.exception(f"Error traversing {current_path}: {exc}")
+        return None
+
+
+def _child_path(current_path: str, name: str) -> str:
+    """Build a child path from a parent path and name."""
+    return f"{current_path.rstrip('/')}/{name}"
+
+
+def _maybe_descend(
+    ftp: ftplib.FTP,
+    node: FTPNode,
+    path: str,
+    depth: int,
+    max_depth: int,
+) -> bool:
+    """Return True if traversal is truncated while handling a directory."""
+    if depth < max_depth - 1:
+        return _traverse_ftp(ftp, node, path, depth + 1, max_depth)
+
+    logger.debug(f"Max depth reached at {path}; not descending further")
+    return True
+
+
+def _build_node(name: str, facts: dict, path: str) -> FTPNode:
+    """Build a FTPNode from MLSD entry facts."""
+    node = FTPNode(name=name, is_dir=(facts.get("type") == "dir"), path=path)
+    f_size, f_modified = _extract_metadata_from_facts(facts)
+    node.size = f_size
+    node.modified = f_modified
+    return node
+
+
+def _ensure_file_metadata(ftp: ftplib.FTP, node: FTPNode, path: str) -> None:
+    """Ensure file metadata using SIZE/MDTM fallbacks when necessary."""
+    if node.is_dir:
+        return
+    if node.size is None or node.modified is None:
+        fetched_size, fetched_modified = _fetch_file_metadata(ftp, path)
+        if node.size is None:
+            node.size = fetched_size
+        if node.modified is None:
+            node.modified = fetched_modified
 
 
 
@@ -181,7 +206,7 @@ def _parse_modify_ts(value: str) -> datetime | None:
         dt = datetime.strptime(base, "%Y%m%d%H%M%S")
         return dt.replace(tzinfo=timezone.utc)
     except (ValueError, TypeError) as exc:
-        logger.debug("Failed to parse modify timestamp %r: %s", value, exc)
+        logger.debug(f"Failed to parse modify timestamp {value!r}: {exc}")
         return None
 
 
@@ -198,7 +223,7 @@ def _extract_metadata_from_facts(facts: dict) -> tuple[int | None, datetime | No
         try:
             size = int(size_val)
         except (ValueError, TypeError) as exc:
-            logger.debug("Invalid size value %r: %s", size_val, exc)
+            logger.debug(f"Invalid size value {size_val!r}: {exc}")
             size = None
 
     modify_val = facts.get("modify")
@@ -225,10 +250,10 @@ def _fetch_file_metadata(
             size = int(sz)
     except ftplib.error_perm:
         # SIZE not supported or permission denied; leave size as None
-        logger.debug("SIZE not permitted for %s", path)
+        logger.debug(f"SIZE not permitted for {path}")
     except Exception as exc:
         logger.debug(
-            "Unexpected error running SIZE for %s: %s", path, exc, exc_info=True
+            f"Unexpected error running SIZE for {path}: {exc}", exc_info=True
         )
 
     # MDTM: return last modification time (UTC)
@@ -243,10 +268,13 @@ def _fetch_file_metadata(
             ts = parts[0].removeprefix("213")
             modified = _parse_modify_ts(ts)
     except ftplib.error_perm:
-        logger.debug("MDTM not permitted for %s", path)
+        logger.debug(f"MDTM not permitted for {path}")
     except Exception as exc:
         logger.debug(
-            "Unexpected error running MDTM for %s: %s", path, exc, exc_info=True
+            f"Unexpected error running MDTM for {path}: {exc}", exc_info=True
         )
+
+    if size is None and modified is None:
+        logger.debug(f"No metadata available for {path} after SIZE/MDTM attempts")
 
     return size, modified

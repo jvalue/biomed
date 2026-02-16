@@ -24,12 +24,12 @@ def main():
     # Load FTP credentials and ensure .env is processed
     env_path = Path(__file__).parent.parent / ".env"
     ftp_url, ftp_user, ftp_password = ftp_conf.load_env_vars(env_path)
-    logger.info("FTP Config: (%s, %s, '****')", ftp_url, ftp_user)
+    logger.info(f"FTP Config: ({ftp_url}, {ftp_user}, '****')")
 
     # Initialize database connection
     database_url = get_database_url_from_env(env_path)
     logger.info(
-        "Database URL: %s", database_url.render_as_string(hide_password=True)
+        f"Database URL: {database_url.render_as_string(hide_password=True)}"
     )
 
     engine = init_database(database_url, echo=True)
@@ -43,7 +43,7 @@ def main():
     try:
         max_depth = int(max_depth_str) if max_depth_str else 3
     except ValueError:
-        logger.warning("Invalid max depth '%s', defaulting to 3", max_depth_str)
+        logger.warning(f"Invalid max depth '{max_depth_str}', defaulting to 3")
         max_depth = 3
 
     logger.info("Fetching FTP structure...")
@@ -70,14 +70,13 @@ def main():
         ftp_run.completed_at = datetime.now(timezone.utc)
         session.commit()
         logger.info(
-            "FTP structure saved to database (Run ID: %s, Max Depth: %s)",
-            ftp_run.id,
-            max_depth,
+            f"FTP structure saved to database (Run ID: {ftp_run.id}, "
+            f"Max Depth: {max_depth})"
         )
 
     except Exception as e:
         session.rollback()
-        logger.exception("Error saving FTP structure to database: %s", e)
+        logger.exception(f"Error saving FTP structure to database: {e}")
         raise
     finally:
         session.close()

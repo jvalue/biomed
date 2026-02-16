@@ -53,7 +53,8 @@ def load_env_vars(dotenv_path: Path | str | None = None) -> tuple[str, str, str]
             f"Missing environment variables{location_hint}: {', '.join(missing)}"
         )
 
-    assert ftp_url is not None and ftp_user is not None and ftp_password is not None
+    if ftp_url is None or ftp_user is None or ftp_password is None:
+        raise ValueError("FTP credentials must not be None after validation")
 
     return ftp_url, ftp_user, ftp_password
 
@@ -102,19 +103,16 @@ def load_database_config(dotenv_path: Path | str | None = None) -> dict[str, str
             f"Missing database configuration variables{location_hint}: {', '.join(missing)}"
         )
 
-    assert db_port_str is not None
+    if db_port_str is None:
+        raise ValueError("DB_PORT is required but was not provided")
 
     try:
         db_port = int(db_port_str)
     except ValueError:
         raise ValueError(f"DB_PORT must be an integer, got '{db_port_str}'")
 
-    assert (
-        db_host is not None
-        and db_name is not None
-        and db_user is not None
-        and db_password is not None
-    )
+    if db_host is None or db_name is None or db_user is None or db_password is None:
+        raise ValueError("Database configuration values must not be None")
 
     return {
         "host": db_host,
