@@ -73,8 +73,8 @@ export class AuthService {
 		// Set HTTP-only cookie
 		response.cookie('accessToken', accessToken, {
 			httpOnly: true,
-			secure: process.env.NODE_ENV === 'production', // HTTPS only in production
-			sameSite: 'strict',
+			secure: false, // TODO: change when deploying into public network
+			sameSite: 'lax',
 			maxAge: 30 * 60 * 1000, // 30 min
 		});
 
