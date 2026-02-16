@@ -5,7 +5,7 @@ from __future__ import annotations
 from datetime import datetime, timezone
 from typing import TYPE_CHECKING
 
-from sqlalchemy import BigInteger, Boolean, DateTime, ForeignKey, Integer, String
+from sqlalchemy import BigInteger, Boolean, DateTime, ForeignKey, Index, Integer, String
 from sqlalchemy.orm import DeclarativeBase, Mapped, mapped_column, relationship
 
 if TYPE_CHECKING:
@@ -31,7 +31,7 @@ class FTPDiscoveryRun(Base):
     ftp_url: Mapped[str] = mapped_column(String(255), nullable=False)
     max_depth: Mapped[int] = mapped_column(Integer, default=3)
     entries: Mapped[list["FTPDiscoveryEntry"]] = relationship(
-        "FTPDiscoveryEntry", back_populates="run"
+        "FTPDiscoveryEntry", back_populates="run", cascade="all, delete-orphan"
     )
 
 
@@ -39,6 +39,9 @@ class FTPDiscoveryEntry(Base):
     """Represents a single file or directory discovered in FTP."""
 
     __tablename__ = "ftp_discovery_entries"
+    __table_args__ = (
+        Index("ix_ftp_discovery_entries_run_path", "run_id", "path", "is_dir"),
+    )
 
     id: Mapped[int] = mapped_column(primary_key=True)
     run_id: Mapped[int] = mapped_column(

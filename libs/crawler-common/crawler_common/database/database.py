@@ -3,13 +3,14 @@
 from __future__ import annotations
 
 import logging
+from collections.abc import Iterator
 from typing import TYPE_CHECKING, Optional
 
 from sqlalchemy import create_engine, Engine, select
 from sqlalchemy.engine import URL
 from sqlalchemy.orm import sessionmaker, Session
 
-from crawler_common.models.db import Base, FTPDiscoveryEntry
+from crawler_common.models.db import FTPDiscoveryEntry
 
 if TYPE_CHECKING:
     from crawler_common.ftp.ftp_node import FTPNode
@@ -125,7 +126,7 @@ def insert_ftp_nodes_to_database(
         batch_size: Number of entries per batch flush.
         only_changed: If True, skip entries that already exist with same values.
     """
-    def iter_nodes(root: FTPNode, start_depth: int):
+    def iter_nodes(root: FTPNode, start_depth: int) -> Iterator[tuple[FTPNode, int]]:
         stack: list[tuple[FTPNode, int]] = [(root, start_depth)]
 
         while stack:
@@ -164,8 +165,12 @@ def insert_ftp_nodes_to_database(
             return
 
         keys, paths = entry_keys(entries)
+
+        # Filter out entries that already exist with same values to avoid updates.
         existing_keys = select_existing(paths)
-        new_entries = [e for e, key in zip(entries, keys) if key not in existing_keys]
+        new_entries: list[FTPDiscoveryEntry] = [
+            e for e, key in zip(entries, keys) if key not in existing_keys
+        ]
 
         if new_entries:
             session.add_all(new_entries)
