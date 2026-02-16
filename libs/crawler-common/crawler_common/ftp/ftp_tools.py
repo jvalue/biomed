@@ -3,9 +3,10 @@
 from __future__ import annotations
 
 import ftplib
-from urllib.parse import urlparse
 import logging
 from datetime import datetime, timezone
+from pathlib import Path
+from urllib.parse import urlparse
 
 from crawler_common.ftp.ftp_node import FTPNode
 
