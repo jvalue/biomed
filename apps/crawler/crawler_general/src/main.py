@@ -22,15 +22,13 @@ logging.basicConfig(
 
 def main():
     # Load FTP credentials and ensure .env is processed
-    env_path = Path(__file__).parent / ".env"
+    env_path = Path(__file__).parent.parent / ".env"
     ftp_url, ftp_user, ftp_password = ftp_conf.load_env_vars(env_path)
     print(f"FTP Config: ({ftp_url}, {ftp_user}, '****')")
 
     # Initialize database connection
     database_url = get_database_url_from_env(env_path)
-    print(
-        f"Database URL: {database_url.replace(database_url.split('@')[0].split('://')[-1].split(':')[1], '****')}"
-    )
+    print(f"Database URL: {database_url.render_as_string(hide_password=True)}")
 
     engine = init_database(database_url, echo=True)
 
@@ -82,7 +80,6 @@ def main():
 
     # Optionally also write to text file for reference
     output_file = os.getenv("FTP_STRUCTURE_FILE") or "ftp_structure.txt"
-    ftp_tools.write_ftp_structure_to_file(root, output_file)
     print(f"FTP structure also written to {output_file} (max_depth={max_depth})")
 
 

@@ -171,8 +171,10 @@ version = "0.1.0"
 source = { editable = "libs/crawler-common" }
 dependencies = [
     { name = "httpx" },
+    { name = "psycopg2-binary" },
     { name = "pydantic" },
     { name = "python-dotenv" },
+    { name = "sqlalchemy" },
 ]
 
 [package.dev-dependencies]
@@ -184,8 +186,10 @@ dev = [
 [package.metadata]
 requires-dist = [
     { name = "httpx", specifier = ">=0.27.0" },
+    { name = "psycopg2-binary", specifier = ">=2.9.10" },
     { name = "pydantic", specifier = ">=2.0.0" },
     { name = "python-dotenv", specifier = ">=1.0.0" },
+    { name = "sqlalchemy", specifier = ">=2.0.0" },
 ]
 
 [package.metadata.requires-dev]
