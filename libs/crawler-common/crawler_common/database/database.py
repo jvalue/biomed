@@ -6,6 +6,7 @@ import logging
 from typing import TYPE_CHECKING, Optional
 
 from sqlalchemy import create_engine, Engine, select
+from sqlalchemy.engine import URL
 from sqlalchemy.orm import sessionmaker, Session
 
 from crawler_common.models.db import Base, FTPDiscoveryEntry
@@ -22,12 +23,19 @@ def create_postgres_url(
     database: str,
     user: str,
     password: str,
-) -> str:
+) -> URL:
     """Create a PostgreSQL connection URL for psycopg2."""
-    return f"postgresql+psycopg2://{user}:{password}@{host}:{port}/{database}"
+    return URL.create(
+        drivername="postgresql+psycopg2",
+        username=user,
+        password=password,
+        host=host,
+        port=port,
+        database=database,
+    )
 
 
-def get_database_url_from_env(dotenv_path=None) -> str:
+def get_database_url_from_env(dotenv_path=None) -> URL:
     """Get database connection URL from environment variables via ftp_conf loader.
 
     Args:
@@ -48,7 +56,7 @@ def get_database_url_from_env(dotenv_path=None) -> str:
     )
 
 
-def init_database(database_url: str, echo: bool = False) -> Engine:
+def init_database(database_url: str | URL, echo: bool = False) -> Engine:
     """Initialize database engine.
 
     Tables must be created manually or already exist.
@@ -117,19 +125,16 @@ def insert_ftp_nodes_to_database(
         batch_size: Number of entries per batch flush.
         only_changed: If True, skip entries that already exist with same values.
     """
-    def iter_nodes(root: FTPNode, start_depth: int) -> list[tuple[FTPNode, int]]:
+    def iter_nodes(root: FTPNode, start_depth: int):
         stack: list[tuple[FTPNode, int]] = [(root, start_depth)]
-        ordered: list[tuple[FTPNode, int]] = []
 
         while stack:
             current_node, depth = stack.pop()
-            ordered.append((current_node, depth))
+            yield current_node, depth
 
             if hasattr(current_node, "children") and current_node.children:
                 for child in reversed(current_node.children):
                     stack.append((child, depth + 1))
-
-        return ordered
 
     def entry_keys(entries: list[FTPDiscoveryEntry]) -> tuple[list[tuple], list[str]]:
         keys = [(e.path, e.is_dir, e.size, e.modified) for e in entries]
