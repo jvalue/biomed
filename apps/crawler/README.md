@@ -38,7 +38,7 @@ uv run apps/crawler/crawler_general/src/main.py
 uv run apps/crawler/crawler_dummy/src/main.py
 ```
 
-The `crawler_general` app loads credentials from `.env` and lists root folders from the configured FTP server.
+The `crawler_general` app loads credentials from `apps/crawler/crawler_general/.env` and lists root folders from the configured FTP server.
 
 ## Docker
 
@@ -53,6 +53,8 @@ docker compose up crawler-general
 docker compose build --no-cache crawler-dummy
 docker compose up crawler-dummy
 ```
+
+The Compose setup uses `apps/crawler/crawler_general/.env.docker` for container config. The `.env.docker.example` file is a template.
 
 Containers mount `libs/crawler-common` for live code changes; `crawler_general` also mounts its app directory. If you prefer immutable images, remove the volume mounts in `docker-compose.yml`.
 
