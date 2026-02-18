@@ -509,7 +509,7 @@ export default function CrawlerRunsTable({
 					<Spinner className="size-10" />
 				</div>
 			) : runs.length > 0 ? (
-				<div className={'p-4 pt-6 overflow-x-auto'}>
+				<div className="p-4 pt-6 overflow-x-auto">
 					<Table>
 						<TableCaption>Crawler runs.</TableCaption>
 
