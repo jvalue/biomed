@@ -17,7 +17,6 @@ export const useCrawlerRuns = (params?: {
 	return useQuery({
 		queryKey: [
 			'crawlerRuns',
-			'list',
 			{
 				scheduleName: params?.scheduleName,
 				namespace: params?.namespace,

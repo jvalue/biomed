@@ -5,7 +5,7 @@ import { crawlerTemplateService } from '@/src/app/api/services/crawler-template.
 export const useCrawlerTemplates = (options?: { enabled?: boolean }) => {
 	const enabled = options?.enabled ?? true;
 	return useQuery({
-		queryKey: ['crawlerTemplates', 'list'],
+		queryKey: ['crawlerTemplates'],
 		queryFn: crawlerTemplateService.getCrawlerTemplates,
 		enabled,
 		refetchInterval: (query) => {
@@ -29,7 +29,7 @@ export const useCrawlerTemplateByNameAndNamespace = (
 	enabled: boolean = true,
 ) => {
 	return useQuery({
-		queryKey: ['crawlerTemplates', namespace, name],
+		queryKey: ['crawlerTemplate', namespace, name],
 		queryFn: () => crawlerTemplateService.getCrawlerTemplateByNameAndNamespace(name, namespace),
 		refetchInterval: (query) => {
 			if (query.state.error) {
@@ -66,7 +66,7 @@ export const useSubmitCrawlerTemplateRun = () => {
 				params.parameters,
 			),
 		onSuccess: () => {
-			queryClient.invalidateQueries({ queryKey: ['crawlerRuns', 'list'] });
+			queryClient.invalidateQueries({ queryKey: ['crawlerRuns'] });
 		},
 	});
 };
