@@ -8,7 +8,7 @@ import { scheduleService } from '@/src/app/api/services/schedule.service';
 export const useSchedules = (options?: { enabled?: boolean }): UseQueryResult<ScheduleDto[]> => {
 	const enabled = options?.enabled ?? true;
 	return useQuery({
-		queryKey: ['schedules', 'list'],
+		queryKey: ['schedules'],
 		queryFn: scheduleService.getSchedules,
 		refetchInterval: 30000, // Auto-refresh
 		enabled,
@@ -20,7 +20,7 @@ export const useScheduleByNameAndNamespace = (
 	namespace: string,
 ): UseQueryResult<ScheduleDto> => {
 	return useQuery({
-		queryKey: ['schedules', namespace, name],
+		queryKey: ['schedule', namespace, name],
 		queryFn: () => scheduleService.getScheduleByNameAndNamespace(name, namespace),
 		refetchInterval: (query) => {
 			if (query.state.error) {
@@ -49,7 +49,7 @@ export const useScheduleNameExists = (
 	enabled: boolean = true,
 ): UseQueryResult<boolean> => {
 	return useQuery<boolean>({
-		queryKey: ['schedules', namespace, name, 'exists'],
+		queryKey: ['schedule', namespace, name, 'exists'],
 		queryFn: () => scheduleService.scheduleNameExists(name, namespace),
 		enabled: enabled && !!name && !!namespace,
 	});
@@ -66,7 +66,7 @@ export const useCreateSchedule = () => {
 		mutationFn: (createScheduleDto: CreateScheduleDto) =>
 			scheduleService.createSchedule(createScheduleDto),
 		onSuccess: () => {
-			queryClient.invalidateQueries({ queryKey: ['schedules', 'list'] });
+			queryClient.invalidateQueries({ queryKey: ['schedules'] });
 		},
 	});
 };
@@ -91,9 +91,9 @@ export const useUpdateSchedule = () => {
 			dto: UpdateScheduleDto;
 		}) => scheduleService.updateSchedule(name, namespace, dto),
 		onSuccess: (_, variables) => {
-			queryClient.invalidateQueries({ queryKey: ['schedules', 'list'] });
+			queryClient.invalidateQueries({ queryKey: ['schedules'] });
 			queryClient.invalidateQueries({
-				queryKey: ['schedules', variables.namespace, variables.name],
+				queryKey: ['schedule', variables.namespace, variables.name],
 			});
 		},
 	});
@@ -112,9 +112,9 @@ export const useDeleteSchedule = () => {
 		onSuccess: (_data, variables) => {
 			// Invalidate and refetch schedules query to reflect changes
 			queryClient.invalidateQueries({
-				queryKey: ['schedules', variables.namespace, variables.name],
+				queryKey: ['schedule', variables.namespace, variables.name],
 			});
-			queryClient.invalidateQueries({ queryKey: ['schedules', 'list'] });
+			queryClient.invalidateQueries({ queryKey: ['schedules'] });
 		},
 	});
 };
@@ -132,7 +132,10 @@ export const useSuspendSchedule = () => {
 		onSuccess: (_data, variables) => {
 			// Invalidate and refetch schedules query to reflect changes
 			queryClient.invalidateQueries({
-				queryKey: ['schedules', variables.namespace, variables.name],
+				queryKey: ['schedule', variables.namespace, variables.name],
+			});
+			queryClient.invalidateQueries({
+				queryKey: ['schedules'],
 			});
 		},
 	});
@@ -151,7 +154,10 @@ export const useResumeSchedule = () => {
 		onSuccess: (_data, variables) => {
 			// Invalidate and refetch schedules query to reflect changes
 			queryClient.invalidateQueries({
-				queryKey: ['schedules', variables.namespace, variables.name],
+				queryKey: ['schedule', variables.namespace, variables.name],
+			});
+			queryClient.invalidateQueries({
+				queryKey: ['schedules'],
 			});
 		},
 	});

@@ -9,7 +9,7 @@ import { usersService } from '../services/users.service';
  */
 export const useUsers = (status?: UserStatus): UseQueryResult<UserDto[]> => {
 	return useQuery({
-		queryKey: ['users', 'list'],
+		queryKey: ['users', { status }],
 		queryFn: () => usersService.getUsers(status),
 		refetchInterval: (query) => {
 			if (query.state.error) {
@@ -32,7 +32,7 @@ export const useUsers = (status?: UserStatus): UseQueryResult<UserDto[]> => {
  */
 export const useUserById = (userId: string): UseQueryResult<UserDto> => {
 	return useQuery({
-		queryKey: ['users', userId],
+		queryKey: ['user', userId],
 		queryFn: () => usersService.getUserById(userId),
 	});
 };
@@ -47,8 +47,8 @@ export const useApproveUser = () => {
 		mutationFn: (userId: string) => usersService.approveUser(userId),
 		onSuccess: (_data, userId) => {
 			// Invalidate and refetch users query to reflect changes
-			queryClient.invalidateQueries({ queryKey: ['users', 'list'] });
-			queryClient.invalidateQueries({ queryKey: ['users', userId] });
+			queryClient.invalidateQueries({ queryKey: ['users'] });
+			queryClient.invalidateQueries({ queryKey: ['user', userId] });
 		},
 	});
 };
@@ -63,8 +63,8 @@ export const useBlockUser = () => {
 		mutationFn: (userId: string) => usersService.blockUser(userId),
 		onSuccess: (_data, userId) => {
 			// Invalidate and refetch users query to reflect changes
-			queryClient.invalidateQueries({ queryKey: ['users', 'list'] });
-			queryClient.invalidateQueries({ queryKey: ['users', userId] });
+			queryClient.invalidateQueries({ queryKey: ['users'] });
+			queryClient.invalidateQueries({ queryKey: ['user', userId] });
 		},
 	});
 };
@@ -80,7 +80,7 @@ export const useUpdateUserPermissions = () => {
 			usersService.updateUserPermissions(userId, permissions),
 		onSuccess: (_data, variables) => {
 			// Invalidate and refetch user query to reflect changes
-			queryClient.invalidateQueries({ queryKey: ['users', variables.userId] });
+			queryClient.invalidateQueries({ queryKey: ['user', variables.userId] });
 		},
 	});
 };
