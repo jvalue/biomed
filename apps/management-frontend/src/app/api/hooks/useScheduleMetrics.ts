@@ -9,7 +9,7 @@ export const useScheduleMetricsSummary = (
 	namespace: string,
 ): UseQueryResult<ScheduleOverallMetricsDto> => {
 	return useQuery<ScheduleOverallMetricsDto>({
-		queryKey: ['scheduleMetrics', name, namespace],
+		queryKey: ['scheduleMetrics', namespace, name],
 		queryFn: () => scheduleService.getScheduleMetricsSummary(name, namespace),
 		refetchInterval: (query) => {
 			if (query.state.error) {
@@ -33,7 +33,7 @@ export const useScheduleHistoricalMetrics = (
 	toDate?: Date,
 ): UseQueryResult<ScheduleHistoricalMetricsItemDto[]> => {
 	return useQuery<ScheduleHistoricalMetricsItemDto[]>({
-		queryKey: ['scheduleHistoricalMetrics', name, namespace, fromDate, toDate],
+		queryKey: ['scheduleHistoricalMetrics', namespace, name, fromDate, toDate],
 		queryFn: () => scheduleService.getScheduleMetricsHistory(name, namespace, fromDate, toDate),
 		refetchInterval: (query) => {
 			if (query.state.error) {

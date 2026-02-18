@@ -9,7 +9,7 @@ import { usersService } from '../services/users.service';
  */
 export const useUsers = (status?: UserStatus): UseQueryResult<UserDto[]> => {
 	return useQuery({
-		queryKey: ['users'],
+		queryKey: ['users', 'list'],
 		queryFn: () => usersService.getUsers(status),
 		refetchInterval: (query) => {
 			if (query.state.error) {
@@ -45,9 +45,10 @@ export const useApproveUser = () => {
 
 	return useMutation({
 		mutationFn: (userId: string) => usersService.approveUser(userId),
-		onSuccess: () => {
+		onSuccess: (_data, userId) => {
 			// Invalidate and refetch users query to reflect changes
-			queryClient.invalidateQueries({ queryKey: ['users'] });
+			queryClient.invalidateQueries({ queryKey: ['users', 'list'] });
+			queryClient.invalidateQueries({ queryKey: ['users', userId] });
 		},
 	});
 };
@@ -60,9 +61,10 @@ export const useBlockUser = () => {
 
 	return useMutation({
 		mutationFn: (userId: string) => usersService.blockUser(userId),
-		onSuccess: () => {
+		onSuccess: (_data, userId) => {
 			// Invalidate and refetch users query to reflect changes
-			queryClient.invalidateQueries({ queryKey: ['users'] });
+			queryClient.invalidateQueries({ queryKey: ['users', 'list'] });
+			queryClient.invalidateQueries({ queryKey: ['users', userId] });
 		},
 	});
 };

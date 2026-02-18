@@ -5,7 +5,7 @@ import { crawlerTemplateService } from '@/src/app/api/services/crawler-template.
 export const useCrawlerTemplates = (options?: { enabled?: boolean }) => {
 	const enabled = options?.enabled ?? true;
 	return useQuery({
-		queryKey: ['crawlerTemplates'],
+		queryKey: ['crawlerTemplates', 'list'],
 		queryFn: crawlerTemplateService.getCrawlerTemplates,
 		enabled,
 		refetchInterval: (query) => {
@@ -66,7 +66,7 @@ export const useSubmitCrawlerTemplateRun = () => {
 				params.parameters,
 			),
 		onSuccess: () => {
-			queryClient.invalidateQueries({ queryKey: ['crawlerRuns'] });
+			queryClient.invalidateQueries({ queryKey: ['crawlerRuns', 'list'] });
 		},
 	});
 };

@@ -21,7 +21,7 @@ export const useCrawlerRunMetrics = (
 	// Only refresh automatically while the run is active
 
 	return useQuery<CrawlerRunMetricDto>({
-		queryKey: ['crawlerRunMetrics', runId, runNamespace],
+		queryKey: ['crawlerRunMetrics', runNamespace, runId],
 		queryFn: () => metricsService.getCrawlerRunMetrics(runId, runNamespace),
 		refetchInterval: (query) => {
 			if (query.state.error) {
@@ -52,7 +52,7 @@ export const useCrawlerRunEvents = (
 ): UseQueryResult<CrawlerRunEventDto[]> => {
 	// Only refresh automatically while the run is active
 	return useQuery({
-		queryKey: ['crawlerRunEvents', runId, runNamespace],
+		queryKey: ['crawlerRunEvents', runNamespace, runId],
 		queryFn: () => metricsService.getCrawlerRunEvents(runId, runNamespace),
 		refetchInterval: (query) => {
 			if (query.state.error) {
