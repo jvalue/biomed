@@ -58,79 +58,83 @@ export default function UsersTableComponent() {
 	if (error) return <div>An error occurred: {error.message}</div>;
 
 	return (
-		<Table className="m-4 mt-6">
-			<TableCaption>Users currently waiting for approval</TableCaption>
-			<TableHeader>
-				<TableRow>
-					<TableHead className="text-primary">Username</TableHead>
-					<TableHead className="text-primary">Created at</TableHead>
-					<TableHead className="text-primary w-48">Status</TableHead>
-					<TableHead className="text-primary">Actions</TableHead>
-				</TableRow>
-			</TableHeader>
-			<TableBody>
-				{data?.map((user) => (
-					<TableRow key={user.username}>
-						<TableCell>{user.username}</TableCell>
-						<TableCell>{new Date(user.createdAt).toLocaleString()}</TableCell>
-						<TableCell>{user.status}</TableCell>
-						<TableCell>
-							{user.id !== currentUser?.id ? (
-								<div className="flex gap-2">
-									<Can ability={ability} I={'approve'} an={'user'}>
-										<Button
-											onClick={() => approveUser(user)}
-											disabled={approveUserMutation.isPending || user.status === UserStatus.ACTIVE}
-											aria-busy={approveUserMutation.isPending}
-											variant={'secondary'}
-											size="sm"
-											className="bg-green-500 hover:bg-green-700 text-white w-16"
-										>
-											Approve
-										</Button>
-									</Can>
-									<Can ability={ability} I={'block'} an={'user'}>
-										<Button
-											onClick={() => blockUser(user)}
-											disabled={blockUserMutation.isPending || user.status === UserStatus.BLOCKED}
-											aria-busy={blockUserMutation.isPending}
-											variant={'destructive'}
-											size="sm"
-											className="w-16"
-										>
-											Block
-										</Button>
-									</Can>
-									<Can ability={ability} I={'update'} an={'user'}>
-										<Link
-											to={`/admin/user-management/${user.id}/permissions`}
-											className="no-underline"
-											disabled={user.status !== UserStatus.ACTIVE}
-										>
+		<div className="p-4 pt-6 overflow-x-auto">
+			<Table>
+				<TableCaption>Users currently waiting for approval</TableCaption>
+				<TableHeader>
+					<TableRow>
+						<TableHead className="text-primary">Username</TableHead>
+						<TableHead className="text-primary">Created at</TableHead>
+						<TableHead className="text-primary w-48">Status</TableHead>
+						<TableHead className="text-primary">Actions</TableHead>
+					</TableRow>
+				</TableHeader>
+				<TableBody>
+					{data?.map((user) => (
+						<TableRow key={user.username}>
+							<TableCell>{user.username}</TableCell>
+							<TableCell>{new Date(user.createdAt).toLocaleString()}</TableCell>
+							<TableCell>{user.status}</TableCell>
+							<TableCell>
+								{user.id !== currentUser?.id ? (
+									<div className="flex gap-2">
+										<Can ability={ability} I={'approve'} an={'user'}>
 											<Button
+												onClick={() => approveUser(user)}
+												disabled={
+													approveUserMutation.isPending || user.status === UserStatus.ACTIVE
+												}
+												aria-busy={approveUserMutation.isPending}
 												variant={'secondary'}
 												size="sm"
+												className="bg-green-500 hover:bg-green-700 text-white w-16"
+											>
+												Approve
+											</Button>
+										</Can>
+										<Can ability={ability} I={'block'} an={'user'}>
+											<Button
+												onClick={() => blockUser(user)}
+												disabled={blockUserMutation.isPending || user.status === UserStatus.BLOCKED}
+												aria-busy={blockUserMutation.isPending}
+												variant={'destructive'}
+												size="sm"
+												className="w-16"
+											>
+												Block
+											</Button>
+										</Can>
+										<Can ability={ability} I={'update'} an={'user'}>
+											<Link
+												to={`/admin/user-management/${user.id}/permissions`}
+												className="no-underline"
 												disabled={user.status !== UserStatus.ACTIVE}
 											>
-												Edit Permissions
-											</Button>
-										</Link>
-									</Can>
-								</div>
-							) : (
-								<div>Your Account</div>
-							)}
-						</TableCell>
-					</TableRow>
-				))}
-				{data && data.length === 0 && (
-					<TableRow>
-						<TableCell colSpan={3} className="text-center font-semibold">
-							No users found.
-						</TableCell>
-					</TableRow>
-				)}
-			</TableBody>
-		</Table>
+												<Button
+													variant={'secondary'}
+													size="sm"
+													disabled={user.status !== UserStatus.ACTIVE}
+												>
+													Edit Permissions
+												</Button>
+											</Link>
+										</Can>
+									</div>
+								) : (
+									<div>Your Account</div>
+								)}
+							</TableCell>
+						</TableRow>
+					))}
+					{data && data.length === 0 && (
+						<TableRow>
+							<TableCell colSpan={3} className="text-center font-semibold">
+								No users found.
+							</TableCell>
+						</TableRow>
+					)}
+				</TableBody>
+			</Table>
+		</div>
 	);
 }
