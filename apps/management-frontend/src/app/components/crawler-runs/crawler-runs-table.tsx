@@ -509,8 +509,8 @@ export default function CrawlerRunsTable({
 					<Spinner className="size-10" />
 				</div>
 			) : runs.length > 0 ? (
-				<>
-					<Table className="m-4 mt-6">
+				<div className="p-4 pt-6 overflow-x-auto">
+					<Table>
 						<TableCaption>Crawler runs.</TableCaption>
 
 						<TableHeader>
@@ -595,7 +595,7 @@ export default function CrawlerRunsTable({
 							</Pagination>
 						)}
 					</div>
-				</>
+				</div>
 			) : (
 				<div className="flex justify-center items-center py-8">
 					<p className="text-sm text-muted-foreground text-center">

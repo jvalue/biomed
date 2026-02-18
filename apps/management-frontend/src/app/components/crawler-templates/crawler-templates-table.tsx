@@ -38,8 +38,8 @@ export default function CrawlerTemplatesTable({ templates = [] }: CrawlerTemplat
 	};
 
 	return (
-		<>
-			<Table className="m-4 mt-6">
+		<div className="p-4 pt-6 overflow-x-auto">
+			<Table>
 				<TableCaption>Crawler Templates</TableCaption>
 				<TableHeader>
 					<TableRow>
@@ -102,6 +102,6 @@ export default function CrawlerTemplatesTable({ templates = [] }: CrawlerTemplat
 				open={scheduleDialogOpen}
 				onOpenChange={setScheduleDialogOpen}
 			/>
-		</>
+		</div>
 	);
 }
