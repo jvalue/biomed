@@ -9,7 +9,7 @@ import { usersService } from '../services/users.service';
  */
 export const useUsers = (status?: UserStatus): UseQueryResult<UserDto[]> => {
 	return useQuery({
-		queryKey: ['users'],
+		queryKey: ['users', { status }],
 		queryFn: () => usersService.getUsers(status),
 		refetchInterval: (query) => {
 			if (query.state.error) {
@@ -32,7 +32,7 @@ export const useUsers = (status?: UserStatus): UseQueryResult<UserDto[]> => {
  */
 export const useUserById = (userId: string): UseQueryResult<UserDto> => {
 	return useQuery({
-		queryKey: ['users', userId],
+		queryKey: ['user', userId],
 		queryFn: () => usersService.getUserById(userId),
 	});
 };
@@ -45,9 +45,10 @@ export const useApproveUser = () => {
 
 	return useMutation({
 		mutationFn: (userId: string) => usersService.approveUser(userId),
-		onSuccess: () => {
+		onSuccess: (_data, userId) => {
 			// Invalidate and refetch users query to reflect changes
 			queryClient.invalidateQueries({ queryKey: ['users'] });
+			queryClient.invalidateQueries({ queryKey: ['user', userId] });
 		},
 	});
 };
@@ -60,9 +61,10 @@ export const useBlockUser = () => {
 
 	return useMutation({
 		mutationFn: (userId: string) => usersService.blockUser(userId),
-		onSuccess: () => {
+		onSuccess: (_data, userId) => {
 			// Invalidate and refetch users query to reflect changes
 			queryClient.invalidateQueries({ queryKey: ['users'] });
+			queryClient.invalidateQueries({ queryKey: ['user', userId] });
 		},
 	});
 };
@@ -77,8 +79,9 @@ export const useUpdateUserPermissions = () => {
 		mutationFn: ({ userId, permissions }: { userId: string; permissions: string[] }) =>
 			usersService.updateUserPermissions(userId, permissions),
 		onSuccess: (_data, variables) => {
-			// Invalidate and refetch user query to reflect changes
-			queryClient.invalidateQueries({ queryKey: ['users', variables.userId] });
+			// Invalidate and refetch user queries to reflect changes
+			queryClient.invalidateQueries({ queryKey: ['user', variables.userId] });
+			queryClient.invalidateQueries({ queryKey: ['users'] });
 		},
 	});
 };

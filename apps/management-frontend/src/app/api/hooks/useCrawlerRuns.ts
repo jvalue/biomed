@@ -17,14 +17,21 @@ export const useCrawlerRuns = (params?: {
 	return useQuery({
 		queryKey: [
 			'crawlerRuns',
-			params?.scheduleName,
-			params?.namespace,
-			params?.crawlerTemplateName,
-			params?.phases,
-			params?.startedAfter,
-			params?.finishedBefore,
-			params?.limit,
-			params?.offset,
+			{
+				scheduleName: params?.scheduleName,
+				namespace: params?.namespace,
+				crawlerTemplateName: params?.crawlerTemplateName,
+
+				// keep array order stable
+				phases: params?.phases ? [...params.phases].sort() : undefined,
+
+				// avoid Date objects in keys
+				startedAfter: params?.startedAfter?.toISOString(),
+				finishedBefore: params?.finishedBefore?.toISOString(),
+
+				limit: params?.limit,
+				offset: params?.offset,
+			},
 		],
 		queryFn: () => crawlerRunService.getCrawlerRuns(params),
 		refetchInterval: (query) => {
