@@ -40,56 +40,58 @@ export default function PendingUsersTableComponent() {
 	if (error) return <div>An error occurred: {error.message}</div>;
 
 	return (
-		<Table className="m-4 mt-6">
-			<TableCaption>Users currently waiting for approval</TableCaption>
-			<TableHeader>
-				<TableRow>
-					<TableHead className="text-primary">Username</TableHead>
-					<TableHead className="text-primary">Created at</TableHead>
-					<TableHead className="text-primary">Approval</TableHead>
-				</TableRow>
-			</TableHeader>
-			<TableBody>
-				{data?.map((user) => (
-					<TableRow key={user.username}>
-						<TableCell>{user.username}</TableCell>
-						<TableCell>{new Date(user.createdAt).toLocaleString()}</TableCell>
-						<TableCell className="flex gap-2">
-							<Can ability={ability} I={'approve'} an={'user'}>
-								<Button
-									onClick={() => approveUser(user)}
-									disabled={approveUserMutation.isPending}
-									aria-busy={approveUserMutation.isPending}
-									variant={'secondary'}
-									size="sm"
-									className="bg-green-500 text-white w-16"
-								>
-									Approve
-								</Button>
-							</Can>
-							<Can ability={ability} I={'block'} an={'user'}>
-								<Button
-									onClick={() => blockUserMutation.mutate(user.id)}
-									disabled={blockUserMutation.isPending}
-									aria-busy={blockUserMutation.isPending}
-									variant={'destructive'}
-									size="sm"
-									className="w-16"
-								>
-									Block
-								</Button>
-							</Can>
-						</TableCell>
-					</TableRow>
-				))}
-				{data && data.length === 0 && (
+		<div className="p-4 pt-6 overflow-x-auto">
+			<Table>
+				<TableCaption>Users currently waiting for approval</TableCaption>
+				<TableHeader>
 					<TableRow>
-						<TableCell colSpan={3} className="text-center font-semibold">
-							No users waiting for approval.
-						</TableCell>
+						<TableHead className="text-primary">Username</TableHead>
+						<TableHead className="text-primary">Created at</TableHead>
+						<TableHead className="text-primary">Approval</TableHead>
 					</TableRow>
-				)}
-			</TableBody>
-		</Table>
+				</TableHeader>
+				<TableBody>
+					{data?.map((user) => (
+						<TableRow key={user.username}>
+							<TableCell>{user.username}</TableCell>
+							<TableCell>{new Date(user.createdAt).toLocaleString()}</TableCell>
+							<TableCell className="flex gap-2">
+								<Can ability={ability} I={'approve'} an={'user'}>
+									<Button
+										onClick={() => approveUser(user)}
+										disabled={approveUserMutation.isPending}
+										aria-busy={approveUserMutation.isPending}
+										variant={'secondary'}
+										size="sm"
+										className="bg-green-500 text-white w-16"
+									>
+										Approve
+									</Button>
+								</Can>
+								<Can ability={ability} I={'block'} an={'user'}>
+									<Button
+										onClick={() => blockUserMutation.mutate(user.id)}
+										disabled={blockUserMutation.isPending}
+										aria-busy={blockUserMutation.isPending}
+										variant={'destructive'}
+										size="sm"
+										className="w-16"
+									>
+										Block
+									</Button>
+								</Can>
+							</TableCell>
+						</TableRow>
+					))}
+					{data && data.length === 0 && (
+						<TableRow>
+							<TableCell colSpan={3} className="text-center font-semibold">
+								No users waiting for approval.
+							</TableCell>
+						</TableRow>
+					)}
+				</TableBody>
+			</Table>
+		</div>
 	);
 }
