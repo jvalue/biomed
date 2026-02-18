@@ -91,10 +91,10 @@ export const useUpdateSchedule = () => {
 			dto: UpdateScheduleDto;
 		}) => scheduleService.updateSchedule(name, namespace, dto),
 		onSuccess: (_, variables) => {
-			queryClient.invalidateQueries({ queryKey: ['schedules'] });
 			queryClient.invalidateQueries({
 				queryKey: ['schedule', variables.namespace, variables.name],
 			});
+			queryClient.invalidateQueries({ queryKey: ['schedules'] });
 		},
 	});
 };
