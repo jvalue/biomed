@@ -38,7 +38,7 @@ export default function CrawlerTemplatesTable({ templates = [] }: CrawlerTemplat
 	};
 
 	return (
-		<div className={'p-4 pt-6 overflow-x-auto'}>
+		<div className="p-4 pt-6 overflow-x-auto">
 			<Table>
 				<TableCaption>Crawler Templates</TableCaption>
 				<TableHeader>

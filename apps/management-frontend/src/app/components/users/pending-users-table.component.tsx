@@ -40,7 +40,7 @@ export default function PendingUsersTableComponent() {
 	if (error) return <div>An error occurred: {error.message}</div>;
 
 	return (
-		<div className={'p-4 pt-6 overflow-x-auto'}>
+		<div className="p-4 pt-6 overflow-x-auto">
 			<Table>
 				<TableCaption>Users currently waiting for approval</TableCaption>
 				<TableHeader>
