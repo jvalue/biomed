@@ -79,8 +79,9 @@ export const useUpdateUserPermissions = () => {
 		mutationFn: ({ userId, permissions }: { userId: string; permissions: string[] }) =>
 			usersService.updateUserPermissions(userId, permissions),
 		onSuccess: (_data, variables) => {
-			// Invalidate and refetch user query to reflect changes
+			// Invalidate and refetch user queries to reflect changes
 			queryClient.invalidateQueries({ queryKey: ['user', variables.userId] });
+			queryClient.invalidateQueries({ queryKey: ['users'] });
 		},
 	});
 };
