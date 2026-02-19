@@ -105,7 +105,7 @@ export class OrchestratorSyncService implements OnModuleInit, OnModuleDestroy {
 			const templateNamespace = localSchedule.namespace;
 
 			// Lookup template
-			const template = await this.orchestratorClientService.getCrawlerTemplateByNameAndNamespace(
+			const template = await this.orchestratorClientService.getCrawlerTemplateByNamespaceAndName(
 				templateName,
 				templateNamespace,
 			);
@@ -144,7 +144,7 @@ export class OrchestratorSyncService implements OnModuleInit, OnModuleDestroy {
 
 			// Lookup schedule in orchestrator
 			const orchestratorSchedule =
-				await this.orchestratorClientService.getScheduleByNameAndNamespace(
+				await this.orchestratorClientService.getScheduleByNamespaceAndName(
 					localSchedule.name,
 					localSchedule.namespace,
 				);

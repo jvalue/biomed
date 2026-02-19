@@ -126,13 +126,13 @@ export class CrawlerRunMetricsService {
 
 	/**
 	 * Gets all events for a crawler run ordered by latest first
-	 * @param runId The ID of the crawler run
 	 * @param runNamespace The namespace of the crawler run
+	 * @param runId The ID of the crawler run
 	 * @returns The events for the specified crawler run
 	 */
 	async getCrawlerRunEvents(
-		runId: string,
 		runNamespace: string,
+		runId: string,
 	): Promise<CrawlerRunEventOutgoingDto[]> {
 		const events = await this.crawlerRunEventEntityRepository.find({
 			where: { runId, runNamespace },

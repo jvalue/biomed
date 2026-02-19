@@ -22,14 +22,14 @@ export class CrawlerRunsService {
 	}
 
 	/**
-	 * Get a Crawler Run by ID and namespace.
-	 * @param runId The ID of the Crawler Run.
+	 * Get a Crawler Run by namespace and ID.
 	 * @param runNamespace The namespace of the Crawler Run.
+	 * @param runId The ID of the Crawler Run.
 	 */
-	async getCrawlerRun(runId: string, runNamespace: string): Promise<CrawlerRunDto> {
-		const run = await this.orchestratorClientService.getCrawlerRunByNameAndNamespace(
-			runId,
+	async getCrawlerRun(runNamespace: string, runId: string): Promise<CrawlerRunDto> {
+		const run = await this.orchestratorClientService.getCrawlerRunByNamespaceAndName(
 			runNamespace,
+			runId,
 		);
 		if (!run) {
 			throw new NotFoundException(

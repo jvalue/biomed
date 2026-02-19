@@ -17,32 +17,32 @@ export interface IOrchestratorClient {
 		paginationOptions?: CursorBasedPaginationRequestDto,
 	): Promise<CursorBasedPaginationResponseDto<CrawlerRunDto>>;
 
-	getCrawlerRunByNameAndNamespace(name: string, namespace: string): Promise<CrawlerRunDto | null>;
+	getCrawlerRunByNamespaceAndName(namespace: string, name: string): Promise<CrawlerRunDto | null>;
 
 	listCrawlerTemplates(filterOptions?: CrawlerTemplatesFilterDto): Promise<CrawlerTemplateDto[]>;
 
-	getCrawlerTemplateByNameAndNamespace(
-		name: string,
+	getCrawlerTemplateByNamespaceAndName(
 		namespace: string,
+		name: string,
 	): Promise<CrawlerTemplateDto | null>;
 
 	submitCrawlerRunFromCrawlerTemplate(
-		crawlerTemplateName: string,
 		crawlerTemplateNamespace: string,
+		crawlerTemplateName: string,
 		parameters?: CrawlerRunParameterDto[],
 	): Promise<CrawlerRunDto>;
 
 	listSchedules(): Promise<ScheduleDto[]>;
 
-	getScheduleByNameAndNamespace(name: string, namespace: string): Promise<ScheduleDto | null>;
+	getScheduleByNamespaceAndName(namespace: string, name: string): Promise<ScheduleDto | null>;
 
 	createSchedule(cronWorkflowObject: ArgoCronWorkflow, namespace: string): Promise<void>;
 
-	deleteSchedule(name: string, namespace: string): Promise<void>;
+	deleteSchedule(namespace: string, name: string): Promise<void>;
 
-	suspendSchedule(name: string, namespace: string): Promise<void>;
+	suspendSchedule(namespace: string, name: string): Promise<void>;
 
-	resumeSchedule(name: string, namespace: string): Promise<void>;
+	resumeSchedule(namespace: string, name: string): Promise<void>;
 }
 
 export const ORCHESTRATOR_CLIENT = 'ORCHESTRATOR_CLIENT';

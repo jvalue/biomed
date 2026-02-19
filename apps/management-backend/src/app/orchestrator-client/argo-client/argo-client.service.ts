@@ -158,13 +158,13 @@ export class ArgoClientService implements IOrchestratorClient {
 
 	/**
 	 * Get a workflow run by name and namespace
-	 * @param name Name of the workflow run
 	 * @param namespace Namespace of the workflow run
+	 * @param name Name of the workflow run
 	 * @return The workflow run as CrawlerRunDto or null if not found
 	 */
-	async getCrawlerRunByNameAndNamespace(
-		name: string,
+	async getCrawlerRunByNamespaceAndName(
 		namespace: string,
+		name: string,
 	): Promise<CrawlerRunDto | null> {
 		this.logger.log(`Getting workflow ${name} from namespace ${namespace} from Argo Workflows API`);
 
@@ -226,13 +226,13 @@ export class ArgoClientService implements IOrchestratorClient {
 
 	/**
 	 * Get a workflow template by name and namespace
-	 * @param name Name of the workflow template
 	 * @param namespace Namespace of the workflow template
+	 * @param name Name of the workflow template
 	 * @return The workflow template as CrawlerTemplateDto
 	 */
-	async getCrawlerTemplateByNameAndNamespace(
-		name: string,
+	async getCrawlerTemplateByNamespaceAndName(
 		namespace: string,
+		name: string,
 	): Promise<CrawlerTemplateDto | null> {
 		this.logger.log(
 			`Getting workflow template ${name} from namespace ${namespace} from Argo Workflows API`,
@@ -262,13 +262,13 @@ export class ArgoClientService implements IOrchestratorClient {
 
 	/**
 	 * Submit a new workflow based on a workflow template
-	 * @param crawlerTemplateName Name of the workflow template to use
 	 * @param crawlerTemplateNamespace Namespace of the workflow template
+	 * @param crawlerTemplateName Name of the workflow template to use
 	 * @param parameters Parameters to pass to the workflow
 	 */
 	async submitCrawlerRunFromCrawlerTemplate(
-		crawlerTemplateName: string,
 		crawlerTemplateNamespace: string,
+		crawlerTemplateName: string,
 		parameters?: CrawlerRunParameterDto[],
 	): Promise<CrawlerRunDto> {
 		this.logger.log(
@@ -330,13 +330,13 @@ export class ArgoClientService implements IOrchestratorClient {
 
 	/**
 	 * Get a cron workflow by name and namespace
-	 * @param name Name of the cron workflow
 	 * @param namespace Namespace of the cron workflow
+	 * @param name Name of the cron workflow
 	 * @return The cron workflow as ScheduleDto
 	 */
-	async getScheduleByNameAndNamespace(
-		name: string,
+	async getScheduleByNamespaceAndName(
 		namespace: string,
+		name: string,
 	): Promise<ScheduleDto | null> {
 		this.logger.log(
 			`Getting cron workflow ${name} from namespace ${namespace} from Argo Workflows API`,
@@ -370,11 +370,11 @@ export class ArgoClientService implements IOrchestratorClient {
 	}
 
 	/**
-	 * Get a cron workflow by name and namespace (similar to getScheduleByNameAndNamespace but returns the raw ArgoCronWorkflow object)
-	 * @param name The name of the cron workflow
+	 * Get a cron workflow by name and namespace (similar to getScheduleByNamespaceAndName but returns the raw ArgoCronWorkflow object)
 	 * @param namespace The namespace of the cron workflow
+	 * @param name The name of the cron workflow
 	 */
-	async getCronWorkflow(name: string, namespace: string): Promise<ArgoCronWorkflow | null> {
+	async getCronWorkflow(namespace: string, name: string): Promise<ArgoCronWorkflow | null> {
 		this.logger.log(`Getting cron workflow ${name} in namespace ${namespace}`);
 
 		const url = `/cron-workflows/${namespace}/${name}`;
@@ -393,13 +393,13 @@ export class ArgoClientService implements IOrchestratorClient {
 
 	/**
 	 * Update a cron workflow
-	 * @param name The name of the cron workflow
 	 * @param namespace The namespace of the cron workflow
+	 * @param name The name of the cron workflow
 	 * @param cronWorkflow The updated cron workflow object
 	 */
 	async updateCronWorkflow(
-		name: string,
 		namespace: string,
+		name: string,
 		cronWorkflow: ArgoCronWorkflow,
 	): Promise<void> {
 		this.logger.log(`Updating cron workflow ${name} in namespace ${namespace}`);
@@ -444,10 +444,10 @@ export class ArgoClientService implements IOrchestratorClient {
 
 	/**
 	 * Delete a cron workflow by name and namespace
-	 * @param name Name of the cron workflow
 	 * @param namespace Namespace of the cron workflow
+	 * @param name Name of the cron workflow
 	 */
-	async deleteSchedule(name: string, namespace: string): Promise<void> {
+	async deleteSchedule(namespace: string, name: string): Promise<void> {
 		this.logger.log(
 			`Deleting cron workflow ${name} in namespace ${namespace} via Argo Workflows API`,
 		);
@@ -465,10 +465,10 @@ export class ArgoClientService implements IOrchestratorClient {
 
 	/**
 	 * Suspend a cron workflow by name and namespace
-	 * @param name Name of the cron workflow
 	 * @param namespace Namespace of the cron workflow
+	 * @param name Name of the cron workflow
 	 */
-	async suspendSchedule(name: string, namespace: string): Promise<void> {
+	async suspendSchedule(namespace: string, name: string): Promise<void> {
 		this.logger.log(
 			`Suspending cron workflow ${name} in namespace ${namespace} via Argo Workflows API`,
 		);
@@ -486,10 +486,10 @@ export class ArgoClientService implements IOrchestratorClient {
 
 	/**
 	 * Resume a cron workflow by name and namespace
-	 * @param name Name of the cron workflow
 	 * @param namespace Namespace of the cron workflow
+	 * @param name Name of the cron workflow
 	 */
-	async resumeSchedule(name: string, namespace: string): Promise<void> {
+	async resumeSchedule(namespace: string, name: string): Promise<void> {
 		this.logger.log(
 			`Resuming cron workflow ${name} in namespace ${namespace} via Argo Workflows API`,
 		);
@@ -525,7 +525,7 @@ export class ArgoClientService implements IOrchestratorClient {
 	 */
 	async enrichWorkflowRunWithCronWorkflowTemplateName(run: CrawlerRunDto): Promise<CrawlerRunDto> {
 		if (!run.crawlerTemplateName && run.scheduleName) {
-			const schedule = await this.getScheduleByNameAndNamespace(run.scheduleName, run.namespace);
+			const schedule = await this.getScheduleByNamespaceAndName(run.scheduleName, run.namespace);
 			if (schedule) {
 				run.crawlerTemplateName = schedule.crawlerTemplateName;
 			}
