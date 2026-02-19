@@ -48,7 +48,7 @@ export class CrawlerRunsController {
 		return this.crawlerRunsService.listCrawlerRuns(filterParams, paginationParams);
 	}
 
-	@ApiOperation({ summary: 'Get a crawler run by ID and namespace' })
+	@ApiOperation({ summary: 'Get a crawler run by namespace and ID' })
 	@ApiOkResponse({
 		type: CrawlerRunDto,
 		description: 'The requested crawler run',
@@ -61,44 +61,44 @@ export class CrawlerRunsController {
 	@RequirePermission('read', 'crawler-run')
 	@Get(':runNamespace/:runId')
 	async getCrawlerRun(
-		@Param('runId') runId: string,
 		@Param('runNamespace') runNamespace: string,
+		@Param('runId') runId: string,
 	): Promise<CrawlerRunDto> {
-		return this.crawlerRunsService.getCrawlerRun(runId, runNamespace);
+		return this.crawlerRunsService.getCrawlerRun(runNamespace, runId);
 	}
 
 	@ApiOperation({ summary: 'Save metrics for a specific crawler run' })
 	@ApiCreatedResponse({ description: 'Metrics saved successfully' })
-	@ApiParam({ name: 'runId', description: 'The ID of the crawler run' })
 	@ApiParam({ name: 'runNamespace', description: 'The namespace of the crawler run' })
+	@ApiParam({ name: 'runId', description: 'The ID of the crawler run' })
 	@ApiBody({ type: CrawlerRunMetricsIncomingDto })
 	@ApiSecurity('api-key')
 	@UseGuards(ApiKeyAuthGuard)
 	@Post(':runNamespace/:runId/metrics')
 	async saveCrawlerRunMetrics(
-		@Param('runId') crawlerRunId: string,
 		@Param('runNamespace') runNamespace: string,
+		@Param('runId') crawlerRunId: string,
 		@Body() metrics: CrawlerRunMetricsIncomingDto,
 	): Promise<void> {
-		return this.crawlerRunMetricsService.saveCrawlerRunMetric(crawlerRunId, runNamespace, metrics);
+		return this.crawlerRunMetricsService.saveCrawlerRunMetric(runNamespace, crawlerRunId, metrics);
 	}
 
 	@ApiOperation({ summary: 'Save download metrics for a specific crawler run' })
 	@ApiCreatedResponse({ description: 'Download metrics saved successfully' })
-	@ApiParam({ name: 'runId', description: 'The ID of the crawler run' })
 	@ApiParam({ name: 'runNamespace', description: 'The namespace of the crawler run' })
+	@ApiParam({ name: 'runId', description: 'The ID of the crawler run' })
 	@ApiBody({ type: CrawlerRunDownloadMetricsIncomingDto })
 	@ApiSecurity('api-key')
 	@UseGuards(ApiKeyAuthGuard)
 	@Post(':runNamespace/:runId/download-metrics')
 	async saveCrawlerRunDownloadMetrics(
-		@Param('runId') crawlerRunId: string,
 		@Param('runNamespace') runNamespace: string,
+		@Param('runId') crawlerRunId: string,
 		@Body() metrics: CrawlerRunDownloadMetricsIncomingDto,
 	): Promise<void> {
 		return this.crawlerRunMetricsService.saveCrawlerRunDownloadMetric(
-			crawlerRunId,
 			runNamespace,
+			crawlerRunId,
 			metrics,
 		);
 	}
@@ -108,36 +108,36 @@ export class CrawlerRunsController {
 		type: CrawlerRunMetricsOutgoingDto,
 	})
 	@ApiOperation({ summary: 'Get metrics for a specific crawler run' })
-	@ApiParam({ name: 'runId', description: 'The ID of the crawler run' })
 	@ApiParam({ name: 'runNamespace', description: 'The namespace of the crawler run' })
+	@ApiParam({ name: 'runId', description: 'The ID of the crawler run' })
 	@UseGuards(JwtAuthGuard, PermissionsGuard)
 	@RequirePermission('read', 'crawler-run')
 	@Get(':runNamespace/:runId/metrics')
 	async getCrawlerRunMetrics(
-		@Param('runId') crawlerRunId: string,
 		@Param('runNamespace') runNamespace: string,
+		@Param('runId') crawlerRunId: string,
 	) {
-		return this.crawlerRunMetricsService.getMetricsByRunId(crawlerRunId, runNamespace);
+		return this.crawlerRunMetricsService.getMetricsByRunId(runNamespace, crawlerRunId);
 	}
 
 	@ApiOperation({ summary: 'Save an event for a specific crawler run' })
 	@ApiCreatedResponse({ description: 'Event saved successfully' })
-	@ApiParam({ name: 'runId', description: 'The ID of the crawler run' })
 	@ApiParam({ name: 'runNamespace', description: 'The namespace of the crawler run' })
+	@ApiParam({ name: 'runId', description: 'The ID of the crawler run' })
 	@ApiBody({ type: CrawlerRunEventIncomingDto })
 	@Post(':runNamespace/:runId/events')
 	@ApiSecurity('api-key')
 	@UseGuards(ApiKeyAuthGuard)
 	async saveCrawlerRunEvent(
-		@Param('runId') crawlerRunId: string,
 		@Param('runNamespace') runNamespace: string,
+		@Param('runId') crawlerRunId: string,
 		@Body() event: CrawlerRunEventIncomingDto,
 	) {
-		return this.crawlerRunMetricsService.saveCrawlerRunEvent(crawlerRunId, runNamespace, event);
+		return this.crawlerRunMetricsService.saveCrawlerRunEvent(runNamespace, crawlerRunId, event);
 	}
 
-	@ApiParam({ name: 'runId', description: 'The ID of the crawler run' })
 	@ApiParam({ name: 'runNamespace', description: 'The namespace of the crawler run' })
+	@ApiParam({ name: 'runId', description: 'The ID of the crawler run' })
 	@ApiOperation({ summary: 'Get events for a specific crawler run' })
 	@ApiOkResponse({
 		description: 'Events retrieved successfully for the crawler run',
@@ -147,9 +147,9 @@ export class CrawlerRunsController {
 	@RequirePermission('read', 'crawler-run')
 	@Get(':runNamespace/:runId/events')
 	async getCrawlerRunEvents(
-		@Param('runId') crawlerRunId: string,
 		@Param('runNamespace') runNamespace: string,
+		@Param('runId') crawlerRunId: string,
 	) {
-		return this.crawlerRunMetricsService.getCrawlerRunEvents(crawlerRunId, runNamespace);
+		return this.crawlerRunMetricsService.getCrawlerRunEvents(runNamespace, crawlerRunId);
 	}
 }

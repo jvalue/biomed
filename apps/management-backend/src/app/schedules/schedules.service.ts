@@ -63,18 +63,18 @@ export class SchedulesService {
 
 	/**
 	 * Adds error to the activeErrors of a schedule
-	 * @param name The name of the Schedule
 	 * @param namespace The namespace of the Schedule
+	 * @param name The name of the Schedule
 	 * @param errorType The type of the error
 	 * @param details The details of the error
 	 */
 	async addScheduleError(
-		name: string,
 		namespace: string,
+		name: string,
 		errorType: ScheduleErrorType,
 		details: ScheduleErrorDetails,
 	): Promise<void> {
-		const schedule = await this.scheduleRepository.findOne({ where: { name, namespace } });
+		const schedule = await this.scheduleRepository.findOne({ where: { namespace, name } });
 		if (!schedule) {
 			this.logger.warn(
 				`Cannot add error to non-existing schedule ${name} in namespace ${namespace}`,
@@ -98,7 +98,7 @@ export class SchedulesService {
 		namespace: string,
 		errorType: ScheduleErrorType,
 	): Promise<void> {
-		const schedule = await this.scheduleRepository.findOne({ where: { name, namespace } });
+		const schedule = await this.scheduleRepository.findOne({ where: { namespace, name } });
 		if (!schedule) {
 			this.logger.warn(
 				`Cannot remove error from non-existing schedule ${name} in namespace ${namespace}`,
@@ -113,14 +113,14 @@ export class SchedulesService {
 
 	/**
 	 * Gets a Schedule by name and namespace
-	 * @param name The name of the Schedule
 	 * @param namespace The namespace of the Schedule
+	 * @param name The name of the Schedule
 	 * @returns The Schedule
 	 */
-	async getScheduleByNameAndNamespace(name: string, namespace: string): Promise<ScheduleDto> {
-		const schedule = await this.orchestratorClientService.getScheduleByNameAndNamespace(
-			name,
+	async getScheduleByNamespaceAndName(namespace: string, name: string): Promise<ScheduleDto> {
+		const schedule = await this.orchestratorClientService.getScheduleByNamespaceAndName(
 			namespace,
+			name,
 		);
 		if (!schedule) {
 			throw new NotFoundException(
@@ -133,14 +133,14 @@ export class SchedulesService {
 
 	/**
 	 * Returns if a schedule with the given name and namespace exists
-	 * @param name The name of the Schedule
 	 * @param namespace The namespace of the Schedule
+	 * @param name The name of the Schedule
 	 * @returns True if the Schedule exists, false otherwise
 	 */
-	async scheduleNameAlreadyExists(name: string, namespace: string): Promise<boolean> {
-		const schedule = await this.orchestratorClientService.getScheduleByNameAndNamespace(
-			name,
+	async scheduleNameAlreadyExists(namespace: string, name: string): Promise<boolean> {
+		const schedule = await this.orchestratorClientService.getScheduleByNamespaceAndName(
 			namespace,
+			name,
 		);
 		return schedule !== null;
 	}
@@ -168,19 +168,19 @@ export class SchedulesService {
 
 	/**
 	 * Updates a Schedule
-	 * @param name The name of the Schedule
 	 * @param namespace The namespace of the Schedule
+	 * @param name The name of the Schedule
 	 * @param updateScheduleDto The updated schedule data
 	 */
 	async updateSchedule(
-		name: string,
 		namespace: string,
+		name: string,
 		updateScheduleDto: UpdateScheduleDto,
 	): Promise<void> {
-		await this.scheduleEngine.updateSchedule(name, namespace, updateScheduleDto);
+		await this.scheduleEngine.updateSchedule(namespace, name, updateScheduleDto);
 		// Note: We don't need to update our local DB here because we don't store cronExpression or retryStrategy locally.
 
-		const schedule = await this.scheduleRepository.findOne({ where: { name, namespace } });
+		const schedule = await this.scheduleRepository.findOne({ where: { namespace, name } });
 
 		// Sync targets if schedule exists locally, otherwise it will be handled during the next sync from orchestrator
 		if (schedule) {
@@ -212,20 +212,20 @@ export class SchedulesService {
 
 	/**
 	 * Delete a Schedule
-	 * @param name The name of the Schedule
 	 * @param namespace The namespace of the Schedule
+	 * @param name The name of the Schedule
 	 */
-	async deleteSchedule(name: string, namespace: string): Promise<void> {
+	async deleteSchedule(namespace: string, name: string): Promise<void> {
 		// Delete schedule in the orchestrator
-		await this.orchestratorClientService.deleteSchedule(name, namespace);
+		await this.orchestratorClientService.deleteSchedule(namespace, name);
 
 		// Delete schedule in the local database
 		// Get the schedule with its targets
 		const scheduleEntity = await this.scheduleRepository.findOne({
-			where: { name, namespace },
+			where: { namespace, name },
 			relations: ['targets'],
 		});
-		await this.scheduleRepository.delete({ name, namespace });
+		await this.scheduleRepository.delete({ namespace, name });
 		// Delete orphaned targets (targets not referenced by any schedule)
 		if (scheduleEntity?.targets) {
 			for (const target of scheduleEntity.targets) {
@@ -236,28 +236,28 @@ export class SchedulesService {
 
 	/**
 	 * Suspend a Schedule
-	 * @param name The name of the Schedule
 	 * @param namespace The namespace of the Schedule
+	 * @param name The name of the Schedule
 	 */
-	async suspendSchedule(name: string, namespace: string): Promise<void> {
+	async suspendSchedule(namespace: string, name: string): Promise<void> {
 		// Suspend in the orchestrator
-		await this.orchestratorClientService.suspendSchedule(name, namespace);
+		await this.orchestratorClientService.suspendSchedule(namespace, name);
 
 		// Update local database
-		await this.scheduleRepository.update({ name, namespace }, { suspended: true });
+		await this.scheduleRepository.update({ namespace, name }, { suspended: true });
 	}
 
 	/**
 	 * Resume a Schedule
-	 * @param name The name of the Schedule
 	 * @param namespace The namespace of the Schedule
+	 * @param name The name of the Schedule
 	 */
-	async resumeSchedule(name: string, namespace: string): Promise<void> {
+	async resumeSchedule(namespace: string, name: string): Promise<void> {
 		// Resume in the orchestrator
-		await this.orchestratorClientService.resumeSchedule(name, namespace);
+		await this.orchestratorClientService.resumeSchedule(namespace, name);
 
 		// Update local database
-		await this.scheduleRepository.update({ name, namespace }, { suspended: false });
+		await this.scheduleRepository.update({ namespace, name }, { suspended: false });
 	}
 
 	/**
@@ -272,17 +272,17 @@ export class SchedulesService {
 
 	/**
 	 * Sets the last checked template version label for a schedule
-	 * @param name
 	 * @param namespace
+	 * @param name
 	 * @param versionLabel
 	 */
 	async setLastCheckedTemplateVersionLabel(
-		name: string,
 		namespace: string,
+		name: string,
 		versionLabel: string,
 	): Promise<void> {
 		await this.scheduleRepository.update(
-			{ name, namespace },
+			{ namespace, name },
 			{ lastCheckedTemplateVersionLabel: versionLabel },
 		);
 	}
@@ -328,7 +328,7 @@ export class SchedulesService {
 			this.logger.warn(
 				`Local schedule ${local.name} in namespace ${local.namespace} not found in orchestrator — deleting from local database.`,
 			);
-			await this.scheduleRepository.delete({ name: local.name, namespace: local.namespace });
+			await this.scheduleRepository.delete({ namespace: local.namespace, name: local.name });
 			if (local.targets) {
 				for (const target of local.targets) {
 					await this.targetsService.deleteTargetIfUnreferenced(target.url);
@@ -480,7 +480,7 @@ export class SchedulesService {
 	 */
 	async enrichScheduleDtoWithLocalData(scheduleDto: ScheduleDto): Promise<void> {
 		const scheduleEntity = await this.scheduleRepository.findOne({
-			where: { name: scheduleDto.name, namespace: scheduleDto.namespace },
+			where: { namespace: scheduleDto.namespace, name: scheduleDto.name },
 		});
 		if (scheduleEntity) {
 			scheduleDto.activeErrors = scheduleEntity.activeErrors;

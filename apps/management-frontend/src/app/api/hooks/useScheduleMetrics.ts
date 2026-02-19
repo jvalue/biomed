@@ -5,12 +5,12 @@ import { isRetryableError } from '@/src/app/api/hooks/hook-utils';
 import { scheduleService } from '@/src/app/api/services/schedule.service';
 
 export const useScheduleMetricsSummary = (
-	name: string,
 	namespace: string,
+	name: string,
 ): UseQueryResult<ScheduleOverallMetricsDto> => {
 	return useQuery<ScheduleOverallMetricsDto>({
 		queryKey: ['scheduleMetrics', namespace, name],
-		queryFn: () => scheduleService.getScheduleMetricsSummary(name, namespace),
+		queryFn: () => scheduleService.getScheduleMetricsSummary(namespace, name),
 		refetchInterval: (query) => {
 			if (query.state.error) {
 				if (isRetryableError(query.state.error)) {
@@ -27,14 +27,14 @@ export const useScheduleMetricsSummary = (
 };
 
 export const useScheduleHistoricalMetrics = (
-	name: string,
 	namespace: string,
+	name: string,
 	fromDate?: Date,
 	toDate?: Date,
 ): UseQueryResult<ScheduleHistoricalMetricsItemDto[]> => {
 	return useQuery<ScheduleHistoricalMetricsItemDto[]>({
 		queryKey: ['scheduleHistoricalMetrics', namespace, name, fromDate, toDate],
-		queryFn: () => scheduleService.getScheduleMetricsHistory(name, namespace, fromDate, toDate),
+		queryFn: () => scheduleService.getScheduleMetricsHistory(namespace, name, fromDate, toDate),
 		refetchInterval: (query) => {
 			if (query.state.error) {
 				if (isRetryableError(query.state.error)) {

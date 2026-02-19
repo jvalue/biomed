@@ -52,9 +52,9 @@ export class CrawlerTemplatesController {
 		@Param('namespace') namespace: string,
 		@Param('templateName') templateName: string,
 	): Promise<CrawlerTemplateDto> {
-		return this.crawlerTemplatesService.getCrawlerTemplateByNameAndNamespace(
-			templateName,
+		return this.crawlerTemplatesService.getCrawlerTemplateByNamespaceAndName(
 			namespace,
+			templateName,
 		);
 	}
 

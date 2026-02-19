@@ -15,13 +15,13 @@ export const useSchedules = (options?: { enabled?: boolean }): UseQueryResult<Sc
 	});
 };
 
-export const useScheduleByNameAndNamespace = (
-	name: string,
+export const useScheduleByNamespaceAndName = (
 	namespace: string,
+	name: string,
 ): UseQueryResult<ScheduleDto> => {
 	return useQuery({
 		queryKey: ['schedule', namespace, name],
-		queryFn: () => scheduleService.getScheduleByNameAndNamespace(name, namespace),
+		queryFn: () => scheduleService.getScheduleByNamespaceAndName(namespace, name),
 		refetchInterval: (query) => {
 			if (query.state.error) {
 				if (isRetryableError(query.state.error)) {
@@ -39,18 +39,18 @@ export const useScheduleByNameAndNamespace = (
 
 /**
  * Check if a schedule name exists in a namespace
- * @param name
  * @param namespace
+ * @param name
  * @param enabled optional flag to enable the query (default: true)
  */
 export const useScheduleNameExists = (
-	name: string,
 	namespace: string,
+	name: string,
 	enabled: boolean = true,
 ): UseQueryResult<boolean> => {
 	return useQuery<boolean>({
 		queryKey: ['schedule', namespace, name, 'exists'],
-		queryFn: () => scheduleService.scheduleNameExists(name, namespace),
+		queryFn: () => scheduleService.scheduleNameExists(namespace, name),
 		enabled: enabled && !!name && !!namespace,
 	});
 };
@@ -73,8 +73,8 @@ export const useCreateSchedule = () => {
 
 /**
  * Update an existing schedule
- * @param name
  * @param namespace
+ * @param name
  * @param dto
  */
 export const useUpdateSchedule = () => {
@@ -82,14 +82,14 @@ export const useUpdateSchedule = () => {
 
 	return useMutation({
 		mutationFn: ({
-			name,
 			namespace,
+			name,
 			dto,
 		}: {
-			name: string;
 			namespace: string;
+			name: string;
 			dto: UpdateScheduleDto;
-		}) => scheduleService.updateSchedule(name, namespace, dto),
+		}) => scheduleService.updateSchedule(namespace, name, dto),
 		onSuccess: (_, variables) => {
 			queryClient.invalidateQueries({
 				queryKey: ['schedule', variables.namespace, variables.name],
@@ -101,14 +101,14 @@ export const useUpdateSchedule = () => {
 
 /**
  * Delete a schedule
- * @param name
  * @param namespace
+ * @param name
  */
 export const useDeleteSchedule = () => {
 	const queryClient = useQueryClient();
 	return useMutation({
-		mutationFn: ({ name, namespace }: { name: string; namespace: string }) =>
-			scheduleService.deleteSchedule(name, namespace),
+		mutationFn: ({ namespace, name }: { namespace: string; name: string }) =>
+			scheduleService.deleteSchedule(namespace, name),
 		onSuccess: (_data, variables) => {
 			// Invalidate and refetch schedules query to reflect changes
 			queryClient.invalidateQueries({
@@ -121,14 +121,14 @@ export const useDeleteSchedule = () => {
 
 /**
  * Suspend a schedule
- * @param name
  * @param namespace
+ * @param name
  */
 export const useSuspendSchedule = () => {
 	const queryClient = useQueryClient();
 	return useMutation({
-		mutationFn: ({ name, namespace }: { name: string; namespace: string }) =>
-			scheduleService.suspendSchedule(name, namespace),
+		mutationFn: ({ namespace, name }: { namespace: string; name: string }) =>
+			scheduleService.suspendSchedule(namespace, name),
 		onSuccess: (_data, variables) => {
 			// Invalidate and refetch schedules query to reflect changes
 			queryClient.invalidateQueries({
@@ -143,14 +143,14 @@ export const useSuspendSchedule = () => {
 
 /**
  * Resume a schedule
- * @param name
  * @param namespace
+ * @param name
  */
 export const useResumeSchedule = () => {
 	const queryClient = useQueryClient();
 	return useMutation({
-		mutationFn: ({ name, namespace }: { name: string; namespace: string }) =>
-			scheduleService.resumeSchedule(name, namespace),
+		mutationFn: ({ namespace, name }: { namespace: string; name: string }) =>
+			scheduleService.resumeSchedule(namespace, name),
 		onSuccess: (_data, variables) => {
 			// Invalidate and refetch schedules query to reflect changes
 			queryClient.invalidateQueries({
