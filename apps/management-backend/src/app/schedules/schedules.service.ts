@@ -89,13 +89,13 @@ export class SchedulesService {
 
 	/**
 	 * Removes error from the activeErrors of a schedule
-	 * @param name The name of the Schedule
 	 * @param namespace The namespace of the Schedule
+	 * @param name The name of the Schedule
 	 * @param errorType The type of the error
 	 */
 	async removeScheduleError(
-		name: string,
 		namespace: string,
+		name: string,
 		errorType: ScheduleErrorType,
 	): Promise<void> {
 		const schedule = await this.scheduleRepository.findOne({ where: { namespace, name } });
