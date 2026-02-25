@@ -83,8 +83,8 @@ export class CrawlerTemplatesController {
 		@Body() parameters?: CrawlerRunParameterDto[],
 	): Promise<CrawlerRunDto> {
 		return this.crawlerTemplatesService.submitCrawlerTemplateRun(
-			templateName,
 			namespace,
+			templateName,
 			parameters,
 		);
 	}
