@@ -443,7 +443,7 @@ export class ArgoClientService implements IOrchestratorClient {
 	}
 
 	/**
-	 * Delete a cron workflow by name and namespace
+	 * Delete a cron workflow by namespace and name
 	 * @param namespace Namespace of the cron workflow
 	 * @param name Name of the cron workflow
 	 */
@@ -464,7 +464,7 @@ export class ArgoClientService implements IOrchestratorClient {
 	}
 
 	/**
-	 * Suspend a cron workflow by name and namespace
+	 * Suspend a cron workflow by namespace and name
 	 * @param namespace Namespace of the cron workflow
 	 * @param name Name of the cron workflow
 	 */
@@ -485,7 +485,7 @@ export class ArgoClientService implements IOrchestratorClient {
 	}
 
 	/**
-	 * Resume a cron workflow by name and namespace
+	 * Resume a cron workflow by namespace and name
 	 * @param namespace Namespace of the cron workflow
 	 * @param name Name of the cron workflow
 	 */

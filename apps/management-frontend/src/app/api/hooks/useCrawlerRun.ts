@@ -15,7 +15,7 @@ export const useCrawlerRun = (
 	runId: string,
 ): UseQueryResult<CrawlerRunDto> => {
 	return useQuery({
-		queryKey: ['crawlerRun', runId],
+		queryKey: ['crawlerRun', runNamespace, runId],
 		queryFn: () => crawlerRunService.getCrawlerRun(runNamespace, runId),
 		refetchInterval: (query) => {
 			if (query.state.error) {
