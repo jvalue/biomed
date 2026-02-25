@@ -53,8 +53,8 @@ export function ScheduleFormDialog({
 
 	// Fetch templates if in edit mode and template not provided (to get parameter definitions)
 	const { data: template } = useCrawlerTemplateByNamespaceAndName(
-		propTemplate?.name || initialSchedule?.crawlerTemplateName || '',
 		propTemplate?.namespace || initialSchedule?.namespace || '',
+		propTemplate?.name || initialSchedule?.crawlerTemplateName || '',
 		!!(propTemplate || initialSchedule),
 	);
 
@@ -132,8 +132,8 @@ export function ScheduleFormDialog({
 
 	// Check if name already exists (only in create mode)
 	const scheduleNameQuery = useScheduleNameExists(
-		scheduleName,
 		template?.namespace ?? '',
+		scheduleName,
 		Boolean(mode === 'create' && scheduleName && template?.namespace),
 	);
 
