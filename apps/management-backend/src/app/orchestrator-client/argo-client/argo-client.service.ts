@@ -157,7 +157,7 @@ export class ArgoClientService implements IOrchestratorClient {
 	}
 
 	/**
-	 * Get a workflow run by name and namespace
+	 * Get a workflow run by namespace and name
 	 * @param namespace Namespace of the workflow run
 	 * @param name Name of the workflow run
 	 * @return The workflow run as CrawlerRunDto or null if not found
@@ -225,7 +225,7 @@ export class ArgoClientService implements IOrchestratorClient {
 	}
 
 	/**
-	 * Get a workflow template by name and namespace
+	 * Get a workflow template by namespace and name
 	 * @param namespace Namespace of the workflow template
 	 * @param name Name of the workflow template
 	 * @return The workflow template as CrawlerTemplateDto
@@ -329,7 +329,7 @@ export class ArgoClientService implements IOrchestratorClient {
 	}
 
 	/**
-	 * Get a cron workflow by name and namespace
+	 * Get a cron workflow by namespace and name
 	 * @param namespace Namespace of the cron workflow
 	 * @param name Name of the cron workflow
 	 * @return The cron workflow as ScheduleDto
@@ -370,7 +370,7 @@ export class ArgoClientService implements IOrchestratorClient {
 	}
 
 	/**
-	 * Get a cron workflow by name and namespace (similar to getScheduleByNamespaceAndName but returns the raw ArgoCronWorkflow object)
+	 * Get a cron workflow by namespace and name (similar to getScheduleByNamespaceAndName but returns the raw ArgoCronWorkflow object)
 	 * @param namespace The namespace of the cron workflow
 	 * @param name The name of the cron workflow
 	 */
@@ -525,7 +525,7 @@ export class ArgoClientService implements IOrchestratorClient {
 	 */
 	async enrichWorkflowRunWithCronWorkflowTemplateName(run: CrawlerRunDto): Promise<CrawlerRunDto> {
 		if (!run.crawlerTemplateName && run.scheduleName) {
-			const schedule = await this.getScheduleByNamespaceAndName(run.scheduleName, run.namespace);
+			const schedule = await this.getScheduleByNamespaceAndName(run.namespace, run.scheduleName);
 			if (schedule) {
 				run.crawlerTemplateName = schedule.crawlerTemplateName;
 			}

@@ -92,8 +92,8 @@ describe('OrchestratorSyncService methods: handleScheduleTemplateCheck & compare
 		await service.compareParamsAndUpdateErrors(localSchedule, template, argoSchedule);
 
 		expect(schedulesServiceMock.removeScheduleError).toHaveBeenCalledWith(
-			localSchedule.name,
 			localSchedule.namespace,
+			localSchedule.name,
 			ScheduleErrorType.PARAMETER_MISMATCH,
 		);
 		expect(schedulesServiceMock.addScheduleError).not.toHaveBeenCalled();
@@ -165,8 +165,8 @@ describe('OrchestratorSyncService methods: handleScheduleTemplateCheck & compare
 		await service.handleScheduleTemplateCheck(localSchedule);
 
 		expect(schedulesServiceMock.removeScheduleError).toHaveBeenCalledWith(
-			localSchedule.name,
 			localSchedule.namespace,
+			localSchedule.name,
 			ScheduleErrorType.TEMPLATE_NOT_FOUND,
 		);
 		expect(argoClientMock.getScheduleByNamespaceAndName).not.toHaveBeenCalled();
@@ -180,14 +180,14 @@ describe('OrchestratorSyncService methods: handleScheduleTemplateCheck & compare
 		await service.handleScheduleTemplateCheck(localSchedule);
 
 		expect(schedulesServiceMock.removeScheduleError).toHaveBeenCalledWith(
-			localSchedule.name,
 			localSchedule.namespace,
+			localSchedule.name,
 			ScheduleErrorType.TEMPLATE_NOT_FOUND,
 		);
 		// No PARAMETER_MISMATCH should have been added
 		expect(schedulesServiceMock.addScheduleError).not.toHaveBeenCalledWith(
-			localSchedule.name,
 			localSchedule.namespace,
+			localSchedule.name,
 			ScheduleErrorType.PARAMETER_MISMATCH,
 			expect.anything(),
 		);
@@ -202,14 +202,14 @@ describe('OrchestratorSyncService methods: handleScheduleTemplateCheck & compare
 
 		// template-not-found should have been cleared
 		expect(schedulesServiceMock.removeScheduleError).toHaveBeenCalledWith(
-			localSchedule.name,
 			localSchedule.namespace,
+			localSchedule.name,
 			ScheduleErrorType.TEMPLATE_NOT_FOUND,
 		);
 		// parameter mismatch should have been added
 		expect(schedulesServiceMock.addScheduleError).toHaveBeenCalledWith(
-			localSchedule.name,
 			localSchedule.namespace,
+			localSchedule.name,
 			ScheduleErrorType.PARAMETER_MISMATCH,
 			expect.any(Object),
 		);

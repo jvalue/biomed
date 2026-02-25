@@ -114,7 +114,7 @@ export class CrawlerRunMetricsService {
 	) {
 		this.logger.log(`Saving event for crawler run ${runId} in namespace ${runNamespace}`);
 		// Ensure run already exists
-		await this.createEmptyCrawlerRunMetricIfDoesntExist(runId, runNamespace);
+		await this.createEmptyCrawlerRunMetricIfDoesntExist(runNamespace, runId);
 		await this.crawlerRunEventEntityRepository.save({
 			runId,
 			runNamespace,
@@ -241,7 +241,7 @@ export class CrawlerRunMetricsService {
 	 * @param runId
 	 * @private
 	 */
-	private async createEmptyCrawlerRunMetricIfDoesntExist(runId: string, runNamespace: string) {
+	private async createEmptyCrawlerRunMetricIfDoesntExist(runNamespace: string, runId: string) {
 		if (await this.crawlerRunMetricsRepository.findOneBy({ runId, runNamespace })) {
 			return;
 		}
