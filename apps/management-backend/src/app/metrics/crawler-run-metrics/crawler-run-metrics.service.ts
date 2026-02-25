@@ -25,13 +25,13 @@ export class CrawlerRunMetricsService {
 
 	/**
 	 * Save crawler run metric.
-	 * @param runId The ID of the crawler run.
 	 * @param runNamespace The namespace of the crawler run.
+	 * @param runId The ID of the crawler run.
 	 * @param metric The metrics to save.
 	 */
 	async saveCrawlerRunMetric(
-		runId: string,
 		runNamespace: string,
+		runId: string,
 		metric: CrawlerRunMetricsIncomingDto,
 	): Promise<void> {
 		this.logger.log(`Saving metrics for crawler run ${runId} in namespace ${runNamespace}`);
@@ -56,13 +56,13 @@ export class CrawlerRunMetricsService {
 
 	/**
 	 * Save crawler run download metric.
-	 * @param runId The ID of the crawler run.
 	 * @param runNamespace The namespace of the crawler run.
+	 * @param runId The ID of the crawler run.
 	 * @param metric The download metrics to save.
 	 */
 	async saveCrawlerRunDownloadMetric(
-		runId: string,
 		runNamespace: string,
+		runId: string,
 		metric: CrawlerRunDownloadMetricsIncomingDto,
 	): Promise<void> {
 		this.logger.log(
@@ -90,26 +90,26 @@ export class CrawlerRunMetricsService {
 
 	/**
 	 * Get metrics by crawler run ID.
-	 * @param runId The ID of the crawler run.
 	 * @param runNamespace The namespace of the crawler run.
+	 * @param runId The ID of the crawler run.
 	 * @returns The metrics for the specified crawler run, or null if not found.
 	 */
 	async getMetricsByRunId(
-		runId: string,
 		runNamespace: string,
+		runId: string,
 	): Promise<CrawlerRunMetricsOutgoingDto | null> {
 		return this.crawlerRunMetricsRepository.findOne({ where: { runId, runNamespace } });
 	}
 
 	/**
 	 * Saves a crawler run event
-	 * @param runId The ID of the crawler run
 	 * @param runNamespace The namespace of the crawler run
+	 * @param runId The ID of the crawler run
 	 * @param event The event to store for the crawler run
 	 */
 	async saveCrawlerRunEvent(
-		runId: string,
 		runNamespace: string,
+		runId: string,
 		event: CrawlerRunEventIncomingDto,
 	) {
 		this.logger.log(`Saving event for crawler run ${runId} in namespace ${runNamespace}`);
@@ -149,14 +149,14 @@ export class CrawlerRunMetricsService {
 	/**
 	 * Gets historical graph data for a schedule.
 	 * Aggregates metrics by day.
-	 * @param scheduleName The name of the schedule.
 	 * @param scheduleNamespace The namespace of the schedule.
+	 * @param scheduleName The name of the schedule.
 	 * @param queryDto The query parameters for date range.
 	 * @returns The historical metrics for the schedule.
 	 */
 	async getHistoricalScheduleMetrics(
-		scheduleName: string,
 		scheduleNamespace: string,
+		scheduleName: string,
 		queryDto: HistoricalMetricsQueryDto,
 	): Promise<ScheduleHistoricalMetricsItemDto[]> {
 		const { from, to } = queryDto;
@@ -207,13 +207,13 @@ export class CrawlerRunMetricsService {
 
 	/**
 	 * Get overall aggregated metrics for a schedule across all time.
-	 * @param scheduleName The name of the schedule.
 	 * @param scheduleNamespace The namespace of the schedule.
+	 * @param scheduleName The name of the schedule.
 	 * @returns The overall metrics for the schedule.
 	 */
 	async getOverallScheduleMetrics(
-		scheduleName: string,
 		scheduleNamespace: string,
+		scheduleName: string,
 	): Promise<ScheduleOverallMetricsDto> {
 		const qb = this.crawlerRunMetricsRepository
 			.createQueryBuilder('m')
@@ -237,8 +237,8 @@ export class CrawlerRunMetricsService {
 
 	/**
 	 * Creates an empty crawler run metric if it doesn't already exist
-	 * @param runId
 	 * @param runNamespace
+	 * @param runId
 	 * @private
 	 */
 	private async createEmptyCrawlerRunMetricIfDoesntExist(runId: string, runNamespace: string) {
