@@ -59,7 +59,7 @@ describe('ArgoClientService.enrichWorkflowRunWithCronWorkflowTemplateName', () =
 
 			const result = await service.enrichWorkflowRunWithCronWorkflowTemplateName(run);
 
-			expect(service.getScheduleByNamespaceAndName).toHaveBeenCalledWith('s1', 'ns1');
+			expect(service.getScheduleByNamespaceAndName).toHaveBeenCalledWith('ns1', 's1');
 			expect(result.crawlerTemplateName).toBe('awesome-dragon');
 		},
 	);
@@ -82,7 +82,7 @@ describe('ArgoClientService.enrichWorkflowRunWithCronWorkflowTemplateName', () =
 
 		const result = await service.enrichWorkflowRunWithCronWorkflowTemplateName(run);
 
-		expect(service.getScheduleByNamespaceAndName).toHaveBeenCalledWith('missing-schedule', 'ns3');
+		expect(service.getScheduleByNamespaceAndName).toHaveBeenCalledWith('ns3', 'missing-schedule');
 		expect(result.crawlerTemplateName).toBeUndefined();
 	});
 

@@ -106,8 +106,8 @@ export class OrchestratorSyncService implements OnModuleInit, OnModuleDestroy {
 
 			// Lookup template
 			const template = await this.orchestratorClientService.getCrawlerTemplateByNamespaceAndName(
-				templateName,
 				templateNamespace,
+				templateName,
 			);
 			if (!template) {
 				this.logger.error(
@@ -115,8 +115,8 @@ export class OrchestratorSyncService implements OnModuleInit, OnModuleDestroy {
 				);
 				// set error for missing template
 				await this.schedulesService.addScheduleError(
-					localSchedule.name,
 					localSchedule.namespace,
+					localSchedule.name,
 					ScheduleErrorType.TEMPLATE_NOT_FOUND,
 					{
 						details: `Referenced Crawler Template ${templateName} not found in namespace ${templateNamespace}`,
@@ -128,8 +128,8 @@ export class OrchestratorSyncService implements OnModuleInit, OnModuleDestroy {
 
 			// If a template-not-found error existed previously, clear it now that we found the template
 			await this.schedulesService.removeScheduleError(
-				localSchedule.name,
 				localSchedule.namespace,
+				localSchedule.name,
 				ScheduleErrorType.TEMPLATE_NOT_FOUND,
 			);
 
@@ -145,8 +145,8 @@ export class OrchestratorSyncService implements OnModuleInit, OnModuleDestroy {
 			// Lookup schedule in orchestrator
 			const orchestratorSchedule =
 				await this.orchestratorClientService.getScheduleByNamespaceAndName(
-					localSchedule.name,
 					localSchedule.namespace,
+					localSchedule.name,
 				);
 			if (!orchestratorSchedule) {
 				// schedule not found in orchestrator, skip as it will be removed by next sync
@@ -162,8 +162,8 @@ export class OrchestratorSyncService implements OnModuleInit, OnModuleDestroy {
 			if (template.templateVersion) {
 				// Set the last checked template version label
 				await this.schedulesService.setLastCheckedTemplateVersionLabel(
-					localSchedule.name,
 					localSchedule.namespace,
+					localSchedule.name,
 					template.templateVersion,
 				);
 			}
@@ -197,8 +197,8 @@ export class OrchestratorSyncService implements OnModuleInit, OnModuleDestroy {
 		// If there are no differences, remove any existing PARAMETER_MISMATCH error
 		if (missing.length === 0 && extra.length === 0) {
 			await this.schedulesService.removeScheduleError(
-				localSchedule.name,
 				localSchedule.namespace,
+				localSchedule.name,
 				ScheduleErrorType.PARAMETER_MISMATCH,
 			);
 			return;
@@ -217,8 +217,8 @@ export class OrchestratorSyncService implements OnModuleInit, OnModuleDestroy {
 
 		const details = parts.join('; ');
 		await this.schedulesService.addScheduleError(
-			localSchedule.name,
 			localSchedule.namespace,
+			localSchedule.name,
 			ScheduleErrorType.PARAMETER_MISMATCH,
 			{
 				details,
