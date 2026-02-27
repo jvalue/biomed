@@ -29,7 +29,7 @@ export default function DeleteScheduleDialogComponent({
 	const handleConfirmDelete = () => {
 		if (!scheduleName || !scheduleNamespace) return;
 		deleteSchedule.mutate(
-			{ name: scheduleName, namespace: scheduleNamespace },
+			{ namespace: scheduleNamespace, name: scheduleName },
 			{
 				onSuccess: () => {
 					onOpenChange(false);

@@ -22,17 +22,17 @@ function RouteComponent() {
 		data: run,
 		isLoading: isLoadingRun,
 		error: runError,
-	} = useCrawlerRun(crawlerRunId, crawlerRunNamespace);
+	} = useCrawlerRun(crawlerRunNamespace, crawlerRunId);
 	const {
 		data: metrics,
 		isLoading: isLoadingMetrics,
 		error: metricsError,
-	} = useCrawlerRunMetrics(crawlerRunId, crawlerRunNamespace, run?.phase);
+	} = useCrawlerRunMetrics(crawlerRunNamespace, crawlerRunId, run?.phase);
 	const {
 		data: events,
 		isLoading: isLoadingEvents,
 		error: eventsError,
-	} = useCrawlerRunEvents(crawlerRunId, crawlerRunNamespace, run?.phase);
+	} = useCrawlerRunEvents(crawlerRunNamespace, crawlerRunId, run?.phase);
 
 	const durationSeconds =
 		run?.finishedAt && run?.startedAt
