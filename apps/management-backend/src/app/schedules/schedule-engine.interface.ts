@@ -15,13 +15,13 @@ export interface IScheduleEngine {
 
 	/**
 	 * Updates a schedule
-	 * @param name The name of the schedule
 	 * @param namespace The namespace of the schedule
+	 * @param name The name of the schedule
 	 * @param updateScheduleDto The updated schedule data
 	 */
 	updateSchedule(
-		name: string,
 		namespace: string,
+		name: string,
 		updateScheduleDto: UpdateScheduleDto,
 	): Promise<void>;
 }

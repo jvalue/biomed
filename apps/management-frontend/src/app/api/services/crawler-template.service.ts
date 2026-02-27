@@ -7,9 +7,9 @@ export const crawlerTemplateService = {
 		return data;
 	},
 
-	getCrawlerTemplateByNameAndNamespace: async (
-		name: string,
+	getCrawlerTemplateByNamespaceAndName: async (
 		namespace: string,
+		name: string,
 	): Promise<CrawlerTemplateDto> => {
 		const path = `crawler-templates/${encodeURIComponent(namespace)}/${encodeURIComponent(name)}`;
 		const { data } = await managementBackendClient.get(path);

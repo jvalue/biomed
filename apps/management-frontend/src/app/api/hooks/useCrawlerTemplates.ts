@@ -23,14 +23,14 @@ export const useCrawlerTemplates = (options?: { enabled?: boolean }) => {
 	});
 };
 
-export const useCrawlerTemplateByNameAndNamespace = (
-	name: string,
+export const useCrawlerTemplateByNamespaceAndName = (
 	namespace: string,
+	name: string,
 	enabled: boolean = true,
 ) => {
 	return useQuery({
 		queryKey: ['crawlerTemplate', namespace, name],
-		queryFn: () => crawlerTemplateService.getCrawlerTemplateByNameAndNamespace(name, namespace),
+		queryFn: () => crawlerTemplateService.getCrawlerTemplateByNamespaceAndName(namespace, name),
 		refetchInterval: (query) => {
 			if (query.state.error) {
 				if (isRetryableError(query.state.error)) {

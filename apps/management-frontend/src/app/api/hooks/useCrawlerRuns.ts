@@ -5,8 +5,8 @@ import { isRetryableError } from '@/src/app/api/hooks/hook-utils';
 import { crawlerRunService } from '@/src/app/api/services/crawler-run.service';
 
 export const useCrawlerRuns = (params?: {
-	scheduleName?: string;
 	namespace?: string;
+	scheduleName?: string;
 	crawlerTemplateName?: string;
 	phases?: CrawlerRunPhaseEnum[];
 	startedAfter?: Date;
@@ -18,8 +18,8 @@ export const useCrawlerRuns = (params?: {
 		queryKey: [
 			'crawlerRuns',
 			{
-				scheduleName: params?.scheduleName,
 				namespace: params?.namespace,
+				scheduleName: params?.scheduleName,
 				crawlerTemplateName: params?.crawlerTemplateName,
 
 				// keep array order stable

@@ -60,8 +60,8 @@ interface RetryStrategy {
 }
 
 interface ObjectMeta {
-	name: string;
 	namespace: string;
+	name: string;
 	labels?: Record<string, string>;
 	annotations?: Record<string, string>;
 }

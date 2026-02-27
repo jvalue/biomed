@@ -22,17 +22,17 @@ export class CrawlerTemplatesService {
 	}
 
 	/**
-	 * Gets a specific crawler Template by name and namespace.
-	 * @param templateName
+	 * Gets a specific crawler Template by namespace and name.
 	 * @param namespace
+	 * @param templateName
 	 */
-	async getCrawlerTemplateByNameAndNamespace(
-		templateName: string,
+	async getCrawlerTemplateByNamespaceAndName(
 		namespace: string,
+		templateName: string,
 	): Promise<CrawlerTemplateDto> {
-		const template = await this.orchestratorClientService.getCrawlerTemplateByNameAndNamespace(
-			templateName,
+		const template = await this.orchestratorClientService.getCrawlerTemplateByNamespaceAndName(
 			namespace,
+			templateName,
 		);
 		if (!template) {
 			throw new NotFoundException(`Crawler template ${namespace}/${templateName} not found`);
@@ -42,18 +42,18 @@ export class CrawlerTemplatesService {
 
 	/**
 	 * Submits a new crawler Run from a crawler Template.
-	 * @param templateName
 	 * @param namespace
+	 * @param templateName
 	 * @param parameters
 	 */
 	async submitCrawlerTemplateRun(
-		templateName: string,
 		namespace: string,
+		templateName: string,
 		parameters?: CrawlerRunParameterDto[],
 	): Promise<CrawlerRunDto> {
 		return this.orchestratorClientService.submitCrawlerRunFromCrawlerTemplate(
-			templateName,
 			namespace,
+			templateName,
 			parameters,
 		);
 	}
