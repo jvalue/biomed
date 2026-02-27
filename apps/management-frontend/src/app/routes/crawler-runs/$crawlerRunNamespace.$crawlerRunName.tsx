@@ -12,27 +12,27 @@ import ParameterSectionComponent from '@/src/app/components/design-components/pa
 import { Spinner } from '@/src/app/components/design-components/spinner';
 import { getPhaseClass } from '../../components/crawler-runs/utils/get-phase-class';
 
-export const Route = createFileRoute('/crawler-runs/$crawlerRunNamespace/$crawlerRunId')({
+export const Route = createFileRoute('/crawler-runs/$crawlerRunNamespace/$crawlerRunName')({
 	component: RouteComponent,
 });
 
 function RouteComponent() {
-	const { crawlerRunNamespace, crawlerRunId } = Route.useParams();
+	const { crawlerRunNamespace, crawlerRunName } = Route.useParams();
 	const {
 		data: run,
 		isLoading: isLoadingRun,
 		error: runError,
-	} = useCrawlerRun(crawlerRunNamespace, crawlerRunId);
+	} = useCrawlerRun(crawlerRunNamespace, crawlerRunName);
 	const {
 		data: metrics,
 		isLoading: isLoadingMetrics,
 		error: metricsError,
-	} = useCrawlerRunMetrics(crawlerRunNamespace, crawlerRunId, run?.phase);
+	} = useCrawlerRunMetrics(crawlerRunNamespace, crawlerRunName, run?.phase);
 	const {
 		data: events,
 		isLoading: isLoadingEvents,
 		error: eventsError,
-	} = useCrawlerRunEvents(crawlerRunNamespace, crawlerRunId, run?.phase);
+	} = useCrawlerRunEvents(crawlerRunNamespace, crawlerRunName, run?.phase);
 
 	const durationSeconds =
 		run?.finishedAt && run?.startedAt
