@@ -123,7 +123,7 @@ export class CrawlerRunsController {
 	@ApiOperation({ summary: 'Save an event for a specific crawler run' })
 	@ApiCreatedResponse({ description: 'Event saved successfully' })
 	@ApiParam({ name: 'runNamespace', description: 'The namespace of the crawler run' })
-	@ApiParam({ name: 'runName', description: 'The of the crawler run' })
+	@ApiParam({ name: 'runName', description: 'The name of the crawler run' })
 	@ApiBody({ type: CrawlerRunEventIncomingDto })
 	@Post(':runNamespace/:runName/events')
 	@ApiSecurity('api-key')
