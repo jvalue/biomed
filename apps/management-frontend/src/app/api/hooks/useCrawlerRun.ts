@@ -6,17 +6,17 @@ import { crawlerRunService } from '@/src/app/api/services/crawler-run.service';
 const activePhases = [CrawlerRunPhaseEnum.RUNNING, CrawlerRunPhaseEnum.PENDING];
 
 /**
- * Hook to fetch a crawler run by run namespace and ID.
+ * Hook to fetch a crawler run by run namespace and name.
  * @param runNamespace
- * @param runId
+ * @param runName
  */
 export const useCrawlerRun = (
 	runNamespace: string,
-	runId: string,
+	runName: string,
 ): UseQueryResult<CrawlerRunDto> => {
 	return useQuery({
-		queryKey: ['crawlerRun', runNamespace, runId],
-		queryFn: () => crawlerRunService.getCrawlerRun(runNamespace, runId),
+		queryKey: ['crawlerRun', runNamespace, runName],
+		queryFn: () => crawlerRunService.getCrawlerRun(runNamespace, runName),
 		refetchInterval: (query) => {
 			if (query.state.error) {
 				if (isRetryableError(query.state.error)) {

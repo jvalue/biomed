@@ -7,8 +7,8 @@ export class CrawlerRunEventEntity {
 	@PrimaryGeneratedColumn('uuid', { name: 'id' })
 	id!: string;
 
-	@Column({ name: 'run_id', type: 'varchar' })
-	runId!: string;
+	@Column({ name: 'run_name', type: 'varchar' })
+	runName!: string;
 
 	@Column({ name: 'run_namespace', type: 'varchar' })
 	runNamespace!: string;
@@ -19,7 +19,7 @@ export class CrawlerRunEventEntity {
 		{ nullable: false, onDelete: 'CASCADE', eager: false },
 	)
 	@JoinColumn([
-		{ name: 'run_id', referencedColumnName: 'runId' },
+		{ name: 'run_name', referencedColumnName: 'runName' },
 		{ name: 'run_namespace', referencedColumnName: 'runNamespace' },
 	])
 	run!: CrawlerRunMetricEntity;
