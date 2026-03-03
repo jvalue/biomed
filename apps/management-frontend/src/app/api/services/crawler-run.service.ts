@@ -5,8 +5,8 @@ import { managementBackendClient } from '../management-backend-client';
 export const crawlerRunService = {
 	getCrawlerRuns: async (
 		params: {
-			scheduleName?: string;
 			namespace?: string;
+			scheduleName?: string;
 			crawlerTemplateName?: string;
 			phases?: CrawlerRunPhaseEnum[];
 			startedAfter?: Date;
@@ -47,8 +47,8 @@ export const crawlerRunService = {
 		return data;
 	},
 
-	getCrawlerRun: async (runId: string, runNamespace: string): Promise<CrawlerRunDto> => {
-		const { data } = await managementBackendClient.get(`crawler-runs/${runNamespace}/${runId}`);
+	getCrawlerRun: async (runNamespace: string, runName: string): Promise<CrawlerRunDto> => {
+		const { data } = await managementBackendClient.get(`crawler-runs/${runNamespace}/${runName}`);
 		return data;
 	},
 };

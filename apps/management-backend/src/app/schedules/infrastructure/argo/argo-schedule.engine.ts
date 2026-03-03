@@ -50,16 +50,16 @@ export class ArgoScheduleEngine implements IScheduleEngine {
 
 	/**
 	 * Updates a schedule in Argo Workflows
-	 * @param name The name of the schedule
 	 * @param namespace The namespace of the schedule
+	 * @param name The name of the schedule
 	 * @param updateScheduleDto The updated schedule data
 	 */
 	async updateSchedule(
-		name: string,
 		namespace: string,
+		name: string,
 		updateScheduleDto: UpdateScheduleDto,
 	): Promise<void> {
-		const existingWorkflow = await this.argoClientService.getCronWorkflow(name, namespace);
+		const existingWorkflow = await this.argoClientService.getCronWorkflow(namespace, name);
 		if (!existingWorkflow) {
 			throw new NotFoundException(`Schedule ${name} in namespace ${namespace} not found`);
 		}
@@ -103,6 +103,6 @@ export class ArgoScheduleEngine implements IScheduleEngine {
 
 		this.logger.debug('Generated YAML:', yamlString);
 
-		await this.argoClientService.updateCronWorkflow(name, namespace, existingWorkflow);
+		await this.argoClientService.updateCronWorkflow(namespace, name, existingWorkflow);
 	}
 }

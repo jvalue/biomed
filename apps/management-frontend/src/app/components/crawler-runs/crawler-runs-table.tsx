@@ -532,8 +532,8 @@ export default function CrawlerRunsTable({
 									className="cursor-pointer hover:bg-gray-50"
 									onClick={() =>
 										navigate({
-											to: '/crawler-runs/$crawlerRunNamespace/$crawlerRunId',
-											params: { crawlerRunNamespace: run.namespace, crawlerRunId: run.name },
+											to: '/crawler-runs/$crawlerRunNamespace/$crawlerRunName',
+											params: { crawlerRunNamespace: run.namespace, crawlerRunName: run.name },
 										})
 									}
 								>

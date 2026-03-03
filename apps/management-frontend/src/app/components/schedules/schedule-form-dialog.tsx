@@ -8,7 +8,7 @@ import {
 	CrawlerTemplateParameterDto,
 } from '@/src/app/api/dto/crawler-templates/crawler-template.dto';
 import { RetryStrategyDto, ScheduleDto } from '@/src/app/api/dto/schedule/schedule.dto';
-import { useCrawlerTemplateByNameAndNamespace } from '@/src/app/api/hooks/useCrawlerTemplates';
+import { useCrawlerTemplateByNamespaceAndName } from '@/src/app/api/hooks/useCrawlerTemplates';
 import {
 	useCreateSchedule,
 	useScheduleNameExists,
@@ -52,9 +52,9 @@ export function ScheduleFormDialog({
 	const updateSchedule = useUpdateSchedule();
 
 	// Fetch templates if in edit mode and template not provided (to get parameter definitions)
-	const { data: template } = useCrawlerTemplateByNameAndNamespace(
-		propTemplate?.name || initialSchedule?.crawlerTemplateName || '',
+	const { data: template } = useCrawlerTemplateByNamespaceAndName(
 		propTemplate?.namespace || initialSchedule?.namespace || '',
+		propTemplate?.name || initialSchedule?.crawlerTemplateName || '',
 		!!(propTemplate || initialSchedule),
 	);
 
@@ -132,8 +132,8 @@ export function ScheduleFormDialog({
 
 	// Check if name already exists (only in create mode)
 	const scheduleNameQuery = useScheduleNameExists(
-		scheduleName,
 		template?.namespace ?? '',
+		scheduleName,
 		Boolean(mode === 'create' && scheduleName && template?.namespace),
 	);
 
