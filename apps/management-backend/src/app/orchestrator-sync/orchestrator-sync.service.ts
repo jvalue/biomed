@@ -169,7 +169,7 @@ export class OrchestratorSyncService implements OnModuleInit, OnModuleDestroy {
 			}
 		} catch (err) {
 			this.logger.error(
-				`Error checking template for schedule ${localSchedule?.name ?? '<unknown>'}`,
+				`Error checking template for schedule ${localSchedule?.name ?? 'N/A'}`,
 				err,
 			);
 		}
