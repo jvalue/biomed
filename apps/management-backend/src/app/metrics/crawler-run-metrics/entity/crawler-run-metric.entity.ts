@@ -5,7 +5,7 @@ import { CrawlerRunEventEntity } from './crawler-run-event.entity';
 @Entity('crawler_run_metrics')
 export class CrawlerRunMetricEntity {
 	@PrimaryColumn({ type: 'varchar' })
-	runId!: string;
+	runName!: string;
 
 	@PrimaryColumn({ type: 'varchar' })
 	runNamespace!: string;

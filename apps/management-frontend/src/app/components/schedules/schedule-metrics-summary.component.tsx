@@ -21,7 +21,7 @@ export default function ScheduleMetricsSummaryComponent({
 		data: metrics,
 		isLoading,
 		error,
-	} = useScheduleMetricsSummary(scheduleName, scheduleNamespace);
+	} = useScheduleMetricsSummary(scheduleNamespace, scheduleName);
 
 	if (isLoading) {
 		return (

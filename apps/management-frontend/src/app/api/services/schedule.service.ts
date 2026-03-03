@@ -11,13 +11,13 @@ export const scheduleService = {
 		return data;
 	},
 
-	getScheduleByNameAndNamespace: async (name: string, namespace: string): Promise<ScheduleDto> => {
+	getScheduleByNamespaceAndName: async (namespace: string, name: string): Promise<ScheduleDto> => {
 		const path = `schedules/${encodeURIComponent(namespace)}/${encodeURIComponent(name)}`;
 		const { data } = await managementBackendClient.get(path);
 		return data;
 	},
 
-	scheduleNameExists: async (name: string, namespace: string): Promise<boolean> => {
+	scheduleNameExists: async (namespace: string, name: string): Promise<boolean> => {
 		const path = `schedules/${encodeURIComponent(namespace)}/${encodeURIComponent(name)}/exists`;
 		const { data } = await managementBackendClient.get<boolean>(path);
 		return data;
@@ -33,13 +33,13 @@ export const scheduleService = {
 
 	/**
 	 * Update a schedule
-	 * @param name
 	 * @param namespace
+	 * @param name
 	 * @param updateScheduleDto
 	 */
 	updateSchedule: async (
-		name: string,
 		namespace: string,
+		name: string,
 		updateScheduleDto: UpdateScheduleDto,
 	): Promise<void> => {
 		const path = `schedules/${encodeURIComponent(namespace)}/${encodeURIComponent(name)}`;
@@ -48,45 +48,45 @@ export const scheduleService = {
 
 	/**
 	 * Delete a schedule
-	 * @param name
 	 * @param namespace
+	 * @param name
 	 */
-	deleteSchedule: async (name: string, namespace: string): Promise<void> => {
+	deleteSchedule: async (namespace: string, name: string): Promise<void> => {
 		const path = `schedules/${encodeURIComponent(namespace)}/${encodeURIComponent(name)}`;
 		await managementBackendClient.delete(path);
 	},
 
 	/**
 	 * Suspend a schedule
-	 * @param name
 	 * @param namespace
+	 * @param name
 	 */
-	suspendSchedule: async (name: string, namespace: string): Promise<void> => {
+	suspendSchedule: async (namespace: string, name: string): Promise<void> => {
 		const path = `schedules/${encodeURIComponent(namespace)}/${encodeURIComponent(name)}/suspend`;
 		await managementBackendClient.patch(path);
 	},
 
 	/**
 	 * Resume a schedule
-	 * @param name
 	 * @param namespace
+	 * @param name
 	 */
-	resumeSchedule: async (name: string, namespace: string): Promise<void> => {
+	resumeSchedule: async (namespace: string, name: string): Promise<void> => {
 		const path = `schedules/${encodeURIComponent(namespace)}/${encodeURIComponent(name)}/resume`;
 		await managementBackendClient.patch(path);
 	},
 
 	/**
 	 * Get schedules metrics history
-	 * @param name
 	 * @param namespace
+	 * @param name
 	 * @param fromDate
 	 * @param toDate
 	 * @return metrics history data
 	 */
 	getScheduleMetricsHistory: async (
-		name: string,
 		namespace: string,
+		name: string,
 		fromDate?: Date,
 		toDate?: Date,
 	): Promise<ScheduleHistoricalMetricsItemDto[]> => {
@@ -107,13 +107,13 @@ export const scheduleService = {
 
 	/**
 	 * Get schedules metrics summary
-	 * @param name
 	 * @param namespace
+	 * @param name
 	 * @return metrics summary data
 	 */
 	getScheduleMetricsSummary: async (
-		name: string,
 		namespace: string,
+		name: string,
 	): Promise<ScheduleOverallMetricsDto> => {
 		const path = `schedules/${encodeURIComponent(namespace)}/${encodeURIComponent(name)}/metrics/aggregated`;
 		const { data } = await managementBackendClient.get(path);

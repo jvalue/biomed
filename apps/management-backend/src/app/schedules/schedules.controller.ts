@@ -53,7 +53,7 @@ export class SchedulesController {
 		return this.schedulesService.listSchedules();
 	}
 
-	@ApiOperation({ summary: 'Get a Schedule by name and namespace' })
+	@ApiOperation({ summary: 'Get a Schedule by namespace and name' })
 	@ApiOkResponse({ type: ScheduleDto, description: 'The Schedule' })
 	@ApiResponse({
 		status: 403,
@@ -65,11 +65,11 @@ export class SchedulesController {
 	@ApiParam({ name: 'namespace', description: 'The namespace of the Schedule' })
 	@ApiParam({ name: 'name', description: 'The name of the Schedule' })
 	@Get(':namespace/:name')
-	async getScheduleByNameAndNamespace(
+	async getScheduleByNamespaceAndName(
 		@Param('namespace') namespace: string,
 		@Param('name') name: string,
 	): Promise<ScheduleDto> {
-		return this.schedulesService.getScheduleByNameAndNamespace(name, namespace);
+		return this.schedulesService.getScheduleByNamespaceAndName(namespace, name);
 	}
 
 	@ApiOperation({ summary: 'Create a new Schedule' })
@@ -103,7 +103,7 @@ export class SchedulesController {
 		@Param('name') name: string,
 		@Body() body: UpdateScheduleDto,
 	): Promise<void> {
-		return this.schedulesService.updateSchedule(name, namespace, body);
+		return this.schedulesService.updateSchedule(namespace, name, body);
 	}
 
 	@ApiOperation({ summary: 'Delete a Schedule' })
@@ -120,7 +120,7 @@ export class SchedulesController {
 		@Param('namespace') namespace: string,
 		@Param('name') name: string,
 	): Promise<void> {
-		return this.schedulesService.deleteSchedule(name, namespace);
+		return this.schedulesService.deleteSchedule(namespace, name);
 	}
 
 	@ApiOperation({ summary: 'Suspend a Schedule' })
@@ -137,7 +137,7 @@ export class SchedulesController {
 		@Param('namespace') namespace: string,
 		@Param('name') name: string,
 	): Promise<void> {
-		return this.schedulesService.suspendSchedule(name, namespace);
+		return this.schedulesService.suspendSchedule(namespace, name);
 	}
 
 	@ApiOperation({ summary: 'Resume a Schedule' })
@@ -154,7 +154,7 @@ export class SchedulesController {
 		@Param('namespace') namespace: string,
 		@Param('name') name: string,
 	): Promise<void> {
-		return this.schedulesService.resumeSchedule(name, namespace);
+		return this.schedulesService.resumeSchedule(namespace, name);
 	}
 
 	@ApiOperation({ summary: 'Check if a Schedule name already exists in a namespace' })
@@ -171,7 +171,7 @@ export class SchedulesController {
 		@Param('namespace') namespace: string,
 		@Param('name') name: string,
 	): Promise<boolean> {
-		return await this.schedulesService.scheduleNameAlreadyExists(name, namespace);
+		return await this.schedulesService.scheduleNameAlreadyExists(namespace, name);
 	}
 
 	@ApiOperation({ summary: 'Get historical metrics (time series) for a Schedule' })
@@ -189,7 +189,7 @@ export class SchedulesController {
 		@Param('name') name: string,
 		@Query() query: HistoricalMetricsQueryDto,
 	): Promise<ScheduleHistoricalMetricsItemDto[]> {
-		return this.crawlerRunMetricsService.getHistoricalScheduleMetrics(name, namespace, query);
+		return this.crawlerRunMetricsService.getHistoricalScheduleMetrics(namespace, name, query);
 	}
 
 	@ApiOperation({ summary: 'Get overall metrics for a Schedule (all time)' })
@@ -203,6 +203,6 @@ export class SchedulesController {
 		@Param('namespace') namespace: string,
 		@Param('name') name: string,
 	): Promise<ScheduleOverallMetricsDto> {
-		return this.crawlerRunMetricsService.getOverallScheduleMetrics(name, namespace);
+		return this.crawlerRunMetricsService.getOverallScheduleMetrics(namespace, name);
 	}
 }

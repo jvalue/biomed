@@ -95,8 +95,8 @@ export default function ScheduleMetricsChartComponent({
 	}, [dateRange]);
 
 	const { data, isLoading, error } = useScheduleHistoricalMetrics(
-		scheduleName,
 		scheduleNamespace,
+		scheduleName,
 		fromDate,
 		toDate,
 	);

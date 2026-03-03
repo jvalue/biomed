@@ -6,7 +6,7 @@ import { toast } from 'react-toastify';
 import {
 	useDeleteSchedule,
 	useResumeSchedule,
-	useScheduleByNameAndNamespace,
+	useScheduleByNamespaceAndName,
 	useSuspendSchedule,
 } from '@/src/app/api/hooks/useSchedules';
 import CrawlerRunsTable from '@/src/app/components/crawler-runs/crawler-runs-table';
@@ -53,9 +53,9 @@ function RouteComponent() {
 
 	const handleToggleSuspend = () => {
 		if (suspended) {
-			resumeSchedule.mutate({ name: scheduleName, namespace: scheduleNamespace });
+			resumeSchedule.mutate({ namespace: scheduleNamespace, name: scheduleName });
 		} else {
-			suspendSchedule.mutate({ name: scheduleName, namespace: scheduleNamespace });
+			suspendSchedule.mutate({ namespace: scheduleNamespace, name: scheduleName });
 		}
 	};
 
@@ -70,7 +70,7 @@ function RouteComponent() {
 		data: schedule,
 		isLoading: scheduleQueryIsLoading,
 		error: scheduleQueryError,
-	} = useScheduleByNameAndNamespace(scheduleName, scheduleNamespace);
+	} = useScheduleByNamespaceAndName(scheduleNamespace, scheduleName);
 
 	if (scheduleQueryIsLoading && !scheduleQueryError) {
 		return (

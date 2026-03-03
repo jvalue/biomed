@@ -13,8 +13,8 @@ type MockFn = ReturnType<typeof vi.fn>;
 describe('OrchestratorSyncService methods: handleScheduleTemplateCheck & compareParamsAndUpdateErrors', () => {
 	let service: OrchestratorSyncService;
 	let argoClientMock: {
-		getCrawlerTemplateByNameAndNamespace: MockFn;
-		getScheduleByNameAndNamespace: MockFn;
+		getCrawlerTemplateByNamespaceAndName: MockFn;
+		getScheduleByNamespaceAndName: MockFn;
 	};
 	let schedulesServiceMock: {
 		getAllScheduleEntities: MockFn;
@@ -25,8 +25,8 @@ describe('OrchestratorSyncService methods: handleScheduleTemplateCheck & compare
 
 	beforeEach(() => {
 		argoClientMock = {
-			getCrawlerTemplateByNameAndNamespace: vi.fn(),
-			getScheduleByNameAndNamespace: vi.fn(),
+			getCrawlerTemplateByNamespaceAndName: vi.fn(),
+			getScheduleByNamespaceAndName: vi.fn(),
 		};
 
 		schedulesServiceMock = {
@@ -92,8 +92,8 @@ describe('OrchestratorSyncService methods: handleScheduleTemplateCheck & compare
 		await service.compareParamsAndUpdateErrors(localSchedule, template, argoSchedule);
 
 		expect(schedulesServiceMock.removeScheduleError).toHaveBeenCalledWith(
-			localSchedule.name,
 			localSchedule.namespace,
+			localSchedule.name,
 			ScheduleErrorType.PARAMETER_MISMATCH,
 		);
 		expect(schedulesServiceMock.addScheduleError).not.toHaveBeenCalled();
@@ -148,7 +148,7 @@ describe('OrchestratorSyncService methods: handleScheduleTemplateCheck & compare
 
 	it('handleScheduleTemplateCheck: sets TEMPLATE_NOT_FOUND when template missing', async () => {
 		const localSchedule = makeScheduleEntity();
-		argoClientMock.getCrawlerTemplateByNameAndNamespace.mockResolvedValue(undefined);
+		argoClientMock.getCrawlerTemplateByNamespaceAndName.mockResolvedValue(undefined);
 
 		await service.handleScheduleTemplateCheck(localSchedule);
 
@@ -160,34 +160,34 @@ describe('OrchestratorSyncService methods: handleScheduleTemplateCheck & compare
 
 	it('handleScheduleTemplateCheck: skips further checks if template version already checked', async () => {
 		const localSchedule = makeScheduleEntity({ lastCheckedTemplateVersionLabel: 'v1' });
-		argoClientMock.getCrawlerTemplateByNameAndNamespace.mockResolvedValue(makeTemplate([], 'v1'));
+		argoClientMock.getCrawlerTemplateByNamespaceAndName.mockResolvedValue(makeTemplate([], 'v1'));
 
 		await service.handleScheduleTemplateCheck(localSchedule);
 
 		expect(schedulesServiceMock.removeScheduleError).toHaveBeenCalledWith(
-			localSchedule.name,
 			localSchedule.namespace,
+			localSchedule.name,
 			ScheduleErrorType.TEMPLATE_NOT_FOUND,
 		);
-		expect(argoClientMock.getScheduleByNameAndNamespace).not.toHaveBeenCalled();
+		expect(argoClientMock.getScheduleByNamespaceAndName).not.toHaveBeenCalled();
 	});
 
 	it('handleScheduleTemplateCheck: skips when argo schedule missing', async () => {
 		const localSchedule = makeScheduleEntity();
-		argoClientMock.getCrawlerTemplateByNameAndNamespace.mockResolvedValue(makeTemplate(['a']));
-		argoClientMock.getScheduleByNameAndNamespace.mockResolvedValue(undefined);
+		argoClientMock.getCrawlerTemplateByNamespaceAndName.mockResolvedValue(makeTemplate(['a']));
+		argoClientMock.getScheduleByNamespaceAndName.mockResolvedValue(undefined);
 
 		await service.handleScheduleTemplateCheck(localSchedule);
 
 		expect(schedulesServiceMock.removeScheduleError).toHaveBeenCalledWith(
-			localSchedule.name,
 			localSchedule.namespace,
+			localSchedule.name,
 			ScheduleErrorType.TEMPLATE_NOT_FOUND,
 		);
 		// No PARAMETER_MISMATCH should have been added
 		expect(schedulesServiceMock.addScheduleError).not.toHaveBeenCalledWith(
-			localSchedule.name,
 			localSchedule.namespace,
+			localSchedule.name,
 			ScheduleErrorType.PARAMETER_MISMATCH,
 			expect.anything(),
 		);
@@ -195,21 +195,21 @@ describe('OrchestratorSyncService methods: handleScheduleTemplateCheck & compare
 
 	it('handleScheduleTemplateCheck: delegates to compareParamsAndUpdateErrors and sets PARAMETER_MISMATCH when mismatch', async () => {
 		const localSchedule = makeScheduleEntity();
-		argoClientMock.getCrawlerTemplateByNameAndNamespace.mockResolvedValue(makeTemplate(['a', 'b']));
-		argoClientMock.getScheduleByNameAndNamespace.mockResolvedValue(makeArgoSchedule(['a']));
+		argoClientMock.getCrawlerTemplateByNamespaceAndName.mockResolvedValue(makeTemplate(['a', 'b']));
+		argoClientMock.getScheduleByNamespaceAndName.mockResolvedValue(makeArgoSchedule(['a']));
 
 		await service.handleScheduleTemplateCheck(localSchedule);
 
 		// template-not-found should have been cleared
 		expect(schedulesServiceMock.removeScheduleError).toHaveBeenCalledWith(
-			localSchedule.name,
 			localSchedule.namespace,
+			localSchedule.name,
 			ScheduleErrorType.TEMPLATE_NOT_FOUND,
 		);
 		// parameter mismatch should have been added
 		expect(schedulesServiceMock.addScheduleError).toHaveBeenCalledWith(
-			localSchedule.name,
 			localSchedule.namespace,
+			localSchedule.name,
 			ScheduleErrorType.PARAMETER_MISMATCH,
 			expect.any(Object),
 		);

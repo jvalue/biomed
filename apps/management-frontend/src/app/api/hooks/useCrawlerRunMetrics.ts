@@ -8,21 +8,21 @@ import { metricsService } from '@/src/app/api/services/metrics.service';
 const activePhases = [CrawlerRunPhaseEnum.RUNNING, CrawlerRunPhaseEnum.PENDING];
 
 /**
- * Hook to fetch crawler run metrics by run ID and namespace.
- * @param runId
+ * Hook to fetch crawler run metrics by run namespace and name.
  * @param runNamespace
+ * @param runName
  * @param runPhase The current phase of the run (used to decide automatic refresh)
  */
 export const useCrawlerRunMetrics = (
-	runId: string,
 	runNamespace: string,
+	runName: string,
 	runPhase?: CrawlerRunPhaseEnum,
 ): UseQueryResult<CrawlerRunMetricDto> => {
 	// Only refresh automatically while the run is active
 
 	return useQuery<CrawlerRunMetricDto>({
-		queryKey: ['crawlerRunMetrics', runNamespace, runId],
-		queryFn: () => metricsService.getCrawlerRunMetrics(runId, runNamespace),
+		queryKey: ['crawlerRunMetrics', runNamespace, runName],
+		queryFn: () => metricsService.getCrawlerRunMetrics(runNamespace, runName),
 		refetchInterval: (query) => {
 			if (query.state.error) {
 				if (isRetryableError(query.state.error)) {
@@ -40,20 +40,20 @@ export const useCrawlerRunMetrics = (
 };
 
 /**
- * Hook to fetch crawler run events by run ID and namespace.
- * @param runId
+ * Hook to fetch crawler run events by run namespace and name.
  * @param runNamespace
+ * @param runName
  * @param runPhase The current phase of the run (used to decide automatic refresh)
  */
 export const useCrawlerRunEvents = (
-	runId: string,
 	runNamespace: string,
+	runName: string,
 	runPhase?: CrawlerRunPhaseEnum,
 ): UseQueryResult<CrawlerRunEventDto[]> => {
 	// Only refresh automatically while the run is active
 	return useQuery({
-		queryKey: ['crawlerRunEvents', runNamespace, runId],
-		queryFn: () => metricsService.getCrawlerRunEvents(runId, runNamespace),
+		queryKey: ['crawlerRunEvents', runNamespace, runName],
+		queryFn: () => metricsService.getCrawlerRunEvents(runNamespace, runName),
 		refetchInterval: (query) => {
 			if (query.state.error) {
 				if (isRetryableError(query.state.error)) {
