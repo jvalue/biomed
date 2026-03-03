@@ -36,8 +36,8 @@ function RouteComponent() {
 					<strong>User &amp; Access Management:</strong> Fine-grained control over user permissions.
 				</li>
 				<li>
-					<strong>Health Overview:</strong> See the systems health status as well as the
-					availability of target urls for the crawlers.
+					<strong>Health Overview:</strong> See the system's health status as well as the
+					availability of target URLs for the crawlers.
 				</li>
 			</ul>
 
