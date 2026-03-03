@@ -27,11 +27,22 @@ export function formatCronReadable(cronExpr?: string, locale = 'en'): string {
 }
 
 /**
- * Returns the local-time equivalent string if the cron contains one or multiple fixed UTC times,
- * otherwise returns null.
+ * Returns a local timezone hint string for a cron expression if it has a concrete UTC time,
+ * e.g. "Europe/Berlin: 10:00 AM" or "Europe/Berlin: 10:00 AM, 06:00 PM" for list values.
+ * Returns null for interval-based expressions (wildcards, steps) or invalid expressions.
  */
 export function getCronLocalTimeHint(cronExpr?: string): string | null {
 	if (!cronExpr || cronExpr.startsWith('@every')) return null;
+
+	// Split into the 5 standard cron fields: minute hour dom month dow
+	const parts = cronExpr.trim().split(/\s+/);
+	if (parts.length !== 5) return null;
+
+	const [minutePart, hourPart] = parts;
+
+	// Only show a local time hint if both fields are concrete values (digits or comma-separated lists)
+	const isFixedOrList = (part: string) => /^[\d,]+$/.test(part);
+	if (!isFixedOrList(minutePart) || !isFixedOrList(hourPart)) return null;
 
 	// Filter out invalid cron expressions
 	try {
@@ -39,14 +50,6 @@ export function getCronLocalTimeHint(cronExpr?: string): string | null {
 	} catch {
 		return null;
 	}
-
-	const parts = cronExpr.trim().split(/\s+/);
-	if (parts.length !== 5) return null;
-
-	const [minutePart, hourPart] = parts;
-
-	const isFixedOrList = (part: string) => /^[\d,]+$/.test(part);
-	if (!isFixedOrList(minutePart) || !isFixedOrList(hourPart)) return null;
 
 	const minutes = minutePart.split(',').map(Number);
 	const hours = hourPart.split(',').map(Number);
@@ -56,6 +59,7 @@ export function getCronLocalTimeHint(cronExpr?: string): string | null {
 	const now = new Date();
 	const tzName = Intl.DateTimeFormat().resolvedOptions().timeZone;
 
+	// Cartesian product of hours × minutes
 	const localTimes = hours.flatMap((hour) =>
 		minutes.map((minute) => {
 			const utcDate = new Date(
@@ -78,7 +82,7 @@ export function getCronLocalTimeHint(cronExpr?: string): string | null {
 export function getNextRunDate(cronExpr?: string): Date | null {
 	if (!cronExpr) return null;
 	try {
-		// use the parser to get an iterator; cast options to any to avoid strict typing issues
+		// use the parser to get an iterator
 		const interval = CronExpressionParser.parse(cronExpr, { currentDate: new Date(), tz: 'UTC' });
 		const next = interval.next();
 		return next.toDate();
