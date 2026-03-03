@@ -182,7 +182,7 @@ function RouteComponent() {
 						<Card className="shadow-sm min-h-[120px] flex flex-col">
 							<CardHeader className="pb-3 flex-1">
 								<CardDescription className="text-xs uppercase tracking-wide">
-									Cron Schedule
+									Cron Schedule (UTC)
 								</CardDescription>
 								<CardTitle className="text-lg">
 									{schedule?.schedule ? (
