@@ -15,8 +15,6 @@ rules:
       - workflowtemplates
       - cronworkflows
       - cronworkflows/finalizers
-      - clusterworkflowtemplates
-      - clusterworkflowtemplates/finalizers
     verbs:
       - get
       - list
