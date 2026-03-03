@@ -30,7 +30,7 @@ function RouteComponent() {
 				</li>
 				<li>
 					<strong>Run Insights:</strong> See run insights such as crawling and download progress,
-					retrived datasets and live events from the crawler.
+					retrieved datasets, and live events from the crawler.
 				</li>
 				<li>
 					<strong>User &amp; Access Management:</strong> Fine-grained control over user permissions.
