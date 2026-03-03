@@ -186,15 +186,12 @@ function RouteComponent() {
 								</CardDescription>
 								<CardTitle className="text-lg">
 									{schedule?.schedule ? (
-										<>
-											{formatCronReadable(schedule.schedule)}
+										<div className="flex flex-col">
+											<span>{formatCronReadable(schedule.schedule)}</span>
 											{cronLocalHint && (
-												<span className="text-muted-foreground text-base font-normal">
-													{' '}
-													({cronLocalHint})
-												</span>
+												<span className="text-muted-foreground font-normal">({cronLocalHint})</span>
 											)}
-										</>
+										</div>
 									) : (
 										'-'
 									)}
