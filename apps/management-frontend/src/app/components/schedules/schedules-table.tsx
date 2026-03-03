@@ -78,7 +78,7 @@ export default function SchedulesTable({ schedules = [] }: ScheduleTableProps) {
 											<span>{formatCronReadable(schedule.schedule)}</span>
 										</TooltipTrigger>
 										{cronLocalHint && (
-											<TooltipContent>
+											<TooltipContent side="bottom">
 												<p>{cronLocalHint}</p>
 											</TooltipContent>
 										)}

@@ -27,12 +27,13 @@ export function formatCronReadable(cronExpr?: string, locale = 'en'): string {
 }
 
 /**
- * Returns the local-time equivalent string if the cron has a fixed UTC time,
- * otherwise returns null (e.g. for "every N minutes" style expressions).
+ * Returns the local-time equivalent string if the cron contains one or multiple fixed UTC times,
+ * otherwise returns null.
  */
 export function getCronLocalTimeHint(cronExpr?: string): string | null {
 	if (!cronExpr || cronExpr.startsWith('@every')) return null;
 
+	// Filter out invalid cron expressions
 	try {
 		CronExpressionParser.parse(cronExpr);
 	} catch {
@@ -40,35 +41,35 @@ export function getCronLocalTimeHint(cronExpr?: string): string | null {
 	}
 
 	const parts = cronExpr.trim().split(/\s+/);
-	// Standard 5-part cron: min hour dom month dow
 	if (parts.length !== 5) return null;
 
 	const [minutePart, hourPart] = parts;
 
-	// Only convert if both minute and hour are fixed integers (no wildcards/ranges/steps/lists)
-	const isFixed = (part: string) => /^\d+$/.test(part);
-	if (!isFixed(minutePart) || !isFixed(hourPart)) return null;
+	const isFixedOrList = (part: string) => /^[\d,]+$/.test(part);
+	if (!isFixedOrList(minutePart) || !isFixedOrList(hourPart)) return null;
 
-	const minute = parseInt(minutePart, 10);
-	const hour = parseInt(hourPart, 10);
+	const minutes = minutePart.split(',').map(Number);
+	const hours = hourPart.split(',').map(Number);
 
-	if (hour < 0 || hour > 23 || minute < 0 || minute > 59) return null;
+	if (minutes.some((m) => m < 0 || m > 59) || hours.some((h) => h < 0 || h > 23)) return null;
 
-	// Build a UTC date with that time and convert to local
 	const now = new Date();
-	const utcDate = new Date(
-		Date.UTC(now.getFullYear(), now.getMonth(), now.getDate(), hour, minute),
-	);
-
-	const localTimeStr = utcDate.toLocaleTimeString(undefined, {
-		hour: '2-digit',
-		minute: '2-digit',
-		hour12: false,
-	});
-
 	const tzName = Intl.DateTimeFormat().resolvedOptions().timeZone;
 
-	return `${tzName}: ${localTimeStr}`;
+	const localTimes = hours.flatMap((hour) =>
+		minutes.map((minute) => {
+			const utcDate = new Date(
+				Date.UTC(now.getFullYear(), now.getMonth(), now.getDate(), hour, minute),
+			);
+			return utcDate.toLocaleTimeString(undefined, {
+				hour: '2-digit',
+				minute: '2-digit',
+				hour12: true,
+			});
+		}),
+	);
+
+	return `${tzName}: ${localTimes.join(', ')}`;
 }
 
 /**
