@@ -78,7 +78,7 @@ export function getNextRunDate(cronExpr?: string): Date | null {
 	if (!cronExpr) return null;
 	try {
 		// use the parser to get an iterator; cast options to any to avoid strict typing issues
-		const interval = CronExpressionParser.parse(cronExpr, { currentDate: new Date() });
+		const interval = CronExpressionParser.parse(cronExpr, { currentDate: new Date(), tz: 'UTC' });
 		const next = interval.next();
 		return next.toDate();
 	} catch {

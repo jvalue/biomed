@@ -30,7 +30,7 @@ import ScheduleMetricsChartComponent from '@/src/app/components/schedules/schedu
 import ScheduleMetricsSummaryComponent from '@/src/app/components/schedules/schedule-metrics-summary.component';
 import ScheduleConfigurationSectionComponent from '@/src/app/components/schedules/scheduleConfigurationSection.component';
 import { useAuth } from '@/src/app/contexts/AuthContext';
-import { formatCronReadable, getNextRunDate } from '@/src/app/utils/cron';
+import { formatCronReadable, getCronLocalTimeHint, getNextRunDate } from '@/src/app/utils/cron';
 import { createSetPageSearch } from '@/src/app/utils/set-page-search';
 import { Badge } from '../../components/design-components/badge';
 import { Switch } from '../../components/design-components/switch';
@@ -97,6 +97,7 @@ function RouteComponent() {
 	const nextRun = schedule?.schedule ? getNextRunDate(schedule.schedule) : null;
 	const createdAt = schedule?.createdAt ? new Date(schedule.createdAt).toLocaleString() : '-';
 	const stats = schedule?.statistics;
+	const cronLocalHint = schedule?.schedule ? getCronLocalTimeHint(schedule.schedule) : null;
 
 	return (
 		<AuthGuard>
@@ -184,7 +185,19 @@ function RouteComponent() {
 									Cron Schedule
 								</CardDescription>
 								<CardTitle className="text-lg">
-									{schedule?.schedule ? formatCronReadable(schedule.schedule) : '-'}
+									{schedule?.schedule ? (
+										<>
+											{formatCronReadable(schedule.schedule)}
+											{cronLocalHint && (
+												<span className="text-muted-foreground text-base font-normal">
+													{' '}
+													({cronLocalHint})
+												</span>
+											)}
+										</>
+									) : (
+										'-'
+									)}
 								</CardTitle>
 							</CardHeader>
 							<CardContent className="text-xs text-muted-foreground pb-4">
