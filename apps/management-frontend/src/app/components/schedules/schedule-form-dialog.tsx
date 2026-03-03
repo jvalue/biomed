@@ -29,7 +29,7 @@ import {
 } from '@/src/app/components/design-components/duration-input';
 import { Input } from '@/src/app/components/design-components/input';
 import { Label } from '@/src/app/components/design-components/label';
-import { formatCronReadable } from '@/src/app/utils/cron';
+import { formatCronReadable, getCronLocalTimeHint } from '@/src/app/utils/cron';
 import { Spinner } from '../design-components/spinner';
 
 export interface ScheduleFormDialogProps {
@@ -150,6 +150,11 @@ export function ScheduleFormDialog({
 		const readable = formatCronReadable(cronExpression);
 		return readable === 'Invalid cron expression';
 	}, [cronExpression]);
+
+	const cronLocalHint = useMemo(() => {
+		if (!cronExpression || cronIsInvalid) return null;
+		return getCronLocalTimeHint(cronExpression);
+	}, [cronExpression, cronIsInvalid]);
 
 	// Helper function to validate backoff factor
 	const validateBackoffFactor = (factor: string): string | null => {
@@ -400,7 +405,7 @@ export function ScheduleFormDialog({
 
 							<div className="space-y-2">
 								<Label htmlFor="cronExpression" className="text-sm font-medium">
-									Cron Expression <span className="text-red-500">*</span>
+									Cron Expression (UTC) <span className="text-red-500">*</span>
 								</Label>
 								<Input
 									id="cronExpression"
@@ -420,7 +425,12 @@ export function ScheduleFormDialog({
 								{cronReadable && (
 									<div className="flex items-center gap-2 mt-2 p-2 bg-primary/5 rounded-md border border-primary/20">
 										<span className="text-sm font-medium text-primary">→</span>
-										<span className="text-sm text-foreground">{cronReadable}</span>
+										<span className="text-sm text-foreground">
+											{cronReadable}
+											{cronLocalHint && (
+												<span className="text-muted-foreground"> ({cronLocalHint})</span>
+											)}
+										</span>
 									</div>
 								)}
 								<p className="text-xs text-muted-foreground">
