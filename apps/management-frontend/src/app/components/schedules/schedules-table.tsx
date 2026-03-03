@@ -15,7 +15,7 @@ import {
 	TooltipContent,
 	TooltipTrigger,
 } from '@/src/app/components/design-components/tooltip';
-import { formatCronReadable, getNextRunDate } from '@/src/app/utils/cron';
+import { formatCronReadable, getCronLocalTimeHint, getNextRunDate } from '@/src/app/utils/cron';
 
 export interface ScheduleTableProps {
 	schedules?: ScheduleDto[];
@@ -40,45 +40,60 @@ export default function SchedulesTable({ schedules = [] }: ScheduleTableProps) {
 					</TableRow>
 				</TableHeader>
 				<TableBody>
-					{schedules.map((schedule) => (
-						<TableRow
-							key={`${schedule.namespace}-${schedule.name}`}
-							className="cursor-pointer hover:bg-gray-100"
-							onClick={() =>
-								router.navigate({ to: `/schedules/${schedule.namespace}/${schedule.name}` })
-							}
-						>
-							<TableCell>{schedule.name}</TableCell>
-							{/* Error indicator column */}
-							<TableCell>
-								{schedule.activeErrors && Object.keys(schedule.activeErrors).length > 0 && (
+					{schedules.map((schedule) => {
+						const cronLocalHint = getCronLocalTimeHint(schedule.schedule);
+
+						return (
+							<TableRow
+								key={`${schedule.namespace}-${schedule.name}`}
+								className="cursor-pointer hover:bg-gray-100"
+								onClick={() =>
+									router.navigate({ to: `/schedules/${schedule.namespace}/${schedule.name}` })
+								}
+							>
+								<TableCell>{schedule.name}</TableCell>
+								{/* Error indicator column */}
+								<TableCell>
+									{schedule.activeErrors && Object.keys(schedule.activeErrors).length > 0 && (
+										<Tooltip>
+											<TooltipTrigger asChild>
+												<AlertTriangle className="w-5 h-5 text-yellow-600" />
+											</TooltipTrigger>
+											<TooltipContent side="bottom">
+												<div className="max-w-xs">
+													<p className="font-semibold">Schedule errors</p>
+													<p className="text-sm mt-1">
+														This schedule has errors — click the schedule row to view details.
+													</p>
+												</div>
+											</TooltipContent>
+										</Tooltip>
+									)}
+								</TableCell>
+								<TableCell>{schedule.crawlerTemplateName}</TableCell>
+								<TableCell>{schedule.namespace}</TableCell>
+								<TableCell>
 									<Tooltip>
 										<TooltipTrigger asChild>
-											<AlertTriangle className="w-5 h-5 text-yellow-600" />
+											<span>{formatCronReadable(schedule.schedule)}</span>
 										</TooltipTrigger>
-										<TooltipContent side="bottom">
-											<div className="max-w-xs">
-												<p className="font-semibold">Schedule errors</p>
-												<p className="text-sm mt-1">
-													This schedule has errors — click the schedule row to view details.
-												</p>
-											</div>
-										</TooltipContent>
+										{cronLocalHint && (
+											<TooltipContent>
+												<p>{cronLocalHint}</p>
+											</TooltipContent>
+										)}
 									</Tooltip>
-								)}
-							</TableCell>
-							<TableCell>{schedule.crawlerTemplateName}</TableCell>
-							<TableCell>{schedule.namespace}</TableCell>
-							<TableCell>{formatCronReadable(schedule.schedule)}</TableCell>
-							<TableCell className={schedule.suspended ? 'text-muted-foreground' : ''}>
-								{schedule.suspended
-									? 'Suspended'
-									: (getNextRunDate(schedule.schedule)?.toLocaleString() ??
-										'invalid cron expression')}
-							</TableCell>
-							<TableCell>{new Date(schedule.createdAt).toLocaleString()}</TableCell>
-						</TableRow>
-					))}
+								</TableCell>
+								<TableCell className={schedule.suspended ? 'text-muted-foreground' : ''}>
+									{schedule.suspended
+										? 'Suspended'
+										: (getNextRunDate(schedule.schedule)?.toLocaleString() ??
+											'invalid cron expression')}
+								</TableCell>
+								<TableCell>{new Date(schedule.createdAt).toLocaleString()}</TableCell>
+							</TableRow>
+						);
+					})}
 				</TableBody>
 			</Table>
 		</div>
