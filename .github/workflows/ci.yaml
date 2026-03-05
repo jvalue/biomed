@@ -5,7 +5,9 @@ on:
     branches: [ "main" ]
     paths:
       - "apps/**"
+      - "libs/**"
       - ".github/workflows/**"
+      - "pyproject.toml"
       - "tsconfig.json"
       - "tsconfig.base.json"
       - "package.json"
@@ -21,7 +23,9 @@ on:
     branches: [ "**" ]
     paths:
       - "apps/**"
+      - "libs/**"
       - ".github/workflows/**"
+      - "pyproject.toml"
       - "tsconfig.json"
       - "tsconfig.base.json"
       - "package.json"
@@ -41,6 +45,7 @@ jobs:
     outputs:
       management_frontend_changed: ${{ steps.filter.outputs.management_frontend }}
       management_backend_changed: ${{ steps.filter.outputs.management_backend }}
+      python_changed: ${{ steps.filter.outputs.python }}
       config_changed: ${{ steps.filter.outputs.config }}
     steps:
       - name: Checkout
@@ -55,6 +60,10 @@ jobs:
               - 'apps/management-frontend/**'
             management_backend:
               - 'apps/management-backend/**'
+            python:
+              - 'apps/crawler/**'
+              - 'libs/crawler-common/**'
+              - 'pyproject.toml'
             config:
               - '.github/workflows/**'
               - 'tsconfig.json'
@@ -96,6 +105,7 @@ jobs:
 
       - name: Test (Nx)
         run: npx nx run management-frontend:test
+
   management-backend:
     name: Management Backend CI
     needs: detect-changes
@@ -123,3 +133,29 @@ jobs:
 
       - name: Test (Nx)
         run: npx nx run management-backend:test
+
+  crawler-python:
+    name: Crawler Python CI
+    needs: detect-changes
+    if: needs.detect-changes.outputs.python_changed == 'true' || needs.detect-changes.outputs.config_changed == 'true'
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.13'
+
+      - name: Setup uv
+        uses: astral-sh/setup-uv@v6
+
+      - name: Sync Python workspace dependencies
+        run: uv sync
+
+      - name: Test crawler-common
+        run: uv run --with pytest --with pytest-asyncio pytest libs/crawler-common/tests
+
+      - name: Test crawler apps
+        run: uv run --with pytest --with pytest-asyncio pytest apps/crawler/tests
