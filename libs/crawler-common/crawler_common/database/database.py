@@ -10,6 +10,7 @@ from sqlalchemy import create_engine, Engine, select
 from sqlalchemy.engine import URL
 from sqlalchemy.orm import sessionmaker, Session
 
+from crawler_common.database.db_conf import load_database_config
 from crawler_common.models.db import FTPDiscoveryEntry
 
 if TYPE_CHECKING:
@@ -36,8 +37,8 @@ def create_postgres_url(
     )
 
 
-def get_database_url_from_env(dotenv_path=None) -> URL:
-    """Get database connection URL from environment variables via ftp_conf loader.
+def get_database_url_from_env(dotenv_path: str | None = None) -> URL:
+    """Get database connection URL from environment variables.
 
     Args:
         dotenv_path: Optional path to a .env file.
@@ -45,8 +46,6 @@ def get_database_url_from_env(dotenv_path=None) -> URL:
     Returns:
         PostgreSQL connection URL.
     """
-    from crawler_common.ftp.ftp_conf import load_database_config
-
     config = load_database_config(dotenv_path)
     return create_postgres_url(
         host=str(config["host"]),
@@ -85,11 +84,23 @@ def get_session(engine: Engine) -> Session:
     Returns:
         A new Session instance.
     """
-    SessionLocal = sessionmaker(bind=engine)
-    return SessionLocal()
+    return _get_session_factory(engine)()
 
 
 _engine: Optional[Engine] = None
+_session_factory: Optional[sessionmaker] = None
+_session_factory_engine: Optional[Engine] = None
+
+
+def _get_session_factory(engine: Engine) -> sessionmaker:
+    """Get a cached session factory for the provided engine."""
+    global _session_factory, _session_factory_engine
+
+    if _session_factory is None or _session_factory_engine is not engine:
+        _session_factory = sessionmaker(bind=engine)
+        _session_factory_engine = engine
+
+    return _session_factory
 
 
 def get_engine() -> Engine:
@@ -104,8 +115,10 @@ def get_engine() -> Engine:
 
 def set_engine(engine: Engine) -> None:
     """Set the global database engine."""
-    global _engine
+    global _engine, _session_factory, _session_factory_engine
     _engine = engine
+    _session_factory = sessionmaker(bind=engine)
+    _session_factory_engine = engine
 
 
 def insert_ftp_nodes_to_database(
@@ -151,7 +164,10 @@ def insert_ftp_nodes_to_database(
                 FTPDiscoveryEntry.is_dir,
                 FTPDiscoveryEntry.size,
                 FTPDiscoveryEntry.modified,
-            ).where(FTPDiscoveryEntry.path.in_(paths))
+            ).where(
+                FTPDiscoveryEntry.run_id == run_id,
+                FTPDiscoveryEntry.path.in_(paths),
+            )
         ).all()
         return set(rows)
 
