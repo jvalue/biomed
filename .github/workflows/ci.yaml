@@ -152,10 +152,10 @@ jobs:
         uses: astral-sh/setup-uv@v6
 
       - name: Sync Python workspace dependencies
-        run: uv sync
+        run: uv sync --all-groups
 
       - name: Test crawler-common
-        run: uv run --with pytest --with pytest-asyncio pytest libs/crawler-common/tests
+        run: uv run pytest libs/crawler-common/tests
 
       - name: Test crawler apps
-        run: uv run --with pytest --with pytest-asyncio pytest apps/crawler/tests
+        run: uv run pytest apps/crawler/tests
