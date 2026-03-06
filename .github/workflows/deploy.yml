@@ -60,6 +60,7 @@ jobs:
           mkdir -p ~/.kube
           printf '%s' "$KUBECONFIG_DEV" > ~/.kube/config
           chmod 600 ~/.kube/config
+          echo "KUBECONFIG=$HOME/.kube/config" >> "$GITHUB_ENV"
 
       - name: Install Helm
         uses: azure/setup-helm@v4
@@ -119,6 +120,7 @@ jobs:
           mkdir -p ~/.kube
           printf '%s' "$KUBECONFIG_PROD" > ~/.kube/config
           chmod 600 ~/.kube/config
+          echo "KUBECONFIG=$HOME/.kube/config" >> "$GITHUB_ENV"
 
       - name: Install Helm
         uses: azure/setup-helm@v4
