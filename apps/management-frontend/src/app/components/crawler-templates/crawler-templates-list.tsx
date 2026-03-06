@@ -18,8 +18,9 @@ export default function CrawlerTemplatesList() {
 	return (
 		<div>
 			<p>
-				In the following table you can see all crawler templates and submit runs for those. If you
-				cannot see the start run button, you don't have the permission to start runs.
+				In the following table you can see all crawler templates and submit runs, as well as create
+				schedules for recurring runs. (Note: Action buttons are only visible if you have the
+				required permissions. Contact your administrator if you think you should have access.)
 			</p>
 			<CrawlerTemplatesTable templates={data} />
 		</div>
