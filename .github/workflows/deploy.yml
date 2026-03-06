@@ -90,15 +90,15 @@ jobs:
           echo "image_tag=$TAG" >> "$GITHUB_OUTPUT"
           echo "Using image tag: $TAG"
 
+
   # -----------------------------------------------------------------------
-  # Step 2: Deploy to dev
+  # Step 2: Deploy
   # -----------------------------------------------------------------------
-  deploy-dev:
-    name: Deploy to dev
+  deploy:
+    name: Deploy to ${{ inputs.target_env }}
     runs-on: [Linux, k8s-access]
     needs: publish-images
-    if: ${{ inputs.target_env == 'dev' }}
-    environment: dev
+    environment: ${{ inputs.target_env }}
 
     container:
       image: ubuntu:latest
@@ -117,22 +117,36 @@ jobs:
 
       - name: Set Kubeconfig
         run: |
-          mkdir -p /root/.kube
-          echo "${{ secrets.KUBECONFIG_DEV }}" > /root/.kube/config
-          chmod 600 /root/.kube/config
-          echo "KUBECONFIG=/root/.kube/config" >> $GITHUB_ENV
+          mkdir -p ~/.kube
+          TARGET="${{ inputs.target_env }}"
+
+          if [ "$TARGET" == "prod" ]; then
+            echo "${{ secrets.KUBECONFIG_PROD }}" > ~/.kube/config
+          else
+            echo "${{ secrets.KUBECONFIG_DEV }}" > ~/.kube/config
+          fi
+          chmod 600 ~/.kube/config
 
       - name: Helm dependency build
         run: helm dependency build ./biomed-chart
 
-      - name: Helm upgrade --install (dev)
+      - name: Helm upgrade --install
         run: |
           IMAGE_TAG="${{ needs.publish-images.outputs.image_tag }}"
           REGISTRY="ghcr.io/${{ github.repository_owner }}"
+          TARGET="${{ inputs.target_env }}"
+
+          if [ "$TARGET" == "prod" ]; then
+            NAMESPACE="${{ secrets.K8S_NAMESPACE_PROD }}"
+            NAMESPACE="${NAMESPACE:-biomed}"
+          else
+            NAMESPACE="${{ secrets.K8S_NAMESPACE_DEV }}"
+            NAMESPACE="${NAMESPACE:-biomed-dev}"
+          fi
 
           helm upgrade --install biomed ./biomed-chart \
-            --kubeconfig /root/.kube/config \
-            --namespace "crawler-management" \
+            --namespace "$NAMESPACE" \
+            --create-namespace \
             --atomic \
             --timeout 5m \
             --set management-backend.image.name="${REGISTRY}/management-backend" \
@@ -142,70 +156,10 @@ jobs:
 
       - name: Deployment summary
         run: |
-          echo "## ✅ Dev Deployment successful" >> "$GITHUB_STEP_SUMMARY"
+          echo "## ✅ Deployment to ${{ inputs.target_env }} successful" >> "$GITHUB_STEP_SUMMARY"
           echo "" >> "$GITHUB_STEP_SUMMARY"
           echo "| | |" >> "$GITHUB_STEP_SUMMARY"
           echo "|---|---|" >> "$GITHUB_STEP_SUMMARY"
-          echo "| **Environment** | \`dev\` |" >> "$GITHUB_STEP_SUMMARY"
-          echo "| **Image tag** | \`${{ needs.publish-images.outputs.image_tag }}\` |" >> "$GITHUB_STEP_SUMMARY"
-          echo "| **Triggered by** | \`${{ github.actor }}\` |" >> "$GITHUB_STEP_SUMMARY"
-
-  # -----------------------------------------------------------------------
-  # Step 2: Deploy to prod
-  # -----------------------------------------------------------------------
-  deploy-prod:
-    name: Deploy to prod
-    runs-on: [Linux, k8s-access]
-    needs: publish-images
-    if: ${{ inputs.target_env == 'prod' }}
-    environment: prod
-
-    container:
-      image: ubuntu:latest
-
-    steps:
-      - name: Install dependencies
-        run: apt-get update && apt-get install -y git curl
-
-      - name: Checkout repository
-        uses: actions/checkout@v4
-
-      - name: Install Helm
-        uses: azure/setup-helm@v3
-        with:
-          version: 'v3.15.2'
-
-      - name: Set Kubeconfig
-        run: |
-          mkdir -p /root/.kube
-          echo "${{ secrets.KUBECONFIG_PROD }}" > /root/.kube/config
-          chmod 600 /root/.kube/config
-          echo "KUBECONFIG=/root/.kube/config" >> $GITHUB_ENV
-
-      - name: Helm dependency build
-        run: helm dependency build ./biomed-chart
-
-      - name: Helm upgrade --install (prod)
-        run: |
-          IMAGE_TAG="${{ needs.publish-images.outputs.image_tag }}"
-          REGISTRY="ghcr.io/${{ github.repository_owner }}"
-
-          helm upgrade --install biomed ./biomed-chart \
-            --kubeconfig /root/.kube/config \
-            --namespace "crawler-management" \
-            --atomic \
-            --timeout 5m \
-            --set management-backend.image.name="${REGISTRY}/management-backend" \
-            --set management-backend.image.tag="${IMAGE_TAG}" \
-            --set management-frontend.image.name="${REGISTRY}/management-frontend" \
-            --set management-frontend.image.tag="${IMAGE_TAG}"
-
-      - name: Deployment summary
-        run: |
-          echo "## ✅ Production Deployment successful" >> "$GITHUB_STEP_SUMMARY"
-          echo "" >> "$GITHUB_STEP_SUMMARY"
-          echo "| | |" >> "$GITHUB_STEP_SUMMARY"
-          echo "|---|---|" >> "$GITHUB_STEP_SUMMARY"
-          echo "| **Environment** | \`prod\` |" >> "$GITHUB_STEP_SUMMARY"
+          echo "| **Environment** | \`${{ inputs.target_env }}\` |" >> "$GITHUB_STEP_SUMMARY"
           echo "| **Image tag** | \`${{ needs.publish-images.outputs.image_tag }}\` |" >> "$GITHUB_STEP_SUMMARY"
           echo "| **Triggered by** | \`${{ github.actor }}\` |" >> "$GITHUB_STEP_SUMMARY"
