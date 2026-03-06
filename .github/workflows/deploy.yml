@@ -113,9 +113,11 @@ jobs:
         uses: actions/checkout@v4
 
       - name: Set Kubeconfig
+        env:
+          KUBECONFIG_PROD: ${{ secrets.KUBECONFIG_PROD }}
         run: |
           mkdir -p ~/.kube
-          echo "${{ secrets.KUBECONFIG_PROD }}" > ~/.kube/config
+          printf '%s' "$KUBECONFIG_PROD" > ~/.kube/config
           chmod 600 ~/.kube/config
 
       - name: Install Helm
