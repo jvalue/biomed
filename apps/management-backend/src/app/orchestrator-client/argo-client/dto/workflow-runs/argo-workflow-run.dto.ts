@@ -1,27 +1,32 @@
 import { Expose, Type } from 'class-transformer';
-import { IsDate, IsEnum, IsOptional, IsString } from 'class-validator';
+import { IsDate, IsEnum, IsOptional, IsString, ValidateNested } from 'class-validator';
 import { WorkflowPhaseEnum } from '../../enums/workflow-phase.enum';
 import { ArgoParameterDto } from '../argo-parameter.dto';
 
 class ArgoWorkflowRunSpecArgumentsDto {
 	@IsOptional()
+	@ValidateNested({ each: true })
 	@Type(() => ArgoParameterDto)
 	parameters?: ArgoParameterDto[];
 }
 
 class ArgoWorkflowRunSpecDto {
+	@ValidateNested()
 	@Type(() => ArgoWorkflowRunSpecArgumentsDto)
 	@IsOptional()
 	arguments?: ArgoWorkflowRunSpecArgumentsDto;
 }
 
 export class ArgoWorkflowRunDto {
+	@ValidateNested()
 	@Type(() => ArgoWorkflowRunMetadataDto)
 	metadata!: ArgoWorkflowRunMetadataDto;
 
+	@ValidateNested()
 	@Type(() => ArgoWorkflowRunStatusDto)
 	status!: ArgoWorkflowRunStatusDto;
 
+	@ValidateNested()
 	@Type(() => ArgoWorkflowRunSpecDto)
 	spec!: ArgoWorkflowRunSpecDto;
 }
@@ -33,6 +38,7 @@ class ArgoWorkflowRunMetadataDto {
 	@IsString()
 	namespace!: string;
 
+	@ValidateNested()
 	@Type(() => ArgoWorkflowRunMetadataLabelsDto)
 	labels!: ArgoWorkflowRunMetadataLabelsDto;
 }
