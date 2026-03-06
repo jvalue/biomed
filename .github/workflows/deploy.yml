@@ -136,16 +136,8 @@ jobs:
           REGISTRY="ghcr.io/${{ github.repository_owner }}"
           TARGET="${{ inputs.target_env }}"
 
-          if [ "$TARGET" == "prod" ]; then
-            NAMESPACE="${{ secrets.K8S_NAMESPACE_PROD }}"
-            NAMESPACE="${NAMESPACE:-biomed}"
-          else
-            NAMESPACE="${{ secrets.K8S_NAMESPACE_DEV }}"
-            NAMESPACE="${NAMESPACE:-biomed-dev}"
-          fi
-
           helm upgrade --install biomed ./biomed-chart \
-            --namespace "$NAMESPACE" \
+            --namespace "crawler-management" \
             --create-namespace \
             --atomic \
             --timeout 5m \
