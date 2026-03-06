@@ -1,6 +1,6 @@
 import { ApiProperty } from '@nestjs/swagger';
 import { Type } from 'class-transformer';
-import { IsBoolean } from 'class-validator';
+import { IsBoolean, ValidateNested } from 'class-validator';
 
 class CursorBasedPaginationMetadata {
 	@ApiProperty({
@@ -21,6 +21,7 @@ export class CursorBasedPaginationResponseDto<T> {
 	@ApiProperty({
 		description: 'Pagination Metadata',
 	})
+	@ValidateNested()
 	@Type(() => CursorBasedPaginationMetadata)
 	metadata!: CursorBasedPaginationMetadata;
 }
