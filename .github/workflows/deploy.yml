@@ -1,0 +1,180 @@
+name: Deploy via Helm
+
+on:
+  workflow_dispatch:
+    inputs:
+      image_tag:
+        description: 'Docker image tag to deploy (exact SHA or tag, leave empty to use latest published SHA)'
+        required: false
+        default: ''
+      target_env:
+        description: 'Target environment to deploy to'
+        required: true
+        default: 'dev'
+        type: choice
+        options:
+          - dev
+          - prod
+  workflow_run:
+    workflows: [ "Publish Container Images" ]
+    types: [ "completed" ]
+    branches: [ "main" ]
+
+jobs:
+  # -----------------------------------------------------------------------
+  # Determine the target environment.
+  # workflow_run (automatic) always deploys to dev first, then production.
+  # workflow_dispatch (manual) deploys to the chosen environment.
+  # -----------------------------------------------------------------------
+  set-env:
+    name: Determine target environment
+    runs-on: ubuntu-latest
+    if: ${{ github.event_name == 'workflow_dispatch' || github.event.workflow_run.conclusion == 'success' }}
+    outputs:
+      target_env: ${{ steps.resolve.outputs.target_env }}
+      image_tag: ${{ steps.resolve.outputs.image_tag }}
+    steps:
+      - name: Resolve environment and tag
+        id: resolve
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          if [ "${{ github.event_name }}" = "workflow_dispatch" ]; then
+            ENV="${{ github.event.inputs.target_env }}"
+            TAG="${{ github.event.inputs.image_tag }}"
+            # If no tag given, fetch the SHA from the last successful publish-images run
+            if [ -z "$TAG" ]; then
+              TAG=$(gh api \
+                "/repos/${{ github.repository }}/actions/workflows/publish-images.yml/runs?branch=main&status=success&per_page=1" \
+                --jq '.workflow_runs[0].head_sha')
+            fi
+          else
+            ENV="dev"
+            TAG="${{ github.event.workflow_run.head_sha }}"
+          fi
+          echo "target_env=$ENV" >> "$GITHUB_OUTPUT"
+          echo "image_tag=$TAG" >> "$GITHUB_OUTPUT"
+
+  # -----------------------------------------------------------------------
+  # Approval gate for both environments.
+  # dev:  Settings → Environments → "dev"  → add required reviewers
+  # prod: Settings → Environments → "prod" → add required reviewers
+  # -----------------------------------------------------------------------
+  approve:
+    name: Approve deployment to ${{ needs.set-env.outputs.target_env }}
+    runs-on: [Linux, k8s-access]
+    needs: set-env
+    environment: ${{ needs.set-env.outputs.target_env }}
+    steps:
+      - name: Approval granted
+        run: echo "Deployment to ${{ needs.set-env.outputs.target_env }} approved – proceeding."
+
+  # -----------------------------------------------------------------------
+  # Dev deployment
+  # -----------------------------------------------------------------------
+  deploy-dev:
+    name: Deploy to dev
+    runs-on: [Linux, k8s-access]
+    needs: [ set-env, approve ]
+    if: ${{ needs.set-env.outputs.target_env == 'dev' }}
+    environment: dev
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Set Kubeconfig
+        run: |
+          mkdir -p ~/.kube
+          echo "${{ secrets.KUBECONFIG_DEV }}" > ~/.kube/config
+          chmod 600 ~/.kube/config
+
+      - name: Install Helm
+        uses: azure/setup-helm@v4
+        with:
+          version: 'latest'
+
+      - name: Helm dependency build
+        run: helm dependency build ./biomed-chart
+
+      - name: Helm upgrade --install (dev)
+        run: |
+          IMAGE_TAG="${{ needs.set-env.outputs.image_tag }}"
+          REGISTRY="ghcr.io/${{ github.repository_owner }}"
+
+          helm upgrade --install \
+            "${{ secrets.HELM_RELEASE_NAME || 'biomed' }}" \
+            ./biomed-chart \
+            --namespace "${{ secrets.K8S_NAMESPACE || 'biomed-dev' }}" \
+            --create-namespace \
+            --atomic \
+            --timeout 5m \
+            --set management-backend.image.repository="${REGISTRY}/management-backend" \
+            --set management-backend.image.tag="${IMAGE_TAG}" \
+            --set management-frontend.image.repository="${REGISTRY}/management-frontend" \
+            --set management-frontend.image.tag="${IMAGE_TAG}"
+
+      - name: Deployment summary
+        run: |
+          echo "## ✅ Dev Deployment successful" >> "$GITHUB_STEP_SUMMARY"
+          echo "" >> "$GITHUB_STEP_SUMMARY"
+          echo "| | |" >> "$GITHUB_STEP_SUMMARY"
+          echo "|---|---|" >> "$GITHUB_STEP_SUMMARY"
+          echo "| **Environment** | \`dev\` |" >> "$GITHUB_STEP_SUMMARY"
+          echo "| **Image tag** | \`${{ needs.set-env.outputs.image_tag }}\` |" >> "$GITHUB_STEP_SUMMARY"
+          echo "| **Namespace** | \`${{ secrets.K8S_NAMESPACE || 'biomed-dev' }}\` |" >> "$GITHUB_STEP_SUMMARY"
+          echo "| **Release** | \`${{ secrets.HELM_RELEASE_NAME || 'biomed' }}\` |" >> "$GITHUB_STEP_SUMMARY"
+
+  # -----------------------------------------------------------------------
+  # Production deployment
+  # -----------------------------------------------------------------------
+  deploy-prod:
+    name: Deploy to prod
+    runs-on: [Linux, k8s-access]
+    needs: [ set-env, approve ]
+    if: ${{ needs.set-env.outputs.target_env == 'prod' }}
+    environment: prod
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Set Kubeconfig
+        run: |
+          mkdir -p ~/.kube
+          echo "${{ secrets.KUBECONFIG_PROD }}" > ~/.kube/config
+          chmod 600 ~/.kube/config
+
+      - name: Install Helm
+        uses: azure/setup-helm@v4
+        with:
+          version: 'latest'
+
+      - name: Helm dependency build
+        run: helm dependency build ./biomed-chart
+
+      - name: Helm upgrade --install (prod)
+        run: |
+          IMAGE_TAG="${{ needs.set-env.outputs.image_tag }}"
+          REGISTRY="ghcr.io/${{ github.repository_owner }}"
+
+          helm upgrade --install \
+            "${{ secrets.HELM_RELEASE_NAME || 'biomed' }}" \
+            ./biomed-chart \
+            --namespace "${{ secrets.K8S_NAMESPACE || 'biomed' }}" \
+            --create-namespace \
+            --atomic \
+            --timeout 5m \
+            --set management-backend.image.repository="${REGISTRY}/management-backend" \
+            --set management-backend.image.tag="${IMAGE_TAG}" \
+            --set management-frontend.image.repository="${REGISTRY}/management-frontend" \
+            --set management-frontend.image.tag="${IMAGE_TAG}"
+
+      - name: Deployment summary
+        run: |
+          echo "## ✅ Production Deployment successful" >> "$GITHUB_STEP_SUMMARY"
+          echo "" >> "$GITHUB_STEP_SUMMARY"
+          echo "| | |" >> "$GITHUB_STEP_SUMMARY"
+          echo "|---|---|" >> "$GITHUB_STEP_SUMMARY"
+          echo "| **Environment** | \`prod\` |" >> "$GITHUB_STEP_SUMMARY"
+          echo "| **Image tag** | \`${{ needs.set-env.outputs.image_tag }}\` |" >> "$GITHUB_STEP_SUMMARY"
+          echo "| **Namespace** | \`${{ secrets.K8S_NAMESPACE || 'biomed' }}\` |" >> "$GITHUB_STEP_SUMMARY"
+          echo "| **Release** | \`${{ secrets.HELM_RELEASE_NAME || 'biomed' }}\` |" >> "$GITHUB_STEP_SUMMARY"
