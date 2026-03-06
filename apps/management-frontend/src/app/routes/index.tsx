@@ -58,7 +58,7 @@ function RouteComponent() {
 			<p className="mt-6 text-gray-600">
 				Note: If you're not able to see specific pages, such as crawler-templates, schedules or
 				crawler-runs, you probably do not have permissions to view them. Contact your administrator
-				for access.'
+				for access.
 			</p>
 
 			<footer className="mt-10 text-gray-500 text-sm">
