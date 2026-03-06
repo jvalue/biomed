@@ -79,9 +79,9 @@ jobs:
             --create-namespace \
             --atomic \
             --timeout 5m \
-            --set management-backend.image.repository="${REGISTRY}/management-backend" \
+            --set management-backend.image.name="${REGISTRY}/management-backend" \
             --set management-backend.image.tag="${IMAGE_TAG}" \
-            --set management-frontend.image.repository="${REGISTRY}/management-frontend" \
+            --set management-frontend.image.name="${REGISTRY}/management-frontend" \
             --set management-frontend.image.tag="${IMAGE_TAG}"
         env:
           HELM_RELEASE_NAME: ${{ secrets.HELM_RELEASE_NAME }}
@@ -136,9 +136,9 @@ jobs:
             --create-namespace \
             --atomic \
             --timeout 5m \
-            --set management-backend.image.repository="${REGISTRY}/management-backend" \
+            --set management-backend.image.name="${REGISTRY}/management-backend" \
             --set management-backend.image.tag="${IMAGE_TAG}" \
-            --set management-frontend.image.repository="${REGISTRY}/management-frontend" \
+            --set management-frontend.image.name="${REGISTRY}/management-frontend" \
             --set management-frontend.image.tag="${IMAGE_TAG}"
         env:
           HELM_RELEASE_NAME: ${{ secrets.HELM_RELEASE_NAME }}
