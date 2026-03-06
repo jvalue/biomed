@@ -36,6 +36,8 @@ class ArgoWorkflowTemplateSpecArgumentsParametersDto {
 class ArgoWorkflowTemplateSpecArgumentsDto {
 	@IsArray()
 	@IsOptional()
+	@ValidateNested({ each: true })
+	@Type(() => ArgoWorkflowTemplateSpecArgumentsDto)
 	parameters?: ArgoWorkflowTemplateSpecArgumentsParametersDto[];
 }
 
