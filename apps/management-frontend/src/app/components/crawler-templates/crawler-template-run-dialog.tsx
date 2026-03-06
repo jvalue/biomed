@@ -17,7 +17,6 @@ import { Label } from '@/src/app/components/design-components/label';
 import {
 	Tooltip,
 	TooltipContent,
-	TooltipProvider,
 	TooltipTrigger,
 } from '@/src/app/components/design-components/tooltip';
 
@@ -92,32 +91,30 @@ export default function CrawlerTemplateRunDialog({
 				</DialogHeader>
 
 				<div className="grid gap-4 py-4">
-					<TooltipProvider delayDuration={200}>
-						{template.parameters?.map((param) => (
-							<div key={param.name} className="grid grid-cols-4 items-center gap-4">
-								<Tooltip>
-									<TooltipTrigger asChild>
-										<Label
-											htmlFor={param.name}
-											className="text-left min-w-0 block truncate cursor-default"
-										>
-											{param.name}
-										</Label>
-									</TooltipTrigger>
-									<TooltipContent side="top" className="z-[100]">
-										<p>{param.name}</p>
-									</TooltipContent>
-								</Tooltip>
-								<Input
-									id={param.name}
-									value={parameters[param.name] || ''}
-									onChange={(e) => handleParameterChange(param.name, e.target.value)}
-									placeholder={param.defaultValue || ''}
-									className="col-span-3"
-								/>
-							</div>
-						))}
-					</TooltipProvider>
+					{template.parameters?.map((param) => (
+						<div key={param.name} className="grid grid-cols-4 items-center gap-4">
+							<Tooltip>
+								<TooltipTrigger asChild>
+									<Label
+										htmlFor={param.name}
+										className="text-left min-w-0 block truncate cursor-default"
+									>
+										{param.name}
+									</Label>
+								</TooltipTrigger>
+								<TooltipContent side="top" className="z-[100]">
+									<p>{param.name}</p>
+								</TooltipContent>
+							</Tooltip>
+							<Input
+								id={param.name}
+								value={parameters[param.name] || ''}
+								onChange={(e) => handleParameterChange(param.name, e.target.value)}
+								placeholder={param.defaultValue || ''}
+								className="col-span-3"
+							/>
+						</div>
+					))}
 				</div>
 
 				<DialogFooter>
