@@ -17,7 +17,10 @@ export default function SchedulesList() {
 
 	return (
 		<div>
-			<p>In the following table you can see all schedules.</p>
+			<p>
+				In the following table you can see all schedules. You can see the details of a schedule by
+				clicking on it.
+			</p>
 			<SchedulesTable schedules={data} />
 		</div>
 	);
