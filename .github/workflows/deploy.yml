@@ -121,11 +121,21 @@ jobs:
           TARGET="${{ inputs.target_env }}"
 
           if [ "$TARGET" == "prod" ]; then
-            echo "${{ secrets.KUBECONFIG_PROD }}" > ~/.kube/config
+            KUBECONFIG_CONTENT="${{ secrets.KUBECONFIG_PROD }}"
+            SECRET_NAME="KUBECONFIG_PROD"
           else
-            echo "${{ secrets.KUBECONFIG_DEV }}" > ~/.kube/config
+            KUBECONFIG_CONTENT="${{ secrets.KUBECONFIG_DEV }}"
+            SECRET_NAME="KUBECONFIG_DEV"
           fi
+
+          if [ -z "$KUBECONFIG_CONTENT" ]; then
+            echo "❌ Secret $SECRET_NAME is empty or not set!"
+            exit 1
+          fi
+
+          echo "$KUBECONFIG_CONTENT" > ~/.kube/config
           chmod 600 ~/.kube/config
+          echo "✅ Kubeconfig written for environment: $TARGET"
 
       - name: Helm dependency build
         run: helm dependency build ./biomed-chart
