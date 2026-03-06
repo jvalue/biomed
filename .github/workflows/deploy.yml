@@ -4,7 +4,7 @@ on:
   workflow_dispatch:
     inputs:
       image_tag:
-        description: 'Docker image tag to deploy (exact SHA or tag, leave empty to use SHA of latest published images)'
+        description: 'Docker image tag to deploy (leer lassen = wird automatisch aus publish-images Run ermittelt)'
         required: false
         default: ''
       target_env:
@@ -15,54 +15,89 @@ on:
         options:
           - dev
           - prod
-  workflow_run:
-    workflows: [ "Publish Container Images" ]
-    types: [ "completed" ]
-    branches: [ "main" ]
 
 jobs:
   # -----------------------------------------------------------------------
-  # Resolve image tag.
-  # Automatic trigger (workflow_run): uses the SHA of the publish-images run.
-  # Manual trigger (workflow_dispatch): uses the input tag, or fetches the
-  # SHA of the last successful publish-images run if left empty.
+  # Step 1: Trigger publish-images and wait for it to finish.
   # -----------------------------------------------------------------------
-  set-env:
-    name: Resolve image tag
+  publish-images:
+    name: Publish Container Images
     runs-on: ubuntu-latest
-    if: ${{ github.event_name == 'workflow_dispatch' || github.event.workflow_run.conclusion == 'success' }}
     outputs:
-      image_tag: ${{ steps.resolve.outputs.image_tag }}
-      target_env: ${{ steps.resolve.outputs.target_env }}
+      image_tag: ${{ steps.get-sha.outputs.image_tag }}
     steps:
-      - name: Resolve image tag
-        id: resolve
+      - name: Trigger publish-images workflow and wait
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
-          if [ "${{ github.event_name }}" = "workflow_run" ]; then
-            TAG="${{ github.event.workflow_run.head_sha }}"
-            ENV="dev"
-          else
-            ENV="${{ inputs.target_env }}"
-            TAG="${{ inputs.image_tag }}"
-            if [ -z "$TAG" ]; then
-              TAG=$(gh api \
-                "/repos/${{ github.repository }}/actions/workflows/publish-images.yml/runs?branch=main&status=success&per_page=1" \
-                --jq '.workflow_runs[0].head_sha')
+          # Trigger the workflow and capture the run ID
+          gh workflow run publish-images.yml \
+            --repo "${{ github.repository }}" \
+            --ref main
+
+          # Wait briefly so the run appears in the API
+          sleep 5
+
+          # Poll until the run is no longer queued/in_progress
+          echo "Waiting for publish-images workflow to complete..."
+          for i in $(seq 1 60); do
+            STATUS=$(gh run list \
+              --repo "${{ github.repository }}" \
+              --workflow publish-images.yml \
+              --branch main \
+              --limit 1 \
+              --json status,conclusion,databaseId \
+              --jq '.[0].status')
+
+            echo "  Attempt $i/60 – status: $STATUS"
+
+            if [ "$STATUS" = "completed" ]; then
+              break
             fi
+            sleep 10
+          done
+
+          CONCLUSION=$(gh run list \
+            --repo "${{ github.repository }}" \
+            --workflow publish-images.yml \
+            --branch main \
+            --limit 1 \
+            --json conclusion \
+            --jq '.[0].conclusion')
+
+          if [ "$CONCLUSION" != "success" ]; then
+            echo "❌ publish-images workflow failed with conclusion: $CONCLUSION"
+            exit 1
+          fi
+
+          echo "✅ publish-images completed successfully."
+
+      - name: Resolve image tag
+        id: get-sha
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          TAG="${{ inputs.image_tag }}"
+          if [ -z "$TAG" ]; then
+            TAG=$(gh run list \
+              --repo "${{ github.repository }}" \
+              --workflow publish-images.yml \
+              --branch main \
+              --limit 1 \
+              --json headSha \
+              --jq '.[0].headSha')
           fi
           echo "image_tag=$TAG" >> "$GITHUB_OUTPUT"
-          echo "target_env=$ENV" >> "$GITHUB_OUTPUT"
+          echo "Using image tag: $TAG"
 
   # -----------------------------------------------------------------------
-  # Dev deployment
+  # Step 2: Deploy to dev
   # -----------------------------------------------------------------------
   deploy-dev:
     name: Deploy to dev
     runs-on: [Linux, k8s-access]
-    needs: set-env
-    if: ${{ needs.set-env.outputs.target_env == 'dev' }}
+    needs: publish-images
+    if: ${{ inputs.target_env == 'dev' }}
     environment: dev
 
     container:
@@ -78,7 +113,7 @@ jobs:
       - name: Install Helm
         uses: azure/setup-helm@v3
         with:
-          version: 'v3.15.2'
+          version: 'v3.12.0'
 
       - name: Set Kubeconfig
         run: |
@@ -91,20 +126,17 @@ jobs:
 
       - name: Helm upgrade --install (dev)
         run: |
-          IMAGE_TAG="${{ needs.set-env.outputs.image_tag }}"
+          IMAGE_TAG="${{ needs.publish-images.outputs.image_tag }}"
           REGISTRY="ghcr.io/${{ github.repository_owner }}"
 
           helm upgrade --install biomed ./biomed-chart \
-            --namespace "${K8S_NAMESPACE:-biomed-dev}" \
-            --create-namespace \
+            --namespace "crawler-management" \
             --atomic \
             --timeout 5m \
             --set management-backend.image.name="${REGISTRY}/management-backend" \
             --set management-backend.image.tag="${IMAGE_TAG}" \
             --set management-frontend.image.name="${REGISTRY}/management-frontend" \
             --set management-frontend.image.tag="${IMAGE_TAG}"
-        env:
-          K8S_NAMESPACE: ${{ secrets.K8S_NAMESPACE_DEV }}
 
       - name: Deployment summary
         run: |
@@ -113,17 +145,17 @@ jobs:
           echo "| | |" >> "$GITHUB_STEP_SUMMARY"
           echo "|---|---|" >> "$GITHUB_STEP_SUMMARY"
           echo "| **Environment** | \`dev\` |" >> "$GITHUB_STEP_SUMMARY"
-          echo "| **Image tag** | \`${{ needs.set-env.outputs.image_tag }}\` |" >> "$GITHUB_STEP_SUMMARY"
+          echo "| **Image tag** | \`${{ needs.publish-images.outputs.image_tag }}\` |" >> "$GITHUB_STEP_SUMMARY"
           echo "| **Triggered by** | \`${{ github.actor }}\` |" >> "$GITHUB_STEP_SUMMARY"
 
   # -----------------------------------------------------------------------
-  # Production deployment
+  # Step 2: Deploy to prod
   # -----------------------------------------------------------------------
   deploy-prod:
     name: Deploy to prod
     runs-on: [Linux, k8s-access]
-    needs: set-env
-    if: ${{ needs.set-env.outputs.target_env == 'prod' }}
+    needs: publish-images
+    if: ${{ inputs.target_env == 'prod' }}
     environment: prod
 
     container:
@@ -152,20 +184,17 @@ jobs:
 
       - name: Helm upgrade --install (prod)
         run: |
-          IMAGE_TAG="${{ needs.set-env.outputs.image_tag }}"
+          IMAGE_TAG="${{ needs.publish-images.outputs.image_tag }}"
           REGISTRY="ghcr.io/${{ github.repository_owner }}"
 
           helm upgrade --install biomed ./biomed-chart \
-            --namespace "${K8S_NAMESPACE:-biomed}" \
-            --create-namespace \
+            --namespace "crawler-management" \
             --atomic \
             --timeout 5m \
             --set management-backend.image.name="${REGISTRY}/management-backend" \
             --set management-backend.image.tag="${IMAGE_TAG}" \
             --set management-frontend.image.name="${REGISTRY}/management-frontend" \
             --set management-frontend.image.tag="${IMAGE_TAG}"
-        env:
-          K8S_NAMESPACE: ${{ secrets.K8S_NAMESPACE_PROD }}
 
       - name: Deployment summary
         run: |
@@ -174,5 +203,5 @@ jobs:
           echo "| | |" >> "$GITHUB_STEP_SUMMARY"
           echo "|---|---|" >> "$GITHUB_STEP_SUMMARY"
           echo "| **Environment** | \`prod\` |" >> "$GITHUB_STEP_SUMMARY"
-          echo "| **Image tag** | \`${{ needs.set-env.outputs.image_tag }}\` |" >> "$GITHUB_STEP_SUMMARY"
+          echo "| **Image tag** | \`${{ needs.publish-images.outputs.image_tag }}\` |" >> "$GITHUB_STEP_SUMMARY"
           echo "| **Triggered by** | \`${{ github.actor }}\` |" >> "$GITHUB_STEP_SUMMARY"
