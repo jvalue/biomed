@@ -49,10 +49,10 @@ function RouteComponent() {
 				</li>
 				<li>
 					Create a schedule and define the cron expression as well as parameters and the retry
-					strategy if needed .
+					strategy if needed.
 				</li>
 				<li>Wait for the first runs to occur and monitor their progress.</li>
-				<li>Check in again after a few runs and view the statistics of you schedule.</li>
+				<li>Check in again after a few runs and view the statistics of your schedule.</li>
 			</ol>
 
 			<p className="mt-6 text-gray-600">
