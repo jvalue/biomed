@@ -45,6 +45,8 @@ export class CreateScheduleDto {
 	})
 	@IsArray()
 	@IsOptional()
+	@ValidateNested({ each: true })
+	@Type(() => ScheduleParameterDto)
 	parameters?: ScheduleParameterDto[];
 
 	@ApiProperty({ description: 'Retry strategy in case of workflow failure', required: false })

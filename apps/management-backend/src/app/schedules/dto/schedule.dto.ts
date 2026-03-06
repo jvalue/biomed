@@ -65,6 +65,8 @@ export class ScheduleDto {
 		description: 'The parameters which the schedule passes to the crawler template',
 	})
 	@IsArray()
+	@ValidateNested({ each: true })
+	@Type(() => ScheduleParameterDto)
 	parameters!: ScheduleParameterDto[];
 
 	@ApiProperty({ type: String, description: 'The cron schedule expression' })
