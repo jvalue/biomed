@@ -120,7 +120,7 @@ jobs:
           mkdir -p ~/.kube
           TARGET="${{ inputs.target_env }}"
 
-          if [ "$TARGET" == "prod" ]; then
+          if [ "$TARGET" = "prod" ]; then
             echo "${{ secrets.KUBECONFIG_PROD }}" > ~/.kube/config
           else
             echo "${{ secrets.KUBECONFIG_DEV }}" > ~/.kube/config
