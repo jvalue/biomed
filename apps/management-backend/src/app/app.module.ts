@@ -14,7 +14,7 @@ import { validate } from './env.validation';
 import { HealthModule } from './health/health.module';
 import { TargetsModule } from './health/targets/targets.module';
 import { KubernetesClientModule } from './kubernetes-client/kubernetes-client.module';
-import { AllExceptionsFilter, LoggingInterceptor } from './logging';
+import { ExceptionsInterceptor, RequestLoggingInterceptor } from './logging';
 import { CrawlerRunMetricsModule } from './metrics/crawler-run-metrics/crawler-run-metrics.module';
 import { OrchestratorSyncModule } from './orchestrator-sync/orchestrator-sync.module';
 import { SchedulesModule } from './schedules/schedules.module';
@@ -48,11 +48,11 @@ import { UsersModule } from './users/users.module';
 		AdminBootstrapService,
 		{
 			provide: APP_INTERCEPTOR,
-			useClass: LoggingInterceptor,
+			useClass: RequestLoggingInterceptor,
 		},
 		{
 			provide: APP_FILTER,
-			useClass: AllExceptionsFilter,
+			useClass: ExceptionsInterceptor,
 		},
 	],
 })
