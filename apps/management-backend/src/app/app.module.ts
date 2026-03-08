@@ -1,6 +1,6 @@
 import { Module } from '@nestjs/common';
 import { ConfigModule } from '@nestjs/config';
-import { APP_INTERCEPTOR } from '@nestjs/core';
+import { APP_FILTER, APP_INTERCEPTOR } from '@nestjs/core';
 import { TypeOrmModule } from '@nestjs/typeorm';
 import { AppController } from './app.controller';
 import { AppService } from './app.service';
@@ -14,7 +14,7 @@ import { validate } from './env.validation';
 import { HealthModule } from './health/health.module';
 import { TargetsModule } from './health/targets/targets.module';
 import { KubernetesClientModule } from './kubernetes-client/kubernetes-client.module';
-import { LoggingInterceptor } from './logging';
+import { AllExceptionsFilter, LoggingInterceptor } from './logging';
 import { CrawlerRunMetricsModule } from './metrics/crawler-run-metrics/crawler-run-metrics.module';
 import { OrchestratorSyncModule } from './orchestrator-sync/orchestrator-sync.module';
 import { SchedulesModule } from './schedules/schedules.module';
@@ -49,6 +49,10 @@ import { UsersModule } from './users/users.module';
 		{
 			provide: APP_INTERCEPTOR,
 			useClass: LoggingInterceptor,
+		},
+		{
+			provide: APP_FILTER,
+			useClass: AllExceptionsFilter,
 		},
 	],
 })
