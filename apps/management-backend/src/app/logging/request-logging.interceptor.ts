@@ -11,7 +11,7 @@ import { sanitizePayload } from './sanitize.util';
  * Sensitive data (passwords, tokens, etc.) is automatically masked via sanitizePayload().
  */
 @Injectable()
-export class LoggingInterceptor implements NestInterceptor {
+export class RequestLoggingInterceptor implements NestInterceptor {
 	private readonly logger = new Logger('HTTP');
 
 	intercept(context: ExecutionContext, next: CallHandler): Observable<unknown> {

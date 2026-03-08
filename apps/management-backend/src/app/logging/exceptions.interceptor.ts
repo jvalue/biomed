@@ -11,13 +11,13 @@ import { Request, Response } from 'express';
 /**
  * Global exception filter that provides centralized error logging.
  *
- * - 4xx errors → logged at WARN level (anomalies that don't represent system failures)
- * - 5xx errors / unhandled exceptions → logged at ERROR level with stack trace
+ * - 4xx errors -> logged at WARN level
+ * - 5xx errors / unhandled exceptions -> logged at ERROR level with stack trace
  *
  * Includes contextual information (URL, method, user) to aid debugging.
  */
 @Catch()
-export class AllExceptionsFilter implements ExceptionFilter {
+export class ExceptionsInterceptor implements ExceptionFilter {
 	private readonly logger = new Logger('ExceptionFilter');
 
 	catch(exception: unknown, host: ArgumentsHost): void {
@@ -30,6 +30,8 @@ export class AllExceptionsFilter implements ExceptionFilter {
 		const response = ctx.getResponse<Response>();
 
 		const { method, url } = request;
+
+		// Get user info from request
 		const authenticatedRequest = request as Request & { user?: { id?: string; username?: string } };
 		const userId: string =
 			authenticatedRequest.user?.id ?? authenticatedRequest.user?.username ?? 'anonymous';
@@ -56,7 +58,7 @@ export class AllExceptionsFilter implements ExceptionFilter {
 				exception instanceof Error ? exception.stack : undefined,
 			);
 		} else if (status >= 400) {
-			// WARN: Client errors – anomalies that don't represent system failures
+			// WARN: Client errors - anomalies that don't represent system failures
 			this.logger.warn(`${context} | Status: ${status} | ${errorMessage}`);
 		}
 
