@@ -8,6 +8,7 @@ import { CrawlerTemplateDto } from '../../crawler-templates/dto/crawler-template
 import { CrawlerTemplatesFilterDto } from '../../crawler-templates/dto/crawler-templates-filter.dto';
 import { EnvironmentVariables } from '../../env.validation';
 import { HealthStatusEnum } from '../../health/enum/healthStatus.enum';
+import { attachAxiosLogging } from '../../logging';
 import { CursorBasedPaginationRequestDto } from '../../pagination/dto/cursor-based-pagination-request.dto';
 import { CursorBasedPaginationResponseDto } from '../../pagination/dto/cursor-based-pagination-response.dto';
 import { ScheduleDto } from '../../schedules/dto/schedule.dto';
@@ -48,6 +49,9 @@ export class ArgoClientService implements IOrchestratorClient {
 				Accept: 'application/json',
 			},
 		});
+
+		// Attach centralized logging for all outgoing requests to Argo
+		attachAxiosLogging(this.http, this.logger);
 	}
 
 	/**
