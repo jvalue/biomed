@@ -64,6 +64,13 @@ export class ScheduleDto {
 	schedule!: string;
 
 	@ApiProperty({
+		type: String,
+		description: 'The IANA timezone used to interpret the cron schedule expression',
+	})
+	@IsString()
+	timezone!: string;
+
+	@ApiProperty({
 		type: RetryStrategyDto,
 		description: 'The retry strategy for failed runs triggered by the schedule',
 		nullable: true,

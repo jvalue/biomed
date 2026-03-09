@@ -34,7 +34,7 @@ export default function SchedulesTable({ schedules = [] }: ScheduleTableProps) {
 						<TableHead className="text-primary">&nbsp;</TableHead>
 						<TableHead className="text-primary">Crawler Name</TableHead>
 						<TableHead className="text-primary">Namespace</TableHead>
-						<TableHead className="text-primary">Schedule (UTC)</TableHead>
+						<TableHead className="text-primary">Schedule</TableHead>
 						<TableHead className="text-primary">Next Run</TableHead>
 						<TableHead className="text-primary">Created at</TableHead>
 					</TableRow>

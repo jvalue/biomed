@@ -79,13 +79,15 @@ export function getCronLocalTimeHint(cronExpr?: string): string | null {
 /**
  * Return the next run date for a given cron expression or null if not resolvable.
  */
-export function getNextRunDate(cronExpr?: string): Date | null {
+export function getNextRunDate(cronExpr?: string, scheduleTimezone?: string): Date | null {
 	if (!cronExpr) return null;
+
 	try {
-		// use the parser to get an iterator
-		const interval = CronExpressionParser.parse(cronExpr, { currentDate: new Date(), tz: 'UTC' });
-		const next = interval.next();
-		return next.toDate();
+		const interval = CronExpressionParser.parse(cronExpr, {
+			currentDate: new Date(),
+			tz: scheduleTimezone ?? 'UTC',
+		});
+		return interval.next().toDate();
 	} catch {
 		return null;
 	}
