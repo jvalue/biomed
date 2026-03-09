@@ -2,6 +2,7 @@ import { ApiProperty } from '@nestjs/swagger';
 import { Type } from 'class-transformer';
 import { IsArray, IsNotEmpty, IsOptional, IsString, Matches, Validate } from 'class-validator';
 import { IsCronExpression } from '../infrastructure/argo/cron.validator';
+import { IsIanaTimezone } from '../infrastructure/argo/timezone.validator';
 import { RetryStrategyDto } from './retry-strategy.dto';
 import { ScheduleParameterDto } from './schedule.dto';
 
@@ -20,6 +21,14 @@ export class CreateScheduleDto {
 	@IsNotEmpty()
 	@Validate(IsCronExpression)
 	cronExpression!: string;
+
+	@ApiProperty({
+		description: 'IANA timezone for interpreting the cron expression, e.g. Europe/Berlin',
+	})
+	@IsString()
+	@IsNotEmpty()
+	@Validate(IsIanaTimezone)
+	timezone!: string;
 
 	@ApiProperty({ description: 'Namespace of the crawler template to be executed' })
 	@IsString()

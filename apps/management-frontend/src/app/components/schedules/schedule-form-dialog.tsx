@@ -40,6 +40,8 @@ export interface ScheduleFormDialogProps {
 	onOpenChange: (open: boolean) => void;
 }
 
+const SCHEDULE_TIMEZONE = Intl.DateTimeFormat().resolvedOptions().timeZone || 'UTC';
+
 export function ScheduleFormDialog({
 	mode,
 	template: propTemplate,
@@ -301,6 +303,7 @@ export function ScheduleFormDialog({
 				{
 					name: scheduleName,
 					cronExpression,
+					timezone: SCHEDULE_TIMEZONE,
 					crawlerTemplateName: template.name,
 					crawlerTemplateNamespace: template.namespace,
 					parameters: parameterList,
@@ -326,6 +329,7 @@ export function ScheduleFormDialog({
 					namespace: initialSchedule.namespace,
 					dto: {
 						cronExpression,
+						timezone: SCHEDULE_TIMEZONE,
 						retryStrategy: retryStrategyDto,
 						parameters: parameterList,
 					},
@@ -405,7 +409,7 @@ export function ScheduleFormDialog({
 
 							<div className="space-y-2">
 								<Label htmlFor="cronExpression" className="text-sm font-medium">
-									Cron Expression (UTC) <span className="text-red-500">*</span>
+									Cron Expression <span className="text-red-500">*</span>
 								</Label>
 								<Input
 									id="cronExpression"

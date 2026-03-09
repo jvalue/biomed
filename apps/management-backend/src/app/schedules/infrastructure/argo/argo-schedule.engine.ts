@@ -29,6 +29,7 @@ export class ArgoScheduleEngine implements IScheduleEngine {
 				.setName(dto.name)
 				.setNamespace(dto.crawlerTemplateNamespace)
 				.setSchedule(dto.cronExpression)
+				.setTimezone(dto.timezone)
 				.setTemplateRef(dto.crawlerTemplateName)
 				.addParameters(dto.parameters)
 				.addLabel('created-by', user.id)
@@ -67,6 +68,9 @@ export class ArgoScheduleEngine implements IScheduleEngine {
 		// Update cron expression
 		if (updateScheduleDto.cronExpression) {
 			existingWorkflow.spec.schedules = [updateScheduleDto.cronExpression];
+		}
+		if (updateScheduleDto.timezone) {
+			existingWorkflow.spec.timezone = updateScheduleDto.timezone;
 		}
 
 		// Update retry strategy
