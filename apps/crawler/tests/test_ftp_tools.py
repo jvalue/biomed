@@ -1,9 +1,11 @@
 """Tests for crawler main entrypoint."""
 
+import importlib
 from pathlib import Path
 
 from crawler_common.ftp_node import FTPNode
-from crawler_general.main import main
+
+crawler_main = importlib.import_module("crawler_general.main")
 
 
 def test_creates_output_file(tmp_path, monkeypatch):
@@ -15,14 +17,16 @@ def test_creates_output_file(tmp_path, monkeypatch):
 
     # Stub env loader to avoid real .env dependency
     monkeypatch.setattr(
-        "crawler_general.main.ftp_conf.load_env_vars",
+        crawler_main.ftp_conf,
+        "load_env_vars",
         lambda *_: ("ftp.example.com", "user", "pass"),
     )
 
     # Stub traversal to avoid network
     fake_root = FTPNode(name="/", is_dir=True, path="/")
     monkeypatch.setattr(
-        "crawler_general.main.ftp_tools.get_ftp_structure",
+        crawler_main.ftp_tools,
+        "get_ftp_structure",
         lambda *_, **__: fake_root,
     )
 
@@ -31,10 +35,11 @@ def test_creates_output_file(tmp_path, monkeypatch):
         Path(dest).write_text("dummy")
 
     monkeypatch.setattr(
-        "crawler_general.main.ftp_tools.write_ftp_structure_to_file",
+        crawler_main.ftp_tools,
+        "write_ftp_structure_to_file",
         fake_write,
     )
 
-    main()
+    crawler_main.main()
 
     assert out_file.exists()
