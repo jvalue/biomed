@@ -31,15 +31,22 @@ def _load_local_env() -> None:
 async def _notify_management_backend() -> None:
     """Send a simple authenticated request to the management backend."""
 
-    run_namespace = os.getenv("CRAWLER_DUMMY_RUN_NAMESPACE", "default")
-    run_name = os.getenv("CRAWLER_DUMMY_RUN_NAME", "crawler-dummy")
+    run_namespace = os.getenv(
+        "CRAWLER_RUN_NAMESPACE",
+        os.getenv("CRAWLER_DUMMY_RUN_NAMESPACE", "default"),
+    )
+    run_name = os.getenv(
+        "CRAWLER_RUN_NAME",
+        os.getenv("CRAWLER_DUMMY_RUN_NAME", "crawler-dummy"),
+    )
     base_url = os.getenv("MANAGEMENT_BACKEND_URL", "<missing MANAGEMENT_BACKEND_URL>")
     endpoint = os.getenv(
         "CRAWLER_DUMMY_ENDPOINT",
         f"/api/v1/crawler-runs/{run_namespace}/{run_name}/events",
     )
+    method = os.getenv("CRAWLER_DUMMY_METHOD", "POST").upper()
     target_url = f"{base_url.rstrip('/')}{endpoint if endpoint.startswith('/') else f'/{endpoint}'}"
-    logger.info(f"Calling management backend endpoint: {target_url}")
+    logger.info(f"Calling management backend endpoint: {method} {target_url}")
 
     client = HttpClient(timeout=10)
     payload = {
@@ -48,12 +55,15 @@ async def _notify_management_backend() -> None:
         "timestamp": datetime.now(timezone.utc).isoformat(),
     }
 
+    # Send a payload only for methods that typically support request bodies.
+    json_body = payload if method not in {"GET", "DELETE"} else None
+
     response = await client.call_management_endpoint_from_env(
         endpoint=endpoint,
-        method="POST",
-        json_body=payload,
+        method=method,
+        json_body=json_body,
     )
-    logger.info(f"Management backend call successful ({endpoint}): {response.status_code}")
+    logger.info(f"Management backend call successful ({method} {endpoint}): {response.status_code}")
 
 
 def main():
