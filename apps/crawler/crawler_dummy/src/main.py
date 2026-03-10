@@ -1,7 +1,6 @@
 import asyncio
 import logging
 import os
-import time
 from datetime import datetime, timezone
 from pathlib import Path
 
@@ -17,6 +16,69 @@ logging.basicConfig(
 logger = logging.getLogger(__name__)
 
 
+def _resolve_metrics_interval() -> int:
+    """Resolve metrics report interval from env with a safe fallback."""
+
+    raw_value = os.getenv("CRAWLER_DUMMY_METRICS_EVERY", "10")
+    try:
+        return max(1, int(raw_value))
+    except ValueError:
+        logger.warning(f"Invalid CRAWLER_DUMMY_METRICS_EVERY '{raw_value}', defaulting to 10")
+        return 10
+
+
+def _resolve_run_identity() -> tuple[str, str]:
+    """Resolve crawler run namespace and name from environment variables."""
+
+    run_namespace = os.getenv(
+        "CRAWLER_RUN_NAMESPACE",
+        os.getenv("CRAWLER_DUMMY_RUN_NAMESPACE", "default"),
+    )
+    run_name = os.getenv(
+        "CRAWLER_RUN_NAME",
+        os.getenv("CRAWLER_DUMMY_RUN_NAME", "crawler-dummy"),
+    )
+    return run_namespace, run_name
+
+
+async def _send_event(client: HttpClient, endpoint: str, message: str) -> None:
+    """Send crawler event to management backend."""
+
+    payload = {
+        "type": "INFO",
+        "message": message,
+        "timestamp": datetime.now(timezone.utc).isoformat(),
+    }
+    response = await client.call_management_endpoint_from_env(
+        endpoint=endpoint,
+        method="POST",
+        json_body=payload,
+    )
+    logger.info(f"Event reported successfully ({endpoint}): {response.status_code}")
+
+
+async def _send_metrics(
+    client: HttpClient,
+    endpoint: str,
+    run_started_at: str,
+    progress: int,
+    crawled_data_sets: int,
+) -> None:
+    """Send crawler progress metrics to management backend."""
+
+    payload = {
+        "progress": progress,
+        "crawledDataSets": crawled_data_sets,
+        "runStartedAt": run_started_at,
+    }
+    response = await client.call_management_endpoint_from_env(
+        endpoint=endpoint,
+        method="POST",
+        json_body=payload,
+    )
+    logger.info(f"Metrics reported successfully ({endpoint}): {response.status_code}")
+
+
 def _load_local_env() -> None:
     """Load local .env file for development if present.
 
@@ -29,41 +91,52 @@ def _load_local_env() -> None:
 
 
 async def _notify_management_backend() -> None:
-    """Send a simple authenticated request to the management backend."""
+    """Run dummy workflow and report startup, progress metrics, and success."""
 
-    run_namespace = os.getenv(
-        "CRAWLER_RUN_NAMESPACE",
-        os.getenv("CRAWLER_DUMMY_RUN_NAMESPACE", "default"),
-    )
-    run_name = os.getenv(
-        "CRAWLER_RUN_NAME",
-        os.getenv("CRAWLER_DUMMY_RUN_NAME", "crawler-dummy"),
-    )
+    run_namespace, run_name = _resolve_run_identity()
     base_url = os.getenv("MANAGEMENT_BACKEND_URL", "<missing MANAGEMENT_BACKEND_URL>")
-    endpoint = os.getenv(
+    events_endpoint = os.getenv(
         "CRAWLER_DUMMY_ENDPOINT",
         f"/api/v1/crawler-runs/{run_namespace}/{run_name}/events",
     )
-    method = os.getenv("CRAWLER_DUMMY_METHOD", "POST").upper()
-    target_url = f"{base_url.rstrip('/')}{endpoint if endpoint.startswith('/') else f'/{endpoint}'}"
-    logger.info(f"Calling management backend endpoint: {method} {target_url}")
+    metrics_endpoint = os.getenv(
+        "CRAWLER_DUMMY_METRICS_ENDPOINT",
+        f"/api/v1/crawler-runs/{run_namespace}/{run_name}/metrics",
+    )
+    metrics_every = _resolve_metrics_interval()
+
+    events_url = (
+        f"{base_url.rstrip('/')}{events_endpoint if events_endpoint.startswith('/') else f'/{events_endpoint}'}"
+    )
+    metrics_url = (
+        f"{base_url.rstrip('/')}{metrics_endpoint if metrics_endpoint.startswith('/') else f'/{metrics_endpoint}'}"
+    )
+    logger.info(f"Using management backend events endpoint: POST {events_url}")
+    logger.info(f"Using management backend metrics endpoint: POST {metrics_url}")
 
     client = HttpClient(timeout=10)
-    payload = {
-        "type": "INFO",
-        "message": "crawler_dummy startup ping",
-        "timestamp": datetime.now(timezone.utc).isoformat(),
-    }
+    run_started_at = datetime.now(timezone.utc).isoformat()
 
-    # Send a payload only for methods that typically support request bodies.
-    json_body = payload if method not in {"GET", "DELETE"} else None
+    await _send_event(client, events_endpoint, "crawler_dummy startup ping")
 
-    response = await client.call_management_endpoint_from_env(
-        endpoint=endpoint,
-        method=method,
-        json_body=json_body,
-    )
-    logger.info(f"Management backend call successful ({method} {endpoint}): {response.status_code}")
+    with open("progress.txt", "w") as progress_file:
+        for i in range(1, 101):
+            progress_file.write(f"{i}\n")
+            progress_file.flush()
+            print(f"Progress: {i}/100")
+
+            if i % metrics_every == 0 or i == 100:
+                await _send_metrics(
+                    client=client,
+                    endpoint=metrics_endpoint,
+                    run_started_at=run_started_at,
+                    progress=i,
+                    crawled_data_sets=i,
+                )
+
+            await asyncio.sleep(1)
+
+    await _send_event(client, events_endpoint, "crawler_dummy finished successfully")
 
 
 def main():
@@ -75,13 +148,6 @@ def main():
         logger.warning(f"Skipping management backend call due to missing env config: {error}")
     except httpx.HTTPError as error:
         logger.error(f"Management backend call failed: {error}")
-
-    with open("progress.txt", "w") as f:
-        for i in range(1, 101):
-            f.write(f"{i}\n")
-            f.flush()
-            print(f"Progress: {i}/100")
-            time.sleep(1)
 
 
 if __name__ == "__main__":
