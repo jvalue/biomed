@@ -30,7 +30,7 @@ import ScheduleMetricsChartComponent from '@/src/app/components/schedules/schedu
 import ScheduleMetricsSummaryComponent from '@/src/app/components/schedules/schedule-metrics-summary.component';
 import ScheduleConfigurationSectionComponent from '@/src/app/components/schedules/scheduleConfigurationSection.component';
 import { useAuth } from '@/src/app/contexts/AuthContext';
-import { formatCronReadable, getCronLocalTimeHint, getNextRunDate } from '@/src/app/utils/cron';
+import { formatCronReadable, getNextRunDate } from '@/src/app/utils/cron';
 import { createSetPageSearch } from '@/src/app/utils/set-page-search';
 import { Badge } from '../../components/design-components/badge';
 import { Switch } from '../../components/design-components/switch';
@@ -94,10 +94,9 @@ function RouteComponent() {
 	}
 
 	const suspended = schedule?.suspended ?? false;
-	const nextRun = schedule?.schedule ? getNextRunDate(schedule.schedule) : null;
+	const nextRun = schedule?.schedule ? getNextRunDate(schedule.schedule, schedule.timezone) : null;
 	const createdAt = schedule?.createdAt ? new Date(schedule.createdAt).toLocaleString() : '-';
 	const stats = schedule?.statistics;
-	const cronLocalHint = schedule?.schedule ? getCronLocalTimeHint(schedule.schedule) : null;
 
 	return (
 		<AuthGuard>
@@ -182,24 +181,24 @@ function RouteComponent() {
 						<Card className="shadow-sm min-h-[120px] flex flex-col">
 							<CardHeader className="pb-3 flex-1">
 								<CardDescription className="text-xs uppercase tracking-wide">
-									Cron Schedule (UTC)
+									Cron Schedule
 								</CardDescription>
 								<CardTitle className="text-lg">
-									{schedule?.schedule ? (
-										<div className="flex flex-col">
-											<span>{formatCronReadable(schedule.schedule)}</span>
-											{cronLocalHint && (
-												<span className="text-muted-foreground font-normal">({cronLocalHint})</span>
-											)}
-										</div>
-									) : (
-										'-'
-									)}
+									{schedule?.schedule
+										? formatCronReadable(schedule.schedule, schedule.timezone)
+										: '-'}
 								</CardTitle>
 							</CardHeader>
 							<CardContent className="text-xs text-muted-foreground pb-4">
 								{schedule?.schedule && !suspended ? (
-									<>Next Run: {nextRun ? nextRun.toLocaleString() : 'invalid cron expression'}</>
+									<>
+										Next Run:{' '}
+										{nextRun ? (
+											<>Next Run: {nextRun.toLocaleString()} (local time)</>
+										) : (
+											'Invalid cron expression'
+										)}
+									</>
 								) : (
 									<span className="invisible">Placeholder</span>
 								)}
