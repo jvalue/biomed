@@ -207,8 +207,8 @@ function RouteComponent() {
 
 						<Card className="shadow-sm">
 							<CardHeader className="pb-3">
-								<CardDescription className="text-xs uppercase tracking-wide">
-									Created At
+								<CardDescription className="text-xs tracking-wide">
+									<span className="uppercase"> Created At </span> (local time)
 								</CardDescription>
 								<CardTitle className="text-lg">{createdAt}</CardTitle>
 							</CardHeader>
