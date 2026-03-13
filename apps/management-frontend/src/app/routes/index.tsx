@@ -44,7 +44,7 @@ function RouteComponent() {
 			<h2 className="text-xl mt-6">Getting Started</h2>
 			<ol className="list-decimal pl-5 mt-2 space-y-2">
 				<li>
-					Go to crawler-templates and find a crawler template for which you want to create a
+					Go to crawler templates and find a crawler template for which you want to create a
 					schedule.
 				</li>
 				<li>
@@ -56,8 +56,8 @@ function RouteComponent() {
 			</ol>
 
 			<p className="mt-6 text-gray-600">
-				Note: If you're not able to see specific pages, such as crawler-templates, schedules or
-				crawler-runs, you probably do not have permissions to view them. Contact your administrator
+				Note: If you're not able to see specific pages, such as crawler templates, schedules or
+				crawler runs, you probably do not have permissions to view them. Contact your administrator
 				for access.
 			</p>
 
