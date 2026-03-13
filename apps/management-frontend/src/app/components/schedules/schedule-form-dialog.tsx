@@ -459,7 +459,7 @@ export function ScheduleFormDialog({
 								<Input
 									id="scheduleTimezone"
 									value={scheduleTimezone}
-									onChange={(e) => setScheduleTimezone(e.target.value)}
+									onChange={(e) => setScheduleTimezone(e.target.value.trim())}
 									placeholder="e.g., Europe/Berlin"
 									className={`w-full font-mono text-sm ${timezoneIsInvalid ? 'border-red-500 focus-visible:ring-red-500' : ''}`}
 								/>

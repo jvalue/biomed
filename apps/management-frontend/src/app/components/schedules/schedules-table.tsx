@@ -31,27 +31,33 @@ export default function SchedulesTable({ schedules = [] }: ScheduleTableProps) {
 				<TableHeader>
 					<TableRow>
 						<TableHead className="text-primary">
-							Name <span className="block text-xs font-normal invisible">placeholder</span>
+							Name{' '}
+							<span className="block text-xs font-normal invisible" aria-hidden="true">
+								placeholder
+							</span>
 						</TableHead>
 						<TableHead className="text-primary">&nbsp;</TableHead>
-						<TableHead className="text-primary">
-							Crawler Name <span className="block text-xs font-normal invisible">placeholder</span>
+						<TableHead className="text-primary" aria-hidden="true">
+							Crawler Name{' '}
+							<span className="block text-xs font-normal invisible" aria-hidden="true">
+								placeholder
+							</span>
 						</TableHead>
-						<TableHead className="text-primary">
+						<TableHead className="text-primary" aria-hidden="true">
 							Namespace <span className="block text-xs font-normal invisible">placeholder</span>
 						</TableHead>
 						<TableHead className="text-primary">
-							Schedule{' '}
+							Schedule
 							<span className="block text-xs font-normal text-muted-foreground">
 								(schedule timezone)
 							</span>
 						</TableHead>
 						<TableHead className="text-primary">
-							Next Run{' '}
+							Next Run
 							<span className="block text-xs font-normal text-muted-foreground">(local time)</span>
 						</TableHead>
 						<TableHead className="text-primary">
-							Created at{' '}
+							Created at
 							<span className="block text-xs font-normal text-muted-foreground">(local time)</span>
 						</TableHead>
 					</TableRow>

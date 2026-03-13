@@ -194,7 +194,7 @@ function RouteComponent() {
 									<>
 										Next Run:{' '}
 										{nextRun ? (
-											<>Next Run: {nextRun.toLocaleString()} (local time)</>
+											<>{nextRun.toLocaleString()} (local time)</>
 										) : (
 											'Invalid cron expression'
 										)}
