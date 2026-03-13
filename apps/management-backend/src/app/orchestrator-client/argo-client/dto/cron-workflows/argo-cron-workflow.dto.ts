@@ -1,5 +1,13 @@
 import { Type } from 'class-transformer';
-import { IsArray, IsBoolean, IsDate, IsNumber, IsOptional, IsString } from 'class-validator';
+import {
+	IsArray,
+	IsBoolean,
+	IsDate,
+	IsNumber,
+	IsOptional,
+	IsString,
+	ValidateNested,
+} from 'class-validator';
 import { ArgoParameterDto } from '../argo-parameter.dto';
 
 class ArgoCronWorkflowMetadataDto {
@@ -15,6 +23,7 @@ class ArgoCronWorkflowMetadataDto {
 
 class ArgoCronWorkflowSpecWorkflowSpecArgumentsDto {
 	@IsOptional()
+	@ValidateNested({ each: true })
 	@Type(() => ArgoParameterDto)
 	parameters?: ArgoParameterDto[];
 }
@@ -46,26 +55,31 @@ class ArgoCronWorkflowSpecWorkflowSpecRetryStrategyDto {
 	@IsNumber()
 	limit?: number;
 
+	@ValidateNested()
 	@Type(() => ArgoRetryStrategyBackoffDto)
 	@IsOptional()
 	backoff?: ArgoRetryStrategyBackoffDto;
 }
 
 class ArgoCronWorkflowSpecWorkflowSpecDto {
+	@ValidateNested()
 	@Type(() => ArgoCronWorkflowSpecWorkflowSpecWorkflowTemplateRefDto)
 	@IsOptional()
 	workflowTemplateRef?: ArgoCronWorkflowSpecWorkflowSpecWorkflowTemplateRefDto;
 
+	@ValidateNested()
 	@Type(() => ArgoCronWorkflowSpecWorkflowSpecArgumentsDto)
 	@IsOptional()
 	arguments?: ArgoCronWorkflowSpecWorkflowSpecArgumentsDto;
 
+	@ValidateNested()
 	@Type(() => ArgoCronWorkflowSpecWorkflowSpecRetryStrategyDto)
 	@IsOptional()
 	retryStrategy?: ArgoCronWorkflowSpecWorkflowSpecRetryStrategyDto;
 }
 
 class ArgoCronWorkflowSpecDto {
+	@ValidateNested()
 	@Type(() => ArgoCronWorkflowSpecWorkflowSpecDto)
 	workflowSpec!: ArgoCronWorkflowSpecWorkflowSpecDto;
 
@@ -87,12 +101,15 @@ class ArgoCronWorkflowStatusDto {
 }
 
 export class ArgoCronWorkflowDto {
+	@ValidateNested()
 	@Type(() => ArgoCronWorkflowMetadataDto)
 	metadata!: ArgoCronWorkflowMetadataDto;
 
+	@ValidateNested()
 	@Type(() => ArgoCronWorkflowSpecDto)
 	spec!: ArgoCronWorkflowSpecDto;
 
+	@ValidateNested()
 	@Type(() => ArgoCronWorkflowStatusDto)
 	status!: ArgoCronWorkflowStatusDto;
 }

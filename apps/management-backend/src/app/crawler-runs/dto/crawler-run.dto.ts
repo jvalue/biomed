@@ -1,6 +1,6 @@
 import { ApiProperty } from '@nestjs/swagger';
 import { Type } from 'class-transformer';
-import { IsDate, IsEnum, IsOptional, IsString } from 'class-validator';
+import { IsDate, IsEnum, IsOptional, IsString, ValidateNested } from 'class-validator';
 import { WorkflowPhaseEnum } from '../../orchestrator-client/argo-client/enums/workflow-phase.enum';
 import { CrawlerRunParameterDto } from './crawler-run-parameter.dto';
 
@@ -68,6 +68,7 @@ export class CrawlerRunDto {
 		description: 'The parameters used for this crawler run',
 	})
 	@IsOptional()
+	@ValidateNested({ each: true })
 	@Type(() => CrawlerRunParameterDto)
 	parameters?: CrawlerRunParameterDto[];
 }
