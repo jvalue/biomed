@@ -5,7 +5,7 @@ import { sanitizePayload } from './logging';
 /**
  * Detects positional parameter placeholders ($1, $2, …) that are associated
  * with sensitive column names in a SQL query and replaces their values with a mask
- *e
+ *
  * TypeORM passes parameters as a positional array, so we derive which index
  * maps to a sensitive column by scanning the query for patterns like
  * `"passwordHash" = $3` or `("col1", "passwordHash") VALUES ($1, $2)`.
