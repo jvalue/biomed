@@ -2,7 +2,7 @@ import { CronExpressionParser } from 'cron-parser';
 import cronstrue from 'cronstrue';
 
 /**
- * Format a cron expression into a human readable string (interpreted in the schedule timezone).
+ * Format a cron expression into a human readable string and optionally append the schedule timezone label.
  * Returns fallback messages for empty/invalid expressions.
  */
 export function formatCronReadable(cronExpr?: string, scheduleTz?: string, locale = 'en'): string {
@@ -26,8 +26,10 @@ export function formatCronReadable(cronExpr?: string, scheduleTz?: string, local
 }
 
 /**
- * Return the next run date (UTC) for a given cron expression or null if not resolvable.
- * Use toLocaleString() to display in the user's timezone.
+ * Return the next run date for a given cron expression, or null if not resolvable.
+ * The cron schedule is evaluated in the provided scheduleTimezone (or UTC if omitted),
+ * and the returned Date represents an absolute instant that can be formatted in any timezone
+ * (e.g. using toLocaleString() for the user's local time).
  */
 export function getNextRunDate(cronExpr?: string, scheduleTimezone?: string): Date | null {
 	if (!cronExpr) return null;
