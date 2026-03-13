@@ -1,6 +1,14 @@
 import { ApiProperty } from '@nestjs/swagger';
 import { Type } from 'class-transformer';
-import { IsArray, IsNotEmpty, IsOptional, IsString, Matches, Validate } from 'class-validator';
+import {
+	IsArray,
+	IsNotEmpty,
+	IsOptional,
+	IsString,
+	Matches,
+	Validate,
+	ValidateNested,
+} from 'class-validator';
 import { IsCronExpression } from '../infrastructure/argo/cron.validator';
 import { RetryStrategyDto } from './retry-strategy.dto';
 import { ScheduleParameterDto } from './schedule.dto';
@@ -37,10 +45,13 @@ export class CreateScheduleDto {
 	})
 	@IsArray()
 	@IsOptional()
+	@ValidateNested({ each: true })
+	@Type(() => ScheduleParameterDto)
 	parameters?: ScheduleParameterDto[];
 
 	@ApiProperty({ description: 'Retry strategy in case of workflow failure', required: false })
 	@IsOptional()
+	@ValidateNested()
 	@Type(() => RetryStrategyDto)
 	retryStrategy?: RetryStrategyDto;
 }

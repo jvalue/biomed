@@ -1,6 +1,6 @@
 import { ApiProperty } from '@nestjs/swagger';
 import { Type } from 'class-transformer';
-import { IsString } from 'class-validator';
+import { IsString, ValidateNested } from 'class-validator';
 import { MinimalScheduleDto } from '../../../schedules/dto/minimalSchedule.dto';
 
 export class TargetDto {
@@ -27,6 +27,7 @@ export class TargetDto {
 		type: [MinimalScheduleDto],
 		required: false,
 	})
+	@ValidateNested({ each: true })
 	@Type(() => MinimalScheduleDto)
 	schedules?: MinimalScheduleDto[];
 }

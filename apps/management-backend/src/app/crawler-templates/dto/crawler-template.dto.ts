@@ -1,6 +1,6 @@
 import { ApiProperty } from '@nestjs/swagger';
 import { Type } from 'class-transformer';
-import { IsArray, IsDate, IsOptional, IsString } from 'class-validator';
+import { IsArray, IsDate, IsOptional, IsString, ValidateNested } from 'class-validator';
 
 class CrawlerTemplateParameterDto {
 	@ApiProperty({ type: String, description: 'The name of the parameter' })
@@ -41,6 +41,8 @@ export class CrawlerTemplateDto {
 	})
 	@IsOptional()
 	@IsArray()
+	@ValidateNested({ each: true })
+	@Type(() => CrawlerTemplateParameterDto)
 	parameters?: CrawlerTemplateParameterDto[];
 
 	@ApiProperty({

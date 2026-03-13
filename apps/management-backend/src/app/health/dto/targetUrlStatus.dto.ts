@@ -1,6 +1,6 @@
 import { ApiProperty } from '@nestjs/swagger';
 import { Type } from 'class-transformer';
-import { IsEnum } from 'class-validator';
+import { IsEnum, ValidateNested } from 'class-validator';
 import { HealthStatusEnum } from '../enum/healthStatus.enum';
 import { TargetDto } from '../targets/dto/target.dto';
 
@@ -9,6 +9,7 @@ export class TargetUrlStatusDto {
 		description: 'The target service being monitored',
 		type: TargetDto,
 	})
+	@ValidateNested()
 	@Type(() => TargetDto)
 	target!: TargetDto;
 
