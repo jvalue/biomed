@@ -1,4 +1,4 @@
-import { ForbiddenException, Injectable, Logger } from '@nestjs/common';
+import { ForbiddenException, Injectable } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
 import { UserPermission } from '../auth/enums/user-permission.enum';
@@ -9,8 +9,6 @@ import { mapUserEntityToUserDto } from './mapper/users.mapper';
 
 @Injectable()
 export class UsersService {
-	private readonly logger = new Logger(UsersService.name);
-
 	constructor(
 		@InjectRepository(UserEntity)
 		private readonly usersRepository: Repository<UserEntity>,
@@ -36,7 +34,6 @@ export class UsersService {
 	async getUserById(userId: string): Promise<UserDto> {
 		const user = await this.findById(userId);
 		if (!user) {
-			this.logger.warn(`User with id ${userId} not found`);
 			throw new ForbiddenException('User not found');
 		}
 		return mapUserEntityToUserDto(user);
@@ -84,7 +81,6 @@ export class UsersService {
 	): Promise<void> {
 		// Prevent users from updating their own permissions
 		if (userId === requestingUser.id) {
-			this.logger.warn(`User ${requestingUser.id} attempted to update their own permissions`);
 			throw new ForbiddenException('You cannot update your own permissions');
 		}
 
@@ -101,7 +97,6 @@ export class UsersService {
 	private async findUserByIdOrFail(userId: string): Promise<UserEntity> {
 		const user = await this.findById(userId);
 		if (!user) {
-			this.logger.warn(`User with id ${userId} not found`);
 			throw new ForbiddenException('User not found');
 		}
 		return user;

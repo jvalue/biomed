@@ -8,6 +8,7 @@ import { CrawlerTemplateDto } from '../../crawler-templates/dto/crawler-template
 import { CrawlerTemplatesFilterDto } from '../../crawler-templates/dto/crawler-templates-filter.dto';
 import { EnvironmentVariables } from '../../env.validation';
 import { HealthStatusEnum } from '../../health/enum/healthStatus.enum';
+import { attachAxiosLogging } from '../../logging';
 import { CursorBasedPaginationRequestDto } from '../../pagination/dto/cursor-based-pagination-request.dto';
 import { CursorBasedPaginationResponseDto } from '../../pagination/dto/cursor-based-pagination-response.dto';
 import { ScheduleDto } from '../../schedules/dto/schedule.dto';
@@ -48,6 +49,9 @@ export class ArgoClientService implements IOrchestratorClient {
 				Accept: 'application/json',
 			},
 		});
+
+		// Attach centralized logging for all outgoing requests to Argo
+		attachAxiosLogging(this.http, this.logger);
 	}
 
 	/**
@@ -55,8 +59,6 @@ export class ArgoClientService implements IOrchestratorClient {
 	 * @return Health status of the Argo Workflows API (LIMITED for return code 4xx, DOWN for 5xx or network errors, AVAILABLE otherwise)
 	 */
 	async checkHealth(): Promise<HealthStatusEnum> {
-		this.logger.log('Checking health of Argo Workflows API');
-
 		try {
 			const res = await this.http.get('/workflow-templates/');
 			const statusCode = res.status;
@@ -93,7 +95,6 @@ export class ArgoClientService implements IOrchestratorClient {
 		filterOptions?: CrawlerRunFilterDto,
 		paginationOptions?: CursorBasedPaginationRequestDto,
 	): Promise<CursorBasedPaginationResponseDto<CrawlerRunDto>> {
-		this.logger.log('Listing workflows from Argo Workflows API');
 		const requestedFields = [
 			'metadata.continue',
 			'items.metadata.name',
@@ -136,12 +137,9 @@ export class ArgoClientService implements IOrchestratorClient {
 		if (queryParams) {
 			url += `${queryParams}`;
 		}
-		this.logger.debug('Constructed URL for listing workflows:', url);
 
 		const res = await this.http.get(url);
 		const workflowsResponse: ArgoCursorPaginatedListDto<ArgoWorkflowRunDto> = res.data;
-
-		this.logger.debug('Argo Workflows API response:', workflowsResponse);
 
 		// Map ArgoCursorPaginatedListDto<ArgoWorkflowRunDto> to CursorBasedPaginationResponseDto<CrawlerRunDto>
 		const mappedResponse = mapArgoCursorPaginatedListDtoToCursorBasedPaginationResponseDto(
@@ -166,14 +164,11 @@ export class ArgoClientService implements IOrchestratorClient {
 		namespace: string,
 		name: string,
 	): Promise<CrawlerRunDto | null> {
-		this.logger.log(`Getting workflow ${name} from namespace ${namespace} from Argo Workflows API`);
-
 		const url = `/workflows/${namespace}/${name}`;
 
 		try {
 			const res = await this.http.get(url);
 			const workflowResponse: ArgoWorkflowRunDto = res.data;
-			this.logger.debug('Argo Workflows API response for workflow:', workflowResponse);
 
 			// Map ArgoWorkflowRunDto to CrawlerRunDto
 			const mappedRun = mapArgoWorkflowRunDtoToWorkflowRunDto(workflowResponse);
@@ -182,10 +177,8 @@ export class ArgoClientService implements IOrchestratorClient {
 			return await this.enrichWorkflowRunWithCronWorkflowTemplateName(mappedRun);
 		} catch (err) {
 			if (err.response && err.response.status === 404) {
-				this.logger.log(`Workflow ${name} in namespace ${namespace} not found`);
 				return null;
 			}
-			this.logger.error(`Error getting workflow ${name} from namespace ${namespace}:`, err);
 			throw err;
 		}
 	}
@@ -197,8 +190,6 @@ export class ArgoClientService implements IOrchestratorClient {
 	async listCrawlerTemplates(
 		filterOptions?: CrawlerTemplatesFilterDto,
 	): Promise<CrawlerTemplateDto[]> {
-		this.logger.log('Listing workflow templates from Argo Workflows API');
-
 		const argoQueryParamBuilder = new ArgoQueryParamBuilder();
 
 		// Normal query parameters
@@ -213,12 +204,9 @@ export class ArgoClientService implements IOrchestratorClient {
 		if (queryParams) {
 			url += `${queryParams}`;
 		}
-		this.logger.debug('Constructed URL for listing workflow templates:', url);
 
 		const res = await this.http.get(url);
 		const templatesResponse: ArgoWorkflowTemplateDto[] = res.data?.items;
-
-		this.logger.debug('Argo Workflows API response for templates:', templatesResponse);
 
 		// Map ArgoWorkflowTemplateDto[] to CrawlerTemplateDto[] as we do not offer pagination here
 		return templatesResponse?.map(mapArgoWorkflowTemplateDtoToWorkflowTemplateDto) ?? [];
@@ -234,28 +222,18 @@ export class ArgoClientService implements IOrchestratorClient {
 		namespace: string,
 		name: string,
 	): Promise<CrawlerTemplateDto | null> {
-		this.logger.log(
-			`Getting workflow template ${name} from namespace ${namespace} from Argo Workflows API`,
-		);
-
 		const url = `/workflow-templates/${namespace}/${name}`;
 
 		try {
 			const res = await this.http.get(url);
 			const templateResponse: ArgoWorkflowTemplateDto = res.data;
-			this.logger.debug('Argo Workflows API response for workflow template:', templateResponse);
 
 			// Map ArgoWorkflowTemplateDto to CrawlerTemplateDto
 			return mapArgoWorkflowTemplateDtoToWorkflowTemplateDto(templateResponse);
 		} catch (err) {
 			if (err.response && err.response.status === 404) {
-				this.logger.log(`Workflow template ${name} in namespace ${namespace} not found`);
 				return null;
 			}
-			this.logger.error(
-				`Error getting workflow template ${name} from namespace ${namespace}:`,
-				err,
-			);
 			throw err;
 		}
 	}
@@ -271,13 +249,6 @@ export class ArgoClientService implements IOrchestratorClient {
 		crawlerTemplateName: string,
 		parameters?: CrawlerRunParameterDto[],
 	): Promise<CrawlerRunDto> {
-		this.logger.log(
-			`Starting new workflow from template ${crawlerTemplateName} in namespace ${crawlerTemplateNamespace}`,
-		);
-		if (parameters) {
-			this.logger.debug(`With parameters: ${JSON.stringify(parameters)}`);
-		}
-
 		const body = {
 			namespace: crawlerTemplateNamespace,
 			resourceKind: 'WorkflowTemplate',
@@ -288,23 +259,11 @@ export class ArgoClientService implements IOrchestratorClient {
 		};
 		const url = `/workflows/${crawlerTemplateNamespace}/submit`;
 
-		try {
-			const res = await this.http.post(url, body);
-			const workflowResponse: ArgoWorkflowRunDto = res.data;
+		const res = await this.http.post(url, body);
+		const workflowResponse: ArgoWorkflowRunDto = res.data;
 
-			this.logger.debug('Argo Workflows API response for started workflow:', workflowResponse);
-
-			// Map ArgoWorkflowRunDto to CrawlerRunDto
-			return mapArgoWorkflowRunDtoToWorkflowRunDto(workflowResponse);
-		} catch (err) {
-			this.logger.error(
-				`Error starting workflow from template "${crawlerTemplateName}" in namespace "${crawlerTemplateNamespace}". ` +
-					`Parameters: ${JSON.stringify(parameters ?? [])}. URL: ${url}. Body: ${JSON.stringify(body)}.`,
-				err instanceof Error ? err.stack : undefined,
-				'ArgoClientService',
-			);
-			throw err;
-		}
+		// Map ArgoWorkflowRunDto to CrawlerRunDto
+		return mapArgoWorkflowRunDtoToWorkflowRunDto(workflowResponse);
 	}
 
 	/**
@@ -312,13 +271,10 @@ export class ArgoClientService implements IOrchestratorClient {
 	 * @return List of schedules
 	 */
 	async listSchedules(): Promise<ScheduleDto[]> {
-		this.logger.log('Getting cron workflows from Argo Workflows API');
-
 		const url = `/cron-workflows/`;
 
 		const res = await this.http.get(url);
 		const cronWorkflowsResponse: ArgoCronWorkflowDto[] = res.data?.items;
-		this.logger.debug('Argo Workflows API response for cron workflows:', cronWorkflowsResponse);
 
 		// Filter cron workflows that reference workflow templates
 		const filteredCronWorkflows =
@@ -338,22 +294,14 @@ export class ArgoClientService implements IOrchestratorClient {
 		namespace: string,
 		name: string,
 	): Promise<ScheduleDto | null> {
-		this.logger.log(
-			`Getting cron workflow ${name} from namespace ${namespace} from Argo Workflows API`,
-		);
-
 		const url = `/cron-workflows/${namespace}/${name}`;
 
 		try {
 			const res = await this.http.get(url);
 			const cronWorkflowResponse: ArgoCronWorkflowDto = res.data;
-			this.logger.debug('Argo Workflows API response for cron workflow:', cronWorkflowResponse);
 
 			// Check if the cron workflow references a workflow template
 			if (!cronWorkflowResponse.spec.workflowSpec.workflowTemplateRef?.name) {
-				this.logger.warn(
-					`Cron workflow ${name} in namespace ${namespace} does not reference a workflow template`,
-				);
 				return null;
 			}
 
@@ -361,10 +309,8 @@ export class ArgoClientService implements IOrchestratorClient {
 			return mapArgoCronWorkflowDtoToScheduleDto(cronWorkflowResponse);
 		} catch (err) {
 			if (err.response && err.response.status === 404) {
-				this.logger.log(`Cron workflow ${name} in namespace ${namespace} not found`);
 				return null;
 			}
-			this.logger.error(`Error getting cron workflow ${name} from namespace ${namespace}:`, err);
 			throw err;
 		}
 	}
@@ -375,8 +321,6 @@ export class ArgoClientService implements IOrchestratorClient {
 	 * @param name The name of the cron workflow
 	 */
 	async getCronWorkflow(namespace: string, name: string): Promise<ArgoCronWorkflow | null> {
-		this.logger.log(`Getting cron workflow ${name} in namespace ${namespace}`);
-
 		const url = `/cron-workflows/${namespace}/${name}`;
 
 		try {
@@ -386,7 +330,6 @@ export class ArgoClientService implements IOrchestratorClient {
 			if (err.response && err.response.status === 404) {
 				return null;
 			}
-			this.logger.error(`Error getting cron workflow ${name} from namespace ${namespace}:`, err);
 			throw err;
 		}
 	}
@@ -402,21 +345,13 @@ export class ArgoClientService implements IOrchestratorClient {
 		name: string,
 		cronWorkflow: ArgoCronWorkflow,
 	): Promise<void> {
-		this.logger.log(`Updating cron workflow ${name} in namespace ${namespace}`);
-
 		const url = `/cron-workflows/${namespace}/${name}`;
 
 		const body = {
 			cronWorkflow: cronWorkflow,
 		};
 
-		try {
-			await this.http.put(url, body);
-			this.logger.log(`Cron workflow ${name} updated successfully`);
-		} catch (err) {
-			this.logger.error(`Error updating cron workflow ${name}:`, err);
-			throw err;
-		}
+		await this.http.put(url, body);
 	}
 
 	/**
@@ -425,21 +360,13 @@ export class ArgoClientService implements IOrchestratorClient {
 	 * @param namespace The namespace to create the cron workflow in
 	 */
 	async createSchedule(cronWorkflowObject: ArgoCronWorkflow, namespace: string): Promise<void> {
-		this.logger.log(`Creating new cron workflow via Argo Workflows API`);
-
 		const url = `/cron-workflows/${namespace}`;
 
 		const body = {
 			cronWorkflow: cronWorkflowObject,
 		};
 
-		try {
-			await this.http.post(url, body);
-			this.logger.log(`Cron workflow created successfully`);
-		} catch (err) {
-			this.logger.error(`Error creating cron workflow:`, err);
-			throw err;
-		}
+		await this.http.post(url, body);
 	}
 
 	/**
@@ -448,19 +375,9 @@ export class ArgoClientService implements IOrchestratorClient {
 	 * @param name Name of the cron workflow
 	 */
 	async deleteSchedule(namespace: string, name: string): Promise<void> {
-		this.logger.log(
-			`Deleting cron workflow ${name} in namespace ${namespace} via Argo Workflows API`,
-		);
-
 		const url = `/cron-workflows/${namespace}/${name}`;
 
-		try {
-			await this.http.delete(url);
-			this.logger.log(`Cron workflow ${name} in namespace ${namespace} deleted successfully`);
-		} catch (err) {
-			this.logger.error(`Error deleting cron workflow ${name} in namespace ${namespace}:`, err);
-			throw err;
-		}
+		await this.http.delete(url);
 	}
 
 	/**
@@ -469,19 +386,9 @@ export class ArgoClientService implements IOrchestratorClient {
 	 * @param name Name of the cron workflow
 	 */
 	async suspendSchedule(namespace: string, name: string): Promise<void> {
-		this.logger.log(
-			`Suspending cron workflow ${name} in namespace ${namespace} via Argo Workflows API`,
-		);
-
 		const url = `/cron-workflows/${namespace}/${name}/suspend`;
 
-		try {
-			await this.http.put(url);
-			this.logger.log(`Cron workflow ${name} in namespace ${namespace} suspended successfully`);
-		} catch (err) {
-			this.logger.error(`Error suspending cron workflow ${name} in namespace ${namespace}:`, err);
-			throw err;
-		}
+		await this.http.put(url);
 	}
 
 	/**
@@ -490,19 +397,9 @@ export class ArgoClientService implements IOrchestratorClient {
 	 * @param name Name of the cron workflow
 	 */
 	async resumeSchedule(namespace: string, name: string): Promise<void> {
-		this.logger.log(
-			`Resuming cron workflow ${name} in namespace ${namespace} via Argo Workflows API`,
-		);
-
 		const url = `/cron-workflows/${namespace}/${name}/resume`;
 
-		try {
-			await this.http.put(url);
-			this.logger.log(`Cron workflow ${name} in namespace ${namespace} resumed successfully`);
-		} catch (err) {
-			this.logger.error(`Error resuming cron workflow ${name} in namespace ${namespace}:`, err);
-			throw err;
-		}
+		await this.http.put(url);
 	}
 
 	/**
