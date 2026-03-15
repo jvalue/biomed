@@ -27,7 +27,7 @@ env:
   NODE_ENV: "production"
   PORT: 3002
   STAGE: "development"
-  DATABASE_HOST: "biomed-management-release-database"
+  DATABASE_HOST: "biomed-database"
   DATABASE_PORT: 5435
   ARGO_BASE_URL: "http://<ARGO_SERVER_HOST>/argo/api/v1"
   KUBE_BEARER_TOKEN: "invalid-token"
