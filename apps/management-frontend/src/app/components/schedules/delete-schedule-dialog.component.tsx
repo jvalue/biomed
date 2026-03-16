@@ -15,6 +15,7 @@ export interface DeleteScheduleDialogProps {
 	scheduleName: string;
 	scheduleNamespace: string;
 	onDeleted?: () => void;
+	setIsDeleting?: (value: boolean) => void;
 }
 
 export default function DeleteScheduleDialogComponent({
@@ -23,17 +24,26 @@ export default function DeleteScheduleDialogComponent({
 	scheduleName,
 	scheduleNamespace,
 	onDeleted,
+	setIsDeleting,
 }: DeleteScheduleDialogProps) {
 	const deleteSchedule = useDeleteSchedule();
 
 	const handleConfirmDelete = () => {
 		if (!scheduleName || !scheduleNamespace) return;
+		if (setIsDeleting) {
+			setIsDeleting(true);
+		}
 		deleteSchedule.mutate(
 			{ namespace: scheduleNamespace, name: scheduleName },
 			{
 				onSuccess: () => {
 					onOpenChange(false);
 					onDeleted?.();
+				},
+				onError: () => {
+					if (setIsDeleting) {
+						setIsDeleting(false);
+					}
 				},
 			},
 		);
