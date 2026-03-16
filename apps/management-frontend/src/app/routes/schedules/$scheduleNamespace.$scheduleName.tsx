@@ -49,6 +49,7 @@ function RouteComponent() {
 	const deleteSchedule = useDeleteSchedule();
 
 	const [deleteDialogOpen, setDeleteDialogOpen] = React.useState(false);
+	const [isDeleting, setIsDeleting] = React.useState(false);
 	const [isEditOpen, setIsEditOpen] = React.useState(false);
 
 	const handleToggleSuspend = () => {
@@ -70,7 +71,7 @@ function RouteComponent() {
 		data: schedule,
 		isLoading: scheduleQueryIsLoading,
 		error: scheduleQueryError,
-	} = useScheduleByNamespaceAndName(scheduleNamespace, scheduleName);
+	} = useScheduleByNamespaceAndName(scheduleNamespace, scheduleName, { enabled: !isDeleting });
 
 	if (scheduleQueryIsLoading && !scheduleQueryError) {
 		return (
@@ -280,6 +281,7 @@ function RouteComponent() {
 							navigate({ to: '/schedules' });
 							toast.success(`Schedule ${scheduleName} deleted successfully`);
 						}}
+						setIsDeleting={setIsDeleting}
 					/>
 
 					{/* Edit Schedule Dialog */}
