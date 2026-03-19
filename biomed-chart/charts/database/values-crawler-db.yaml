@@ -1,0 +1,11 @@
+fullnameOverride: crawler-db
+
+service:
+  port: 5436
+
+secrets:
+  databaseSecret: crawler-db-credentials
+
+persistence:
+  enabled: true
+  size: 1Gi

@@ -3,11 +3,12 @@
 from __future__ import annotations
 
 import ftplib
-from urllib.parse import urlparse
 import logging
 from datetime import datetime, timezone
+from pathlib import Path
+from urllib.parse import urlparse
 
-from crawler_common.ftp_node import FTPNode
+from crawler_common.ftp.ftp_node import FTPNode
 
 logger = logging.getLogger(__name__)
 
@@ -20,7 +21,7 @@ def get_root_folders(ftp_url: str, ftp_user: str, ftp_password: str) -> list[str
         # Return only directories
         return [child.name for child in root.children if child.is_dir]
     except ftplib.all_errors as exc:  # pragma: no cover - network dependent
-        print(f"FTP error: {exc}")
+        logger.exception(f"FTP error: {exc}")
         raise
 
 
@@ -54,7 +55,7 @@ def get_ftp_structure(
         logger.info("FTP traversal completed")
         return root
     except ftplib.all_errors as exc:  # pragma: no cover - network dependent
-        print(f"FTP error: {exc}")
+        logger.exception(f"FTP error: {exc}")
         raise
     finally:
         if ftp is not None:
@@ -113,88 +114,89 @@ def _traverse_ftp(
     if depth >= max_depth:
         return False
 
+    logger.info(f"Traversing: {current_path} (depth {depth}/{max_depth})")
+
+    entries = _list_entries(ftp, current_path)
+    if entries is None:
+        return False
+
     truncated = False
 
-    try:
-        logger.info(f"Traversing: {current_path} (depth {depth}/{max_depth})")
-        ftp.cwd(current_path)
+    for name, facts in entries:
+        if name in {".", ".."}:
+            continue
 
-        entries = list(ftp.mlsd())
-        logger.debug(f"Found {len(entries)} entries in {current_path}")
+        path = _child_path(current_path, name)
+        node = _build_node(name, facts, path)
+        _ensure_file_metadata(ftp, node, path)
+        parent.children.append(node)
 
-        for name, facts in entries:
-            if name in {".", ".."}:
-                continue
+        if not node.is_dir:
+            continue
 
-            is_dir = facts.get("type") == "dir"
-            path = f"{current_path.rstrip('/')}/{name}"
-            node = FTPNode(name=name, is_dir=is_dir, path=path)
-            # Populate metadata from MLSD facts
-            f_size, f_modified = _extract_metadata_from_facts(facts)
-            node.size = f_size
-            node.modified = f_modified
-
-            # Fallbacks for files when facts are missing
-            if not is_dir and (node.size is None or node.modified is None):
-                fetched_size, fetched_modified = _fetch_file_metadata(ftp, path)
-                if node.size is None:
-                    node.size = fetched_size
-                if node.modified is None:
-                    node.modified = fetched_modified
-            parent.children.append(node)
-
-            if is_dir:
-                if depth < max_depth - 1:
-                    child_truncated = _traverse_ftp(
-                        ftp, node, path, depth + 1, max_depth
-                    )
-                    if child_truncated:
-                        truncated = True
-                else:
-                    # We found a directory at the boundary; deeper content won't be crawled
-                    truncated = True
-                    logger.debug(f"Max depth reached at {path}; not descending further")
-    except ftplib.error_perm:
-        # Skip directories without permissionpass
-        logger.warning(f"Permission denied: {current_path}")
-    except ftplib.all_errors as exc:  # pragma: no cover - network dependent
-        print(f"Error traversing {current_path}: {exc}")
+        if _maybe_descend(ftp, node, path, depth, max_depth):
+            truncated = True
 
     return truncated
 
 
-def write_ftp_structure_to_file(root: FTPNode, output_path: str) -> None:
-    """Write FTP directory structure to a text file in tree format."""
+def _list_entries(
+    ftp: ftplib.FTP, current_path: str
+) -> list[tuple[str, dict]] | None:
+    """List entries in the current directory, handling FTP errors."""
+    try:
+        ftp.cwd(current_path)
+        entries = list(ftp.mlsd())
+        logger.debug(f"Found {len(entries)} entries in {current_path}")
+        return entries
+    except ftplib.error_perm:
+        logger.warning(f"Permission denied: {current_path}")
+        return None
+    except ftplib.all_errors as exc:  # pragma: no cover - network dependent
+        logger.exception(f"Error traversing {current_path}: {exc}")
+        return None
 
-    with open(output_path, "w", encoding="utf-8") as f:
-        f.write(f"{root.name}\n")
-        _write_tree(root, f, prefix="")
+
+def _child_path(current_path: str, name: str) -> str:
+    """Build a child path from a parent path and name."""
+    return f"{current_path.rstrip('/')}/{name}"
 
 
-def _write_tree(node: FTPNode, file, prefix: str) -> None:
-    """Recursively write tree structure with proper formatting."""
+def _maybe_descend(
+    ftp: ftplib.FTP,
+    node: FTPNode,
+    path: str,
+    depth: int,
+    max_depth: int,
+) -> bool:
+    """Return True if traversal is truncated while handling a directory."""
+    if depth < max_depth - 1:
+        return _traverse_ftp(ftp, node, path, depth + 1, max_depth)
 
-    children = node.children
-    for i, child in enumerate(children):
-        is_last = i == len(children) - 1
-        connector = "└── " if is_last else "├── "
-        name = f"{child.name}/" if child.is_dir else child.name
-        meta_parts: list[str] = []
-        # Only include size for files, not directories
-        if (not child.is_dir) and (child.size is not None):
-            meta_parts.append(f"size={child.size}")
-        if child.modified is not None:
-            # ISO-like UTC formatting
-            meta_parts.append(
-                f"modified={child.modified.astimezone(timezone.utc).strftime('%Y-%m-%dT%H:%M:%SZ')}"
-            )
-        meta = f" ({', '.join(meta_parts)})" if meta_parts else ""
+    logger.debug(f"Max depth reached at {path}; not descending further")
+    return True
 
-        file.write(f"{prefix}{connector}{name}{meta}\n")
 
-        if child.is_dir and child.children:
-            extension = "    " if is_last else "│   "
-            _write_tree(child, file, prefix + extension)
+def _build_node(name: str, facts: dict, path: str) -> FTPNode:
+    """Build a FTPNode from MLSD entry facts."""
+    node = FTPNode(name=name, is_dir=(facts.get("type") == "dir"), path=path)
+    f_size, f_modified = _extract_metadata_from_facts(facts)
+    node.size = f_size
+    node.modified = f_modified
+    return node
+
+
+def _ensure_file_metadata(ftp: ftplib.FTP, node: FTPNode, path: str) -> None:
+    """Ensure file metadata using SIZE/MDTM fallbacks when necessary."""
+    if node.is_dir:
+        return
+    if node.size is None or node.modified is None:
+        fetched_size, fetched_modified = _fetch_file_metadata(ftp, path)
+        if node.size is None:
+            node.size = fetched_size
+        if node.modified is None:
+            node.modified = fetched_modified
+
 
 
 def _parse_modify_ts(value: str) -> datetime | None:
@@ -204,7 +206,7 @@ def _parse_modify_ts(value: str) -> datetime | None:
         dt = datetime.strptime(base, "%Y%m%d%H%M%S")
         return dt.replace(tzinfo=timezone.utc)
     except (ValueError, TypeError) as exc:
-        logger.debug("Failed to parse modify timestamp %r: %s", value, exc)
+        logger.debug(f"Failed to parse modify timestamp {value!r}: {exc}")
         return None
 
 
@@ -221,7 +223,7 @@ def _extract_metadata_from_facts(facts: dict) -> tuple[int | None, datetime | No
         try:
             size = int(size_val)
         except (ValueError, TypeError) as exc:
-            logger.debug("Invalid size value %r: %s", size_val, exc)
+            logger.debug(f"Invalid size value {size_val!r}: {exc}")
             size = None
 
     modify_val = facts.get("modify")
@@ -248,10 +250,10 @@ def _fetch_file_metadata(
             size = int(sz)
     except ftplib.error_perm:
         # SIZE not supported or permission denied; leave size as None
-        logger.debug("SIZE not permitted for %s", path)
+        logger.debug(f"SIZE not permitted for {path}")
     except Exception as exc:
         logger.debug(
-            "Unexpected error running SIZE for %s: %s", path, exc, exc_info=True
+            f"Unexpected error running SIZE for {path}: {exc}", exc_info=True
         )
 
     # MDTM: return last modification time (UTC)
@@ -266,10 +268,13 @@ def _fetch_file_metadata(
             ts = parts[0].removeprefix("213")
             modified = _parse_modify_ts(ts)
     except ftplib.error_perm:
-        logger.debug("MDTM not permitted for %s", path)
+        logger.debug(f"MDTM not permitted for {path}")
     except Exception as exc:
         logger.debug(
-            "Unexpected error running MDTM for %s: %s", path, exc, exc_info=True
+            f"Unexpected error running MDTM for {path}: {exc}", exc_info=True
         )
+
+    if size is None and modified is None:
+        logger.debug(f"No metadata available for {path} after SIZE/MDTM attempts")
 
     return size, modified
