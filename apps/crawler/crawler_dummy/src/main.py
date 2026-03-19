@@ -79,6 +79,28 @@ async def _send_metrics(
     logger.info(f"Metrics reported successfully ({endpoint}): {response.status_code}")
 
 
+async def _send_download_metrics(
+    client: HttpClient,
+    endpoint: str,
+    run_started_at: str,
+    total_datasets_to_download: int,
+    downloaded_datasets: int,
+) -> None:
+    """Send crawler download metrics to management backend."""
+
+    payload = {
+        "totalDatasetsToDownload": total_datasets_to_download,
+        "downloadedDatasets": downloaded_datasets,
+        "runStartedAt": run_started_at,
+    }
+    response = await client.call_management_endpoint_from_env(
+        endpoint=endpoint,
+        method="POST",
+        json_body=payload,
+    )
+    logger.info(f"Download metrics reported successfully ({endpoint}): {response.status_code}")
+
+
 def _load_local_env() -> None:
     """Load local .env file for development if present.
 
@@ -103,6 +125,10 @@ async def _notify_management_backend() -> None:
         "CRAWLER_DUMMY_METRICS_ENDPOINT",
         f"/api/v1/crawler-runs/{run_namespace}/{run_name}/metrics",
     )
+    download_metrics_endpoint = os.getenv(
+        "CRAWLER_DUMMY_DOWNLOAD_METRICS_ENDPOINT",
+        f"/api/v1/crawler-runs/{run_namespace}/{run_name}/download-metrics",
+    )
     metrics_every = _resolve_metrics_interval()
 
     events_url = (
@@ -111,8 +137,12 @@ async def _notify_management_backend() -> None:
     metrics_url = (
         f"{base_url.rstrip('/')}{metrics_endpoint if metrics_endpoint.startswith('/') else f'/{metrics_endpoint}'}"
     )
+    download_metrics_url = (
+        f"{base_url.rstrip('/')}{download_metrics_endpoint if download_metrics_endpoint.startswith('/') else f'/{download_metrics_endpoint}'}"
+    )
     logger.info(f"Using management backend events endpoint: POST {events_url}")
     logger.info(f"Using management backend metrics endpoint: POST {metrics_url}")
+    logger.info(f"Using management backend download metrics endpoint: POST {download_metrics_url}")
 
     client = HttpClient(timeout=10)
     run_started_at = datetime.now(timezone.utc).isoformat()
@@ -132,6 +162,13 @@ async def _notify_management_backend() -> None:
                     run_started_at=run_started_at,
                     progress=i,
                     crawled_data_sets=i,
+                )
+                await _send_download_metrics(
+                    client=client,
+                    endpoint=download_metrics_endpoint,
+                    run_started_at=run_started_at,
+                    total_datasets_to_download=100,
+                    downloaded_datasets=i,
                 )
 
             await asyncio.sleep(1)
