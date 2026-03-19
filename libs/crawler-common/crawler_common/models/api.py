@@ -1,9 +1,8 @@
-"""Common data models for crawler applications."""
+"""Pydantic models for crawler APIs."""
 
 from datetime import datetime, timezone
-from typing import Optional
 
-from pydantic import BaseModel, field_serializer, HttpUrl
+from pydantic import BaseModel, Field, field_serializer, HttpUrl
 
 
 class CrawlRequest(BaseModel):
@@ -11,7 +10,7 @@ class CrawlRequest(BaseModel):
 
     url: HttpUrl
     method: str = "GET"
-    headers: Optional[dict[str, str]] = None
+    headers: dict[str, str] | None = None
     timeout: int = 30
 
 
@@ -21,8 +20,8 @@ class CrawlResponse(BaseModel):
     url: str
     status_code: int
     content: str
-    content_type: Optional[str] = None
-    timestamp: datetime = datetime.now(timezone.utc)
+    content_type: str | None = None
+    timestamp: datetime = Field(default_factory=lambda: datetime.now(timezone.utc))
     duration_ms: float
 
     @field_serializer("timestamp")

@@ -3,10 +3,14 @@
 from __future__ import annotations
 
 import os
+import logging
 from pathlib import Path
 from typing import Iterable
 
 from dotenv import load_dotenv
+
+logger = logging.getLogger(__name__)
+
 
 
 def _load_env(dotenv_path: Path | str | None) -> None:
@@ -43,6 +47,13 @@ def load_env_vars(dotenv_path: Path | str | None = None) -> tuple[str, str, str]
     ftp_url: str | None = os.getenv("FTP_URL")
     ftp_user: str | None = os.getenv("FTP_USER")
     ftp_password: str | None = os.getenv("FTP_PASSWORD")
+    ftp_max_depth: str | None = os.getenv("FTP_MAX_DEPTH")
+
+    try:
+        ftp_max_depth = int(ftp_max_depth) if ftp_max_depth else 3
+    except ValueError:
+        logger.warning(f"Invalid max depth '{ftp_max_depth}', defaulting to 3")
+        ftp_max_depth = 3
 
     missing: list[str] = _missing_vars(
         [("FTP_URL", ftp_url), ("FTP_USER", ftp_user), ("FTP_PASSWORD", ftp_password)]
@@ -53,9 +64,10 @@ def load_env_vars(dotenv_path: Path | str | None = None) -> tuple[str, str, str]
             f"Missing environment variables{location_hint}: {', '.join(missing)}"
         )
 
-    assert ftp_url is not None and ftp_user is not None and ftp_password is not None
+    if ftp_url is None or ftp_user is None or ftp_password is None:
+        raise ValueError("FTP credentials must not be None after validation")
 
-    return ftp_url, ftp_user, ftp_password
+    return ftp_url, ftp_user, ftp_password, ftp_max_depth
 
 
 def _missing_vars(pairs: Iterable[tuple[str, str | None]]) -> list[str]:
