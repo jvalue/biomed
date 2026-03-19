@@ -66,16 +66,10 @@ def load_database_config(dotenv_path: Path | str | None = None) -> dict[str, str
             f"Missing database configuration variables{location_hint}: {', '.join(missing)}"
         )
 
-    if db_port_str is None:
-        raise ValueError("DB_PORT is required but was not provided")
-
     try:
         db_port = int(db_port_str)
     except ValueError as exc:
         raise ValueError(f"DB_PORT must be an integer, got '{db_port_str}'") from exc
-
-    if db_host is None or db_name is None or db_user is None or db_password is None:
-        raise ValueError("Database configuration values must not be None")
 
     return {
         "host": db_host,
