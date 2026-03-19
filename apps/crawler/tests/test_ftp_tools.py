@@ -14,7 +14,7 @@ def test_main_persists_ftp_structure(monkeypatch):
     monkeypatch.setattr(
         crawler_main.ftp_conf,
         "load_env_vars",
-        lambda *_: ("ftp.example.com", "user", "pass"),
+        lambda *_: ("ftp.example.com", "user", "pass", 5),
     )
 
     class FakeUrl:
@@ -93,9 +93,8 @@ def test_main_persists_ftp_structure(monkeypatch):
 
     inserted = []
     monkeypatch.setattr(
-        crawler_main.ftp_tools,
-        "write_ftp_structure_to_file",
-
+        "crawler_general.src.main.insert_ftp_nodes_to_database",
+        lambda root, run_id, sess: inserted.append((root, run_id, sess)),
     )
 
     crawler_main.main()
