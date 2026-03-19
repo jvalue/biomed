@@ -1,14 +1,19 @@
 """Tests for crawler main entrypoint."""
 
+import importlib
+from pathlib import Path
+
 from crawler_common.ftp.ftp_node import FTPNode
-from crawler_general.src.main import main
+
+crawler_main = importlib.import_module("crawler_general.main")
 
 
 def test_main_persists_ftp_structure(monkeypatch):
     """Ensure main crawls FTP data and persists it to the database."""
 
     monkeypatch.setattr(
-        "crawler_general.src.main.ftp_conf.load_env_vars",
+        crawler_main.ftp_conf,
+        "load_env_vars",
         lambda *_: ("ftp.example.com", "user", "pass"),
     )
 
@@ -37,7 +42,8 @@ def test_main_persists_ftp_structure(monkeypatch):
 
     fake_root = FTPNode(name="/", is_dir=True, path="/")
     monkeypatch.setattr(
-        "crawler_general.src.main.ftp_tools.get_ftp_structure",
+        crawler_main.ftp_tools,
+        "get_ftp_structure",
         lambda *_, **__: fake_root,
     )
 
@@ -87,13 +93,12 @@ def test_main_persists_ftp_structure(monkeypatch):
 
     inserted = []
     monkeypatch.setattr(
-        "crawler_general.src.main.insert_ftp_nodes_to_database",
-        lambda node, run_id, sess: inserted.append((node, run_id, sess)),
+        crawler_main.ftp_tools,
+        "write_ftp_structure_to_file",
+
     )
 
-    monkeypatch.setenv("FTP_MAX_DEPTH", "5")
-
-    main()
+    crawler_main.main()
 
     assert created_tables_for == [fake_engine]
     assert len(session.added) == 1
@@ -103,3 +108,4 @@ def test_main_persists_ftp_structure(monkeypatch):
     assert session.closed is True
     assert inserted == [(fake_root, 99, session)]
     assert session.added[0].completed_at is not None
+

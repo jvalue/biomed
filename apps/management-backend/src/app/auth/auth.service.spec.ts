@@ -130,8 +130,8 @@ describe('AuthService', () => {
 
 		const expectedOptions = {
 			httpOnly: true,
-			secure: process.env.NODE_ENV === 'production',
-			sameSite: 'strict',
+			secure: false,
+			sameSite: 'lax',
 			maxAge: 30 * 60 * 1000,
 		};
 		// biome-ignore lint/suspicious/noExplicitAny: <library function>

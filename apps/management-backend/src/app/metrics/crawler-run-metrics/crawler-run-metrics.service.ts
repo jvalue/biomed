@@ -1,4 +1,4 @@
-import { Injectable, Logger } from '@nestjs/common';
+import { Injectable } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
 import { HistoricalMetricsQueryDto } from '../../schedules/dto/historical-metrics-query.dto';
@@ -14,8 +14,6 @@ import { CrawlerRunMetricEntity } from './entity/crawler-run-metric.entity';
 
 @Injectable()
 export class CrawlerRunMetricsService {
-	private readonly logger = new Logger(CrawlerRunMetricsService.name);
-
 	constructor(
 		@InjectRepository(CrawlerRunMetricEntity)
 		private readonly crawlerRunMetricsRepository: Repository<CrawlerRunMetricEntity>,
@@ -34,24 +32,16 @@ export class CrawlerRunMetricsService {
 		runName: string,
 		metric: CrawlerRunMetricsIncomingDto,
 	): Promise<void> {
-		this.logger.log(`Saving metrics for crawler run ${runName} in namespace ${runNamespace}`);
-		try {
-			await this.crawlerRunMetricsRepository.save({
-				runName,
-				runNamespace,
-				scheduleName: metric.scheduleName,
-				scheduleNamespace: metric.scheduleNamespace,
-				progress: metric.progress,
-				crawledDataSets: metric.crawledDataSets,
-				cacheHits: metric.cacheHits,
-				runStartedAt: new Date(metric.runStartedAt),
-			});
-		} catch (error) {
-			this.logger.error(
-				`Failed to save metrics for crawler run ${runName} in namespace ${runNamespace}: ${error.message}`,
-			);
-			throw error;
-		}
+		await this.crawlerRunMetricsRepository.save({
+			runName,
+			runNamespace,
+			scheduleName: metric.scheduleName,
+			scheduleNamespace: metric.scheduleNamespace,
+			progress: metric.progress,
+			crawledDataSets: metric.crawledDataSets,
+			cacheHits: metric.cacheHits,
+			runStartedAt: new Date(metric.runStartedAt),
+		});
 	}
 
 	/**
@@ -65,27 +55,17 @@ export class CrawlerRunMetricsService {
 		runName: string,
 		metric: CrawlerRunDownloadMetricsIncomingDto,
 	): Promise<void> {
-		this.logger.log(
-			`Saving download metrics for crawler run ${runName} in namespace ${runNamespace}`,
-		);
-		try {
-			await this.crawlerRunMetricsRepository.save({
-				runName,
-				runNamespace,
-				scheduleName: metric.scheduleName,
-				scheduleNamespace: metric.scheduleNamespace,
-				totalDatasetsToDownload: metric.totalDatasetsToDownload,
-				downloadedDatasets: metric.downloadedDatasets,
-				totalGBToDownload: metric.totalGBToDownload,
-				downloadedGB: metric.downloadedGB,
-				runStartedAt: new Date(metric.runStartedAt),
-			});
-		} catch (error) {
-			this.logger.error(
-				`Failed to save download metrics for crawler run ${runName} in namespace ${runNamespace}: ${error.message}`,
-			);
-			throw error;
-		}
+		await this.crawlerRunMetricsRepository.save({
+			runName,
+			runNamespace,
+			scheduleName: metric.scheduleName,
+			scheduleNamespace: metric.scheduleNamespace,
+			totalDatasetsToDownload: metric.totalDatasetsToDownload,
+			downloadedDatasets: metric.downloadedDatasets,
+			totalGBToDownload: metric.totalGBToDownload,
+			downloadedGB: metric.downloadedGB,
+			runStartedAt: new Date(metric.runStartedAt),
+		});
 	}
 
 	/**
@@ -112,7 +92,6 @@ export class CrawlerRunMetricsService {
 		runName: string,
 		event: CrawlerRunEventIncomingDto,
 	) {
-		this.logger.log(`Saving event for crawler run ${runName} in namespace ${runNamespace}`);
 		// Ensure run already exists
 		await this.createEmptyCrawlerRunMetricIfDoesntExist(runNamespace, runName);
 		await this.crawlerRunEventEntityRepository.save({

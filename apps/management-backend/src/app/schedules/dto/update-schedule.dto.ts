@@ -14,6 +14,7 @@ export class UpdateScheduleDto {
 
 	@ApiProperty({ description: 'The new retry strategy', required: false })
 	@IsOptional()
+	@ValidateNested()
 	@Type(() => RetryStrategyDto)
 	retryStrategy?: RetryStrategyDto;
 

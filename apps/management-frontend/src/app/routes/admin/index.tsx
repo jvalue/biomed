@@ -20,9 +20,10 @@ function RouteComponent() {
 				<div>
 					<h1>Admin Overview Page</h1>
 					<p>
-						This page is only for users with admin role. At the moment, you can just see all users
-						waiting for approval here. To approve a user click on the approval button. If you can't
-						see an approval button, you don't have the permission to approve users.
+						This is the admin overview page. At the moment, it only shows a list of users waiting
+						for approval, but in the future, it could also show other information relevant to
+						administrators. (Note: Action buttons are only visible if you have the required
+						permissions. Contact your administrator if you think you should have access.)
 					</p>
 					<br />
 					<h2>Users waiting for approval:</h2>

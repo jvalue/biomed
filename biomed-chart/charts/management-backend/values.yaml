@@ -1,6 +1,6 @@
 image:
   name: ghcr.io/jvalue/management-backend
-  tag: latest
+  tag: 6fac5c6eca935be8b27b3fd31174c4df6dcc0ec2
   pullPolicy: IfNotPresent
   pullSecret: ghcr-login-secret
 
@@ -27,10 +27,12 @@ env:
   NODE_ENV: "production"
   PORT: 3002
   STAGE: "development"
-  DATABASE_HOST: "biomed-management-release-database"
+  DATABASE_HOST: "biomed-database"
   DATABASE_PORT: 5435
   ARGO_BASE_URL: "http://<ARGO_SERVER_HOST>/argo/api/v1"
   KUBE_BEARER_TOKEN: "invalid-token"
+  ORCHESTRATOR_SYNC_ENABLED: "true"
+  KUBE_CONFIG_PATH: "dummy"
 
 rbac:
   create: true
