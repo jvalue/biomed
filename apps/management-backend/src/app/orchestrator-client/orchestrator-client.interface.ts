@@ -7,7 +7,6 @@ import { HealthStatusEnum } from '../health/enum/healthStatus.enum';
 import { CursorBasedPaginationRequestDto } from '../pagination/dto/cursor-based-pagination-request.dto';
 import { CursorBasedPaginationResponseDto } from '../pagination/dto/cursor-based-pagination-response.dto';
 import { ScheduleDto } from '../schedules/dto/schedule.dto';
-import { ArgoCronWorkflow } from '../schedules/infrastructure/argo/argo-cron-workflow';
 
 export interface IOrchestratorClient {
 	checkHealth(): Promise<HealthStatusEnum>;
@@ -36,7 +35,8 @@ export interface IOrchestratorClient {
 
 	getScheduleByNamespaceAndName(namespace: string, name: string): Promise<ScheduleDto | null>;
 
-	createSchedule(cronWorkflowObject: ArgoCronWorkflow, namespace: string): Promise<void>;
+	// biome-ignore lint/complexity/noBannedTypes: has to be generic because of orchestrator independence
+	createSchedule(scheduleObject: Object, namespace: string): Promise<void>;
 
 	deleteSchedule(namespace: string, name: string): Promise<void>;
 

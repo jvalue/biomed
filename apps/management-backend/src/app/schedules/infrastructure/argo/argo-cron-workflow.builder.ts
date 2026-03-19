@@ -42,13 +42,6 @@ export class ArgoCronWorkflowBuilder {
 					workflowMetadata: {
 						labels: {},
 					},
-					ttlStrategy: {
-						// Default: Keep the workflow for 7 days after completion
-						secondsAfterCompletion: 604800, // 7 days
-					},
-					podGC: {
-						strategy: 'OnWorkflowSuccess',
-					},
 				},
 			},
 		};

@@ -24,6 +24,7 @@ import { TimezoneAdjustments1769440475465 } from './migrations/1769440475465-Tim
 import { DownloadMetrics1769445294205 } from './migrations/1769445294205-DownloadMetrics';
 import { RenameRunIdToRunName1772197103315 } from './migrations/1772197103315-RenameRunIdToRunName';
 import { ScheduleEntity } from './schedules/entity/schedule.entity';
+import { TypeOrmNestLogger } from './typeorm-nest-logger';
 import { UserEntity } from './users/entity/user.entity';
 
 @Injectable()
@@ -73,7 +74,7 @@ export class DbConfigService implements TypeOrmOptionsFactory {
 				RenameRunIdToRunName1772197103315,
 			],
 			logging: true,
-			logger: 'debug',
+			logger: new TypeOrmNestLogger(),
 		};
 	}
 }

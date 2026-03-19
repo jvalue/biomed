@@ -1,6 +1,14 @@
 import { ApiProperty } from '@nestjs/swagger';
 import { Type } from 'class-transformer';
-import { IsArray, IsBoolean, IsDate, IsNumber, IsOptional, IsString } from 'class-validator';
+import {
+	IsArray,
+	IsBoolean,
+	IsDate,
+	IsNumber,
+	IsOptional,
+	IsString,
+	ValidateNested,
+} from 'class-validator';
 import { ScheduleErrorDetails, ScheduleErrorType } from '../enums/schedule-error-type.enum';
 import { RetryStrategyDto } from './retry-strategy.dto';
 
@@ -57,6 +65,8 @@ export class ScheduleDto {
 		description: 'The parameters which the schedule passes to the crawler template',
 	})
 	@IsArray()
+	@ValidateNested({ each: true })
+	@Type(() => ScheduleParameterDto)
 	parameters!: ScheduleParameterDto[];
 
 	@ApiProperty({ type: String, description: 'The cron schedule expression' })
@@ -69,6 +79,7 @@ export class ScheduleDto {
 		nullable: true,
 	})
 	@IsOptional()
+	@ValidateNested()
 	@Type(() => RetryStrategyDto)
 	retryStrategy?: RetryStrategyDto;
 
@@ -88,6 +99,7 @@ export class ScheduleDto {
 		type: ScheduleStatisticsDto,
 		description: 'Statistics about the schedule',
 	})
+	@ValidateNested()
 	@Type(() => ScheduleStatisticsDto)
 	statistics!: ScheduleStatisticsDto;
 
