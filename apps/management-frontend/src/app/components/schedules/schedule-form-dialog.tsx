@@ -111,17 +111,15 @@ export function ScheduleFormDialog({
 		}
 	}, [open, mode, initialSchedule]);
 
-	// Apply template defaults in create mode once template data arrives,
+	// Apply template defaults in create mode once template data arrives
 	useEffect(() => {
 		if (!open || mode !== 'create' || !template?.parameters) return;
 
 		const params = template.parameters;
 
-		// only fill empty fields with defaults
-		setParameters((prev) => ({
-			...Object.fromEntries(params.map((p) => [p.name, p.defaultValue ?? ''])),
-			...prev,
-		}));
+		setParameters((prev) =>
+			Object.fromEntries(params.map((p) => [p.name, prev[p.name] ?? p.defaultValue ?? ''])),
+		);
 	}, [open, mode, template]);
 
 	// Regex validation for name (Kubernetes-style DNS-1123 subdomain)
