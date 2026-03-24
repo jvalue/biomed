@@ -13,8 +13,12 @@ import { TargetsService } from './targets/targets.service';
 export class HealthService {
 	private readonly SYSTEM_HEALTH_TTL_MS = 60_000;
 	private readonly TARGETS_HEALTH_TTL_MS = 5 * 60_000;
+
 	private systemHealthCache: { value: SystemHealthDto; expiresAt: number } | null = null;
 	private targetsHealthCache: { value: TargetUrlStatusDto[]; expiresAt: number } | null = null;
+
+	private systemHealthInFlight: Promise<SystemHealthDto> | null = null;
+	private targetsHealthInFlight: Promise<TargetUrlStatusDto[]> | null = null;
 
 	constructor(
 		private readonly orchestratorClientService: ArgoClientService,
@@ -29,31 +33,37 @@ export class HealthService {
 		let checks: TargetUrlStatusDto[];
 
 		if (this.targetsHealthCache && this.targetsHealthCache.expiresAt > now) {
-			checks = this.targetsHealthCache.value.map((item) => ({
-				...item,
-				target: { ...item.target },
-			}));
+			checks = this.cloneTargetHealthDtos(this.targetsHealthCache.value);
 		} else {
-			const targets = await this.targetsService.findAllActiveTargets();
+			if (!this.targetsHealthInFlight) {
+				this.targetsHealthInFlight = (async () => {
+					const targets = await this.targetsService.findAllActiveTargets();
 
-			// Run checks in parallel
-			checks = await Promise.all(
-				targets.map(async (target) => {
-					const status = await this.checkServiceHealth(target.url);
-					const dto = new TargetUrlStatusDto();
-					dto.target = target;
-					dto.status = status;
-					return dto;
-				}),
-			);
+					// Run checks in parallel
+					const result = await Promise.all(
+						targets.map(async (target) => {
+							const status = await this.checkServiceHealth(target.url);
+							const dto = new TargetUrlStatusDto();
+							dto.target = target;
+							dto.status = status;
+							return dto;
+						}),
+					);
 
-			this.targetsHealthCache = {
-				value: checks.map((item) => ({
-					...item,
-					target: { ...item.target },
-				})),
-				expiresAt: Date.now() + this.TARGETS_HEALTH_TTL_MS,
-			};
+					this.targetsHealthCache = {
+						value: this.cloneTargetHealthDtos(result),
+						expiresAt: Date.now() + this.TARGETS_HEALTH_TTL_MS,
+					};
+
+					return this.cloneTargetHealthDtos(result);
+				})();
+			}
+
+			try {
+				checks = await this.targetsHealthInFlight;
+			} finally {
+				this.targetsHealthInFlight = null;
+			}
 		}
 
 		// Check if user has permissions to see schedules
@@ -71,19 +81,41 @@ export class HealthService {
 		const now = Date.now();
 
 		if (this.systemHealthCache && this.systemHealthCache.expiresAt > now) {
-			return this.systemHealthCache.value;
+			return { ...this.systemHealthCache.value };
 		}
 
-		const kubernetesStatus = await this.kubernetesClientService.checkHealth();
-		const orchestratorStatus = await this.orchestratorClientService.checkHealth();
+		if (!this.systemHealthInFlight) {
+			this.systemHealthInFlight = (async () => {
+				const kubernetesStatus = await this.kubernetesClientService.checkHealth();
+				const orchestratorStatus = await this.orchestratorClientService.checkHealth();
 
-		const value = { kubernetesStatus, orchestratorStatus };
-		this.systemHealthCache = {
-			value,
-			expiresAt: Date.now() + this.SYSTEM_HEALTH_TTL_MS,
-		};
+				const value: SystemHealthDto = {
+					kubernetesStatus,
+					orchestratorStatus,
+				};
 
-		return value;
+				this.systemHealthCache = {
+					value,
+					expiresAt: Date.now() + this.SYSTEM_HEALTH_TTL_MS,
+				};
+
+				return { ...value };
+			})();
+		}
+
+		try {
+			return await this.systemHealthInFlight;
+		} finally {
+			this.systemHealthInFlight = null;
+		}
+	}
+
+	private cloneTargetHealthDtos(items: TargetUrlStatusDto[]): TargetUrlStatusDto[] {
+		return items.map((item) =>
+			Object.assign(new TargetUrlStatusDto(), item, {
+				target: { ...item.target },
+			}),
+		);
 	}
 
 	/**
