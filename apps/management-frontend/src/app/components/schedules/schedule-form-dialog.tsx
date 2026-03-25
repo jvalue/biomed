@@ -106,16 +106,21 @@ export function ScheduleFormDialog({
 				setBackoffFactor('');
 				setBackoffCap('');
 				setBackoffMaxDuration('');
-				const initialParams: Record<string, string> = {};
-				if (template?.parameters) {
-					template.parameters.forEach((param) => {
-						initialParams[param.name] = param.defaultValue ?? '';
-					});
-				}
-				setParameters(initialParams);
+				setParameters({});
 			}
 		}
-	}, [open, mode, initialSchedule, template]);
+	}, [open, mode, initialSchedule]);
+
+	// Apply template defaults in create mode once template data arrives
+	useEffect(() => {
+		if (!open || mode !== 'create' || !template?.parameters) return;
+
+		const params = template.parameters;
+
+		setParameters((prev) =>
+			Object.fromEntries(params.map((p) => [p.name, prev[p.name] ?? p.defaultValue ?? ''])),
+		);
+	}, [open, mode, template]);
 
 	// Regex validation for name (Kubernetes-style DNS-1123 subdomain)
 	const nameRegex = useMemo(
