@@ -1,6 +1,7 @@
 import asyncio
 import logging
 import os
+import random
 from datetime import datetime, timezone
 from pathlib import Path
 
@@ -75,16 +76,28 @@ async def _send_metrics(
     client: HttpClient,
     endpoint: str,
     run_started_at: str,
+    schedule_name: str | None,
+    schedule_namespace: str | None,
     progress: int,
     crawled_data_sets: int,
+    cache_hits: int,
 ) -> None:
     """Send crawler progress metrics to management backend."""
 
     payload = {
         "progress": progress,
         "crawledDataSets": crawled_data_sets,
+        "cacheHits": cache_hits,
         "runStartedAt": run_started_at,
     }
+    if schedule_name and schedule_namespace:
+        payload["scheduleName"] = schedule_name
+        payload["scheduleNamespace"] = schedule_namespace
+    elif schedule_name or schedule_namespace:
+        logger.warning(
+            "Skipping schedule fields for metrics because only one of "
+            "schedule name/namespace is set"
+        )
     response = await client.call_management_endpoint_from_env(
         endpoint=endpoint,
         method="POST",
@@ -140,6 +153,25 @@ def _load_local_env() -> None:
     load_dotenv(dotenv_path=env_path)
 
 
+def _build_organic_snapshot(
+    progress: int,
+    previous_crawled_data_sets: int,
+    previous_downloaded_datasets: int,
+) -> tuple[int, int, int, int]:
+    """Build monotonic, slightly varied metrics with cache hit rate near 80 percent."""
+
+    crawled_target = max(0, progress + random.randint(-2, 2))
+    crawled_data_sets = max(previous_crawled_data_sets, crawled_target)
+    cache_ratio = min(0.84, max(0.76, random.uniform(0.78, 0.82)))
+    cache_hits = min(crawled_data_sets, int(round(crawled_data_sets * cache_ratio)))
+
+    downloaded_target = max(0, min(100, progress + random.randint(-1, 1)))
+    downloaded_datasets = max(previous_downloaded_datasets, downloaded_target)
+    downloaded_gb = max(0, downloaded_datasets * 10 + random.randint(-8, 8))
+
+    return crawled_data_sets, cache_hits, downloaded_datasets, downloaded_gb
+
+
 async def _notify_management_backend() -> None:
     """Run dummy workflow and report startup, progress metrics, and success."""
 
@@ -178,6 +210,9 @@ async def _notify_management_backend() -> None:
 
     await _send_event(client, events_endpoint, "crawler_dummy startup ping")
 
+    previous_crawled_data_sets = 0
+    previous_downloaded_datasets = 0
+
     with open("progress.txt", "w") as progress_file:
         for i in range(1, 101):
             progress_file.write(f"{i}\n")
@@ -185,12 +220,24 @@ async def _notify_management_backend() -> None:
             print(f"Progress: {i}/100")
 
             if i % metrics_every == 0 or i == 100:
+                crawled_data_sets, cache_hits, downloaded_datasets, downloaded_gb = (
+                    _build_organic_snapshot(
+                        progress=i,
+                        previous_crawled_data_sets=previous_crawled_data_sets,
+                        previous_downloaded_datasets=previous_downloaded_datasets,
+                    )
+                )
+                previous_crawled_data_sets = crawled_data_sets
+                previous_downloaded_datasets = downloaded_datasets
                 await _send_metrics(
                     client=client,
                     endpoint=metrics_endpoint,
                     run_started_at=run_started_at,
+                    schedule_name=schedule_name,
+                    schedule_namespace=schedule_namespace,
                     progress=i,
-                    crawled_data_sets=i,
+                    crawled_data_sets=crawled_data_sets,
+                    cache_hits=cache_hits,
                 )
                 await _send_download_metrics(
                     client=client,
@@ -199,9 +246,9 @@ async def _notify_management_backend() -> None:
                     schedule_name=schedule_name,
                     schedule_namespace=schedule_namespace,
                     total_datasets_to_download=100,
-                    downloaded_datasets=i,
+                    downloaded_datasets=downloaded_datasets,
                     total_gb_to_download=1000,
-                    downloaded_gb=i*10,
+                    downloaded_gb=downloaded_gb,
                 )
 
             await asyncio.sleep(1)
