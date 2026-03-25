@@ -156,8 +156,9 @@ def _load_local_env() -> None:
 def _build_organic_snapshot(
     progress: int,
     previous_crawled_data_sets: int,
+    previous_total_datasets_to_download: int,
     previous_downloaded_datasets: int,
-) -> tuple[int, int, int, int]:
+) -> tuple[int, int, int, int, int, int]:
     """Build monotonic, slightly varied metrics with cache hit rate near 80 percent."""
 
     crawled_target = max(0, progress + random.randint(-2, 2))
@@ -165,11 +166,27 @@ def _build_organic_snapshot(
     cache_ratio = min(0.84, max(0.76, random.uniform(0.78, 0.82)))
     cache_hits = min(crawled_data_sets, int(round(crawled_data_sets * cache_ratio)))
 
-    downloaded_target = max(0, min(100, progress + random.randint(-1, 1)))
-    downloaded_datasets = max(previous_downloaded_datasets, downloaded_target)
-    downloaded_gb = max(0, downloaded_datasets * 10 + random.randint(-8, 8))
+    discovered_data_sets = max(0, crawled_data_sets - cache_hits)
+    total_datasets_to_download = max(previous_total_datasets_to_download, discovered_data_sets)
 
-    return crawled_data_sets, cache_hits, downloaded_datasets, downloaded_gb
+    lag = random.randint(1, 4)
+    downloaded_target = max(0, total_datasets_to_download - lag + random.randint(-1, 1))
+    downloaded_datasets = min(
+        total_datasets_to_download,
+        max(previous_downloaded_datasets, downloaded_target),
+    )
+
+    total_gb_to_download = total_datasets_to_download * 10
+    downloaded_gb = downloaded_datasets * 10
+
+    return (
+        crawled_data_sets,
+        cache_hits,
+        total_datasets_to_download,
+        downloaded_datasets,
+        total_gb_to_download,
+        downloaded_gb,
+    )
 
 
 async def _notify_management_backend() -> None:
@@ -211,6 +228,7 @@ async def _notify_management_backend() -> None:
     await _send_event(client, events_endpoint, "crawler_dummy startup ping")
 
     previous_crawled_data_sets = 0
+    previous_total_datasets_to_download = 0
     previous_downloaded_datasets = 0
 
     with open("progress.txt", "w") as progress_file:
@@ -220,14 +238,23 @@ async def _notify_management_backend() -> None:
             print(f"Progress: {i}/100")
 
             if i % metrics_every == 0 or i == 100:
-                crawled_data_sets, cache_hits, downloaded_datasets, downloaded_gb = (
+                (
+                    crawled_data_sets,
+                    cache_hits,
+                    total_datasets_to_download,
+                    downloaded_datasets,
+                    total_gb_to_download,
+                    downloaded_gb,
+                ) = (
                     _build_organic_snapshot(
                         progress=i,
                         previous_crawled_data_sets=previous_crawled_data_sets,
+                        previous_total_datasets_to_download=previous_total_datasets_to_download,
                         previous_downloaded_datasets=previous_downloaded_datasets,
                     )
                 )
                 previous_crawled_data_sets = crawled_data_sets
+                previous_total_datasets_to_download = total_datasets_to_download
                 previous_downloaded_datasets = downloaded_datasets
                 await _send_metrics(
                     client=client,
@@ -245,9 +272,9 @@ async def _notify_management_backend() -> None:
                     run_started_at=run_started_at,
                     schedule_name=schedule_name,
                     schedule_namespace=schedule_namespace,
-                    total_datasets_to_download=100,
+                    total_datasets_to_download=total_datasets_to_download,
                     downloaded_datasets=downloaded_datasets,
-                    total_gb_to_download=1000,
+                    total_gb_to_download=total_gb_to_download,
                     downloaded_gb=downloaded_gb,
                 )
 
