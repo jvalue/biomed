@@ -41,6 +41,20 @@ def _resolve_run_identity() -> tuple[str, str]:
     return run_namespace, run_name
 
 
+def _resolve_schedule_identity() -> tuple[str, str]:
+    """Resolve schedule namespace and name used for crawler run metrics."""
+
+    schedule_namespace = os.getenv(
+        "CRAWLER_SCHEDULE_NAMESPACE",
+        os.getenv("CRAWLER_DUMMY_SCHEDULE_NAMESPACE", "default"),
+    )
+    schedule_name = os.getenv(
+        "CRAWLER_SCHEDULE_NAME",
+        os.getenv("CRAWLER_DUMMY_SCHEDULE_NAME", "crawler-dummy-schedule"),
+    )
+    return schedule_namespace, schedule_name
+
+
 async def _send_event(client: HttpClient, endpoint: str, message: str) -> None:
     """Send crawler event to management backend."""
 
@@ -83,14 +97,22 @@ async def _send_download_metrics(
     client: HttpClient,
     endpoint: str,
     run_started_at: str,
+    schedule_name: str,
+    schedule_namespace: str,
     total_datasets_to_download: int,
     downloaded_datasets: int,
+    total_gb_to_download: int,
+    downloaded_gb: int,
 ) -> None:
     """Send crawler download metrics to management backend."""
 
     payload = {
+        "scheduleName": schedule_name,
+        "scheduleNamespace": schedule_namespace,
         "totalDatasetsToDownload": total_datasets_to_download,
         "downloadedDatasets": downloaded_datasets,
+        "totalGBToDownload": total_gb_to_download,
+        "downloadedGB": downloaded_gb,
         "runStartedAt": run_started_at,
     }
     response = await client.call_management_endpoint_from_env(
@@ -116,6 +138,7 @@ async def _notify_management_backend() -> None:
     """Run dummy workflow and report startup, progress metrics, and success."""
 
     run_namespace, run_name = _resolve_run_identity()
+    schedule_namespace, schedule_name = _resolve_schedule_identity()
     base_url = os.getenv("MANAGEMENT_BACKEND_URL", "<missing MANAGEMENT_BACKEND_URL>")
     events_endpoint = os.getenv(
         "CRAWLER_DUMMY_ENDPOINT",
@@ -167,8 +190,12 @@ async def _notify_management_backend() -> None:
                     client=client,
                     endpoint=download_metrics_endpoint,
                     run_started_at=run_started_at,
+                    schedule_name=schedule_name,
+                    schedule_namespace=schedule_namespace,
                     total_datasets_to_download=100,
                     downloaded_datasets=i,
+                    total_gb_to_download=1000,
+                    downloaded_gb=i*10,
                 )
 
             await asyncio.sleep(1)
