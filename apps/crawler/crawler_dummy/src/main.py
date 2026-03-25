@@ -41,16 +41,16 @@ def _resolve_run_identity() -> tuple[str, str]:
     return run_namespace, run_name
 
 
-def _resolve_schedule_identity() -> tuple[str, str]:
-    """Resolve schedule namespace and name used for crawler run metrics."""
+def _resolve_schedule_identity() -> tuple[str | None, str | None]:
+    """Resolve optional schedule identity used for crawler run metrics."""
 
     schedule_namespace = os.getenv(
         "CRAWLER_SCHEDULE_NAMESPACE",
-        os.getenv("CRAWLER_DUMMY_SCHEDULE_NAMESPACE", "default"),
+        os.getenv("CRAWLER_DUMMY_SCHEDULE_NAMESPACE"),
     )
     schedule_name = os.getenv(
         "CRAWLER_SCHEDULE_NAME",
-        os.getenv("CRAWLER_DUMMY_SCHEDULE_NAME", "crawler-dummy-schedule"),
+        os.getenv("CRAWLER_DUMMY_SCHEDULE_NAME"),
     )
     return schedule_namespace, schedule_name
 
@@ -97,8 +97,8 @@ async def _send_download_metrics(
     client: HttpClient,
     endpoint: str,
     run_started_at: str,
-    schedule_name: str,
-    schedule_namespace: str,
+    schedule_name: str | None,
+    schedule_namespace: str | None,
     total_datasets_to_download: int,
     downloaded_datasets: int,
     total_gb_to_download: int,
@@ -107,14 +107,20 @@ async def _send_download_metrics(
     """Send crawler download metrics to management backend."""
 
     payload = {
-        "scheduleName": schedule_name,
-        "scheduleNamespace": schedule_namespace,
         "totalDatasetsToDownload": total_datasets_to_download,
         "downloadedDatasets": downloaded_datasets,
         "totalGBToDownload": total_gb_to_download,
         "downloadedGB": downloaded_gb,
         "runStartedAt": run_started_at,
     }
+    if schedule_name and schedule_namespace:
+        payload["scheduleName"] = schedule_name
+        payload["scheduleNamespace"] = schedule_namespace
+    elif schedule_name or schedule_namespace:
+        logger.warning(
+            "Skipping schedule fields for download metrics because only one of "
+            "schedule name/namespace is set"
+        )
     response = await client.call_management_endpoint_from_env(
         endpoint=endpoint,
         method="POST",
