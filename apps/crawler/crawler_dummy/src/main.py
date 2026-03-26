@@ -176,6 +176,11 @@ def _build_organic_snapshot(
         max(previous_downloaded_datasets, downloaded_target),
     )
 
+    # Ensure downloads complete when progress reaches the end so the
+    # simulated downloader doesn't remain behind discovery indefinitely.
+    if progress >= 100:
+        downloaded_datasets = total_datasets_to_download
+
     total_gb_to_download = total_datasets_to_download * 10
     downloaded_gb = downloaded_datasets * 10
 
