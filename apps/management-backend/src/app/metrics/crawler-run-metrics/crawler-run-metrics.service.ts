@@ -1,6 +1,7 @@
-import { Injectable } from '@nestjs/common';
+import { Injectable, NotFoundException } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
+import { ArgoClientService } from '../../orchestrator-client/argo-client/argo-client.service';
 import { HistoricalMetricsQueryDto } from '../../schedules/dto/historical-metrics-query.dto';
 import { ScheduleHistoricalMetricsItemDto } from '../../schedules/dto/schedule-historical-metrics-item.dto';
 import { ScheduleOverallMetricsDto } from '../../schedules/dto/schedule-overall-metrics.dto';
@@ -19,6 +20,7 @@ export class CrawlerRunMetricsService {
 		private readonly crawlerRunMetricsRepository: Repository<CrawlerRunMetricEntity>,
 		@InjectRepository(CrawlerRunEventEntity)
 		private readonly crawlerRunEventEntityRepository: Repository<CrawlerRunEventEntity>,
+		private readonly orchestratorClientService: ArgoClientService,
 	) {}
 
 	/**
@@ -32,11 +34,22 @@ export class CrawlerRunMetricsService {
 		runName: string,
 		metric: CrawlerRunMetricsIncomingDto,
 	): Promise<void> {
+		const run = await this.orchestratorClientService.getCrawlerRunByNamespaceAndName(
+			runNamespace,
+			runName,
+		);
+		if (!run) {
+			// If the run doesn't exist in the orchestrator, we shouldn't save metrics for it
+			throw new NotFoundException(
+				`Run ${runName} in namespace ${runNamespace} not found in orchestrator. Cannot save metrics for a non-existent run.`,
+			);
+		}
+
 		await this.crawlerRunMetricsRepository.save({
 			runName,
 			runNamespace,
-			scheduleName: metric.scheduleName,
-			scheduleNamespace: metric.scheduleNamespace,
+			scheduleName: run.scheduleName,
+			scheduleNamespace: runNamespace,
 			progress: metric.progress,
 			crawledDataSets: metric.crawledDataSets,
 			cacheHits: metric.cacheHits,
@@ -55,11 +68,22 @@ export class CrawlerRunMetricsService {
 		runName: string,
 		metric: CrawlerRunDownloadMetricsIncomingDto,
 	): Promise<void> {
+		const run = await this.orchestratorClientService.getCrawlerRunByNamespaceAndName(
+			runNamespace,
+			runName,
+		);
+		if (!run) {
+			// If the run doesn't exist in the orchestrator, we shouldn't save metrics for it
+			throw new NotFoundException(
+				`Run ${runName} in namespace ${runNamespace} not found in orchestrator. Cannot save metrics for a non-existent run.`,
+			);
+		}
+
 		await this.crawlerRunMetricsRepository.save({
 			runName,
 			runNamespace,
-			scheduleName: metric.scheduleName,
-			scheduleNamespace: metric.scheduleNamespace,
+			scheduleName: run.scheduleName,
+			scheduleNamespace: runNamespace,
 			totalDatasetsToDownload: metric.totalDatasetsToDownload,
 			downloadedDatasets: metric.downloadedDatasets,
 			totalGBToDownload: metric.totalGBToDownload,
