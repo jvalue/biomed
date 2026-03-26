@@ -1,23 +1,7 @@
 import { ApiProperty } from '@nestjs/swagger';
-import { IsDateString, IsNumber, IsOptional, IsString, Max, Min } from 'class-validator';
+import { IsDateString, IsNumber, IsOptional, Max, Min } from 'class-validator';
 
 export class CrawlerRunMetricsIncomingDto {
-	@ApiProperty({
-		description: 'Name of the schedule associated with the crawler run',
-		required: false,
-	})
-	@IsOptional()
-	@IsString()
-	scheduleName?: string;
-
-	@ApiProperty({
-		description: 'Namespace of the schedule associated with the crawler run',
-		required: false,
-	})
-	@IsOptional()
-	@IsString()
-	scheduleNamespace?: string;
-
 	@ApiProperty({ description: 'Progress of the crawler run (0-100)', required: false })
 	@IsOptional()
 	@IsNumber()
