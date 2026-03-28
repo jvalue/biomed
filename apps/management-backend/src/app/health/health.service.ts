@@ -1,4 +1,4 @@
-import { Injectable } from '@nestjs/common';
+import { ForbiddenException, Injectable } from '@nestjs/common';
 import axios from 'axios';
 import { AbilityFactory } from '../auth/ability-factory';
 import { KubernetesClientService } from '../kubernetes-client/kubernetes-client.service';
@@ -116,6 +116,48 @@ export class HealthService {
 				target: { ...item.target },
 			}),
 		);
+	}
+
+	async getTargetsHealthForSchedule(
+		namespace: string,
+		name: string,
+		user: UserEntity,
+	): Promise<TargetUrlStatusDto[]> {
+		const ability = this.abilityFactory.defineAbilityFor(user);
+
+		if (ability.cannot('read', 'schedule')) {
+			throw new ForbiddenException('Missing permission to read schedules');
+		}
+
+		const now = Date.now();
+
+		// Reuse fresh global cache if available
+		if (this.targetsHealthCache && this.targetsHealthCache.expiresAt > now) {
+			return this.cloneTargetHealthDtos(
+				this.targetsHealthCache.value.filter(
+					(check) =>
+						check.status !== HealthStatusEnum.AVAILABLE &&
+						check.target.schedules?.some(
+							(schedule) => schedule.namespace === namespace && schedule.name === name,
+						),
+				),
+			);
+		}
+
+		// Otherwise only load targets for the requested schedule
+		const targets = await this.targetsService.findTargetsBySchedule(namespace, name);
+
+		const checks = await Promise.all(
+			targets.map(async (target) => {
+				const status = await this.checkServiceHealth(target.url);
+				const dto = new TargetUrlStatusDto();
+				dto.target = target;
+				dto.status = status;
+				return dto;
+			}),
+		);
+
+		return checks.filter((check) => check.status !== HealthStatusEnum.AVAILABLE);
 	}
 
 	/**
