@@ -7,30 +7,10 @@ import {
 	CardHeader,
 	CardTitle,
 } from '@/src/app/components/design-components/card';
+import { formatTargetWarningsSummary } from '@/src/app/components/schedules/utils/formatTargetWarningsSummary';
 
 interface ScheduleWarningsComponentProps {
 	targetWarnings?: TargetUrlStatusDto[];
-}
-
-function formatWarningsSummary(targetWarnings: TargetUrlStatusDto[]): string {
-	const numberDown = targetWarnings.filter(
-		(warning) => warning.status === HealthStatusEnum.DOWN,
-	).length;
-	const numberLimited = targetWarnings.filter(
-		(warning) => warning.status === HealthStatusEnum.LIMITED,
-	).length;
-
-	const parts: string[] = [];
-
-	if (numberDown > 0) {
-		parts.push(`${numberDown} target${numberDown === 1 ? '' : 's'} down`);
-	}
-
-	if (numberLimited > 0) {
-		parts.push(`${numberLimited} target${numberLimited === 1 ? '' : 's'} limited`);
-	}
-
-	return parts.join(', ');
 }
 
 export default function ScheduleWarningsComponent({
@@ -49,7 +29,7 @@ export default function ScheduleWarningsComponent({
 				</CardTitle>
 			</CardHeader>
 			<CardContent className="space-y-3">
-				<p className="text-sm text-yellow-900">{formatWarningsSummary(targetWarnings)}</p>
+				<p className="text-sm text-yellow-900">{formatTargetWarningsSummary(targetWarnings)}</p>
 
 				<div className="space-y-2">
 					{targetWarnings.map((warning) => (

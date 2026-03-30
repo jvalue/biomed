@@ -19,6 +19,7 @@ import {
 	TooltipContent,
 	TooltipTrigger,
 } from '@/src/app/components/design-components/tooltip';
+import { formatTargetWarningsSummary } from '@/src/app/components/schedules/utils/formatTargetWarningsSummary';
 import { useAuth } from '@/src/app/contexts/AuthContext';
 import { formatCronReadable, getCronLocalTimeHint, getNextRunDate } from '@/src/app/utils/cron';
 
@@ -31,33 +32,14 @@ function getScheduleKey(namespace: string, name: string) {
 	return `${namespace}::${name}`;
 }
 
-function formatTargetWarningSummary(targetWarnings: TargetUrlStatusDto[]): string {
-	const downCount = targetWarnings.filter(
-		(warning) => warning.status === HealthStatusEnum.DOWN,
-	).length;
-	const limitedCount = targetWarnings.filter(
-		(warning) => warning.status === HealthStatusEnum.LIMITED,
-	).length;
-
-	const parts: string[] = [];
-
-	if (downCount > 0) {
-		parts.push(`${downCount} target${downCount === 1 ? '' : 's'} down`);
-	}
-
-	if (limitedCount > 0) {
-		parts.push(`${limitedCount} target${limitedCount === 1 ? '' : 's'} limited`);
-	}
-
-	return parts.join(', ');
-}
-
 export default function SchedulesTable({ schedules = [], targetHealth = [] }: ScheduleTableProps) {
 	const router = useRouter();
 	const { ability } = useAuth();
 
 	const targetWarningsBySchedule = useMemo(() => {
 		const map: Record<string, TargetUrlStatusDto[]> = {};
+
+		if (!targetHealth) return map;
 
 		for (const targetStatus of targetHealth) {
 			if (targetStatus.status === HealthStatusEnum.AVAILABLE) continue;
@@ -137,7 +119,7 @@ export default function SchedulesTable({ schedules = [], targetHealth = [] }: Sc
 														<div className="max-w-xs">
 															<p className="font-semibold">Target warnings</p>
 															<p className="text-sm mt-1">
-																{formatTargetWarningSummary(targetWarnings)}
+																{formatTargetWarningsSummary(targetWarnings)}
 															</p>
 														</div>
 													</TooltipContent>
