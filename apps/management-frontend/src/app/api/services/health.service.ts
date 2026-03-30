@@ -12,4 +12,13 @@ export const healthService = {
 		const response = await managementBackendClient.get<TargetUrlStatusDto[]>('/health/targets');
 		return response.data;
 	},
+
+	getTargetHealthForSchedule: async (
+		namespace: string,
+		name: string,
+	): Promise<TargetUrlStatusDto[]> => {
+		const path = `/health/targets/schedules/${encodeURIComponent(namespace)}/${encodeURIComponent(name)}`;
+		const response = await managementBackendClient.get<TargetUrlStatusDto[]>(path);
+		return response.data;
+	},
 };
