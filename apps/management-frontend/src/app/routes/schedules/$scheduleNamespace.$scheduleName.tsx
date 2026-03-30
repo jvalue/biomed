@@ -3,6 +3,8 @@ import { createFileRoute } from '@tanstack/react-router';
 import { AxiosError } from 'axios';
 import React, { useMemo } from 'react';
 import { toast } from 'react-toastify';
+import { HealthStatusEnum } from '@/src/app/api/dto/health/healthStatus.enum';
+import { useTargetHealthForSchedule } from '@/src/app/api/hooks/useHealthCheck';
 import {
 	useDeleteSchedule,
 	useResumeSchedule,
@@ -28,6 +30,7 @@ import ScheduleErrorsComponent from '@/src/app/components/schedules/schedule-err
 import { ScheduleFormDialog } from '@/src/app/components/schedules/schedule-form-dialog';
 import ScheduleMetricsChartComponent from '@/src/app/components/schedules/schedule-metrics-chart.component';
 import ScheduleMetricsSummaryComponent from '@/src/app/components/schedules/schedule-metrics-summary.component';
+import ScheduleWarningsComponent from '@/src/app/components/schedules/schedule-warnings.component';
 import ScheduleConfigurationSectionComponent from '@/src/app/components/schedules/scheduleConfigurationSection.component';
 import { useAuth } from '@/src/app/contexts/AuthContext';
 import { formatCronReadable, getCronLocalTimeHint, getNextRunDate } from '@/src/app/utils/cron';
@@ -71,6 +74,42 @@ function RouteComponent() {
 		isLoading: scheduleQueryIsLoading,
 		error: scheduleQueryError,
 	} = useScheduleByNamespaceAndName(scheduleNamespace, scheduleName);
+
+	const canReadHealth = ability.can('read', 'health');
+
+	const { isLoading: targetWarningsLoading, error: targetWarningsError } =
+		useTargetHealthForSchedule(scheduleNamespace, scheduleName, canReadHealth);
+
+	const mockedTargetWarnings = [
+		{
+			status: HealthStatusEnum.DOWN,
+			target: {
+				id: 'target-1',
+				displayName: 'Example API',
+				url: 'https://example-api.internal',
+				schedules: [
+					{
+						namespace: scheduleNamespace,
+						name: scheduleName,
+					},
+				],
+			},
+		},
+		{
+			status: HealthStatusEnum.LIMITED,
+			target: {
+				id: 'target-2',
+				displayName: 'Fallback Service',
+				url: 'https://fallback.internal',
+				schedules: [
+					{
+						namespace: scheduleNamespace,
+						name: scheduleName,
+					},
+				],
+			},
+		},
+	];
 
 	if (scheduleQueryIsLoading && !scheduleQueryError) {
 		return (
@@ -232,6 +271,12 @@ function RouteComponent() {
 						crawlerTemplateName={schedule?.crawlerTemplateName}
 						activeErrors={schedule?.activeErrors}
 					/>
+
+					<Can ability={ability} I="read" a="health">
+						{!targetWarningsLoading && !targetWarningsError && (
+							<ScheduleWarningsComponent targetWarnings={mockedTargetWarnings} />
+						)}
+					</Can>
 
 					<ScheduleMetricsSummaryComponent
 						scheduleName={scheduleName}

@@ -17,3 +17,11 @@ export const useTargetUrlsHealthCheck = () => {
 		refetchInterval: 5 * 60 * 1000, // 5 minutes
 	});
 };
+
+export function useTargetHealthForSchedule(namespace: string, name: string, enabled = true) {
+	return useQuery({
+		queryKey: ['targets-health', 'schedule', namespace, name],
+		queryFn: () => healthService.getTargetHealthForSchedule(namespace, name),
+		enabled: enabled,
+	});
+}
