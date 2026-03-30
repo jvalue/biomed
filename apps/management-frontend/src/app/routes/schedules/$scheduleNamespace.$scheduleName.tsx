@@ -3,7 +3,6 @@ import { createFileRoute } from '@tanstack/react-router';
 import { AxiosError } from 'axios';
 import React, { useMemo } from 'react';
 import { toast } from 'react-toastify';
-import { HealthStatusEnum } from '@/src/app/api/dto/health/healthStatus.enum';
 import { useTargetHealthForSchedule } from '@/src/app/api/hooks/useHealthCheck';
 import {
 	useDeleteSchedule,
@@ -77,39 +76,11 @@ function RouteComponent() {
 
 	const canReadHealth = ability.can('read', 'health');
 
-	const { isLoading: targetWarningsLoading, error: targetWarningsError } =
-		useTargetHealthForSchedule(scheduleNamespace, scheduleName, canReadHealth);
-
-	const mockedTargetWarnings = [
-		{
-			status: HealthStatusEnum.DOWN,
-			target: {
-				id: 'target-1',
-				displayName: 'Example API',
-				url: 'https://example-api.internal',
-				schedules: [
-					{
-						namespace: scheduleNamespace,
-						name: scheduleName,
-					},
-				],
-			},
-		},
-		{
-			status: HealthStatusEnum.LIMITED,
-			target: {
-				id: 'target-2',
-				displayName: 'Fallback Service',
-				url: 'https://fallback.internal',
-				schedules: [
-					{
-						namespace: scheduleNamespace,
-						name: scheduleName,
-					},
-				],
-			},
-		},
-	];
+	const {
+		data: targetWarnings,
+		isLoading: targetWarningsLoading,
+		error: targetWarningsError,
+	} = useTargetHealthForSchedule(scheduleNamespace, scheduleName, canReadHealth);
 
 	if (scheduleQueryIsLoading && !scheduleQueryError) {
 		return (
@@ -274,7 +245,7 @@ function RouteComponent() {
 
 					<Can ability={ability} I="read" a="health">
 						{!targetWarningsLoading && !targetWarningsError && (
-							<ScheduleWarningsComponent targetWarnings={mockedTargetWarnings} />
+							<ScheduleWarningsComponent targetWarnings={targetWarnings} />
 						)}
 					</Can>
 
