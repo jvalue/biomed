@@ -20,7 +20,6 @@ export class HealthController {
 		type: [TargetUrlStatusDto],
 	})
 	@RequirePermission('read', 'health')
-	@RequirePermission('read', 'schedule')
 	@Get('targets')
 	async getTargetHealthStatus(@CurrentUser() user: UserEntity): Promise<TargetUrlStatusDto[]> {
 		return this.healthService.getTargetsHealth(user);
@@ -28,6 +27,7 @@ export class HealthController {
 
 	@Get('targets/schedules/:namespace/:name')
 	@RequirePermission('read', 'health')
+	@RequirePermission('read', 'schedule')
 	async getTargetHealthForSchedule(
 		@Param('namespace') namespace: string,
 		@Param('name') name: string,

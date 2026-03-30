@@ -2,10 +2,14 @@ import { useTargetUrlsHealthCheck } from '@/src/app/api/hooks/useHealthCheck';
 import { useSchedules } from '@/src/app/api/hooks/useSchedules';
 import { Spinner } from '@/src/app/components/design-components/spinner';
 import SchedulesTable from '@/src/app/components/schedules/schedules-table';
+import { useAuth } from '@/src/app/contexts/AuthContext';
 
 export default function SchedulesList() {
+	const { ability } = useAuth();
 	const { data, isLoading, error } = useSchedules();
-	const { data: targetHealth, error: targetsError } = useTargetUrlsHealthCheck();
+	const { data: targetHealth, error: targetsError } = useTargetUrlsHealthCheck(
+		ability.can('read', 'health'),
+	);
 
 	if (isLoading) {
 		return (
