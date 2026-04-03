@@ -7,6 +7,7 @@ describe('ArgoCronWorkflowBuilder', () => {
 		const workflow = builder
 			.setName('nightly-sync')
 			.setSchedule('0 2 * * *')
+			.setTimezone('UTC')
 			.setTemplateRef('sync-template')
 			.addParameters([{ name: 'inputPath', value: '/data/in' }])
 			.addLabels({ env: 'prod' })
@@ -25,6 +26,7 @@ describe('ArgoCronWorkflowBuilder', () => {
 		expect(workflow.metadata.labels).toHaveProperty('env', 'prod');
 
 		expect(workflow.spec.schedules).toEqual(['0 2 * * *']);
+		expect(workflow.spec.timezone).toBe('UTC');
 		expect(workflow.spec.workflowSpec.workflowTemplateRef.name).toBe('sync-template');
 
 		const params = workflow.spec.workflowSpec.arguments?.parameters ?? [];
@@ -46,19 +48,25 @@ describe('ArgoCronWorkflowBuilder', () => {
 
 	it('Throws error on missing name', () => {
 		const builder = new ArgoCronWorkflowBuilder();
-		builder.setSchedule('0 2 * * *').setTemplateRef('tpl');
+		builder.setSchedule('0 2 * * *').setTemplateRef('tpl').setTimezone('UTC');
 		expect(() => builder.build()).toThrow('Workflow name is required');
 	});
 
 	it('Throws error on missing schedule', () => {
 		const builder = new ArgoCronWorkflowBuilder();
-		builder.setName('no-schedule').setTemplateRef('tpl');
+		builder.setName('no-schedule').setTemplateRef('tpl').setTimezone('UTC');
 		expect(() => builder.build()).toThrow('Schedule is required');
+	});
+
+	it('Throws error on missing timezone', () => {
+		const builder = new ArgoCronWorkflowBuilder();
+		builder.setName('no-timezone').setTemplateRef('tpl').setSchedule('0 2 * * *');
+		expect(() => builder.build()).toThrow('Timezone is required');
 	});
 
 	it('Throws error on missing template ref', () => {
 		const builder = new ArgoCronWorkflowBuilder();
-		builder.setName('no-template').setSchedule('0 2 * * *');
+		builder.setName('no-template').setSchedule('0 2 * * *').setTimezone('UTC');
 		expect(() => builder.build()).toThrow('Workflow template reference name is required');
 	});
 
@@ -71,6 +79,7 @@ describe('ArgoCronWorkflowBuilder', () => {
 		const workflow = builder
 			.setName('with-params')
 			.setSchedule('0 3 * * *')
+			.setTimezone('UTC')
 			.setTemplateRef('tpl')
 			.addParameters(params)
 			.build();
@@ -85,6 +94,7 @@ describe('ArgoCronWorkflowBuilder', () => {
 		const workflow = builder
 			.setName('lbl-test')
 			.setSchedule('0 4 * * *')
+			.setTimezone('UTC')
 			.setTemplateRef('tpl')
 			.addLabel('team', 'data')
 			.addLabels({ region: 'eu', managed: 'true' })
@@ -104,6 +114,7 @@ describe('ArgoCronWorkflowBuilder', () => {
 		const workflow = builder
 			.setName('retry-valid')
 			.setSchedule('0 5 * * *')
+			.setTimezone('UTC')
 			.setTemplateRef('tpl')
 			.addRetryStrategy({
 				retries: 3,

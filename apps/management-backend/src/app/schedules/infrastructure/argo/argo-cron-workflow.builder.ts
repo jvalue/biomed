@@ -62,6 +62,11 @@ export class ArgoCronWorkflowBuilder {
 		return this;
 	}
 
+	public setTimezone(timezone: string): this {
+		this.workflow.spec.timezone = timezone;
+		return this;
+	}
+
 	/**
 	 *  Sets the workflow template reference name and a label in the workflow metadata for the template as otherwise
 	 *  when the CronWorkflow creates a Workflow from the template and afterwards the corn workflow is deleted, the link
@@ -185,13 +190,15 @@ export class ArgoCronWorkflowBuilder {
 		if (!this.workflow.spec.schedules || this.workflow.spec.schedules.length === 0) {
 			throw new Error('Schedule is required');
 		}
+		if (!this.workflow.spec.timezone) {
+			throw new Error('Timezone is required');
+		}
 		if (!this.workflow.spec.workflowSpec.workflowTemplateRef.name) {
 			throw new Error('Workflow template reference name is required');
 		}
 		if (!this.workflow.spec.workflowSpec.workflowMetadata?.labels?.customSetWorkflowTemplateName) {
 			throw new Error('Workflow metadata label for workflow-template-name is required');
 		}
-
 		return this.workflow;
 	}
 }

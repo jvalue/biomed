@@ -88,6 +88,10 @@ class ArgoCronWorkflowSpecDto {
 	@IsString({ each: true })
 	schedules!: string[];
 
+	@IsOptional()
+	@IsString()
+	timezone?: string;
+
 	@IsBoolean()
 	suspend!: boolean;
 }
