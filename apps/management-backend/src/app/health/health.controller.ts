@@ -1,4 +1,4 @@
-import { Controller, Get, UseGuards } from '@nestjs/common';
+import { Controller, Get, Param, UseGuards } from '@nestjs/common';
 import { ApiOkResponse, ApiOperation } from '@nestjs/swagger';
 import { CurrentUser } from '../auth/decorators/current-user.decorator';
 import { RequirePermission } from '../auth/decorators/require-permission.decorator';
@@ -23,6 +23,17 @@ export class HealthController {
 	@Get('targets')
 	async getTargetHealthStatus(@CurrentUser() user: UserEntity): Promise<TargetUrlStatusDto[]> {
 		return this.healthService.getTargetsHealth(user);
+	}
+
+	@Get('targets/schedules/:namespace/:name')
+	@RequirePermission('read', 'health')
+	@RequirePermission('read', 'schedule')
+	async getTargetHealthForSchedule(
+		@Param('namespace') namespace: string,
+		@Param('name') name: string,
+		@CurrentUser() user: UserEntity,
+	): Promise<TargetUrlStatusDto[]> {
+		return this.healthService.getTargetsHealthForSchedule(namespace, name, user);
 	}
 
 	@ApiOperation({ summary: 'Get the overall system health status' })
