@@ -34,11 +34,16 @@ export class TargetsService {
 		// Try to find an existing target first
 		const target = await this.targetsRepository.findOneBy({ url });
 		if (target) return target;
+		const displayName = this.getHostNameFromUrl(url) ?? url;
+
+		//Try to find by display name
+		const targetByDisplayName = await this.targetsRepository.findOneBy({ displayName });
+		if (targetByDisplayName) return targetByDisplayName;
 
 		// Create new entity
 		const newTarget = this.targetsRepository.create({
 			url,
-			displayName: this.getHostNameFromUrl(url) ?? url,
+			displayName,
 			createdBy: user,
 		});
 

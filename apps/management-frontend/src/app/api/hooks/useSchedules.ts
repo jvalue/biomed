@@ -18,6 +18,7 @@ export const useSchedules = (options?: { enabled?: boolean }): UseQueryResult<Sc
 export const useScheduleByNamespaceAndName = (
 	namespace: string,
 	name: string,
+	options?: { enabled?: boolean },
 ): UseQueryResult<ScheduleDto> => {
 	return useQuery({
 		queryKey: ['schedule', namespace, name],
@@ -34,6 +35,7 @@ export const useScheduleByNamespaceAndName = (
 		},
 		// Retry is handled by refetchInterval logic
 		retry: false,
+		enabled: options?.enabled,
 	});
 };
 

@@ -32,6 +32,8 @@ services:
     build:
       context: .
       dockerfile: apps/crawler/crawler_dummy/Dockerfile
+    env_file:
+      - ./apps/crawler/crawler_dummy/.env.docker
 
 
   management-backend:
