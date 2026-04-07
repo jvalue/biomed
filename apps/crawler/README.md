@@ -40,7 +40,7 @@ uv run apps/crawler/crawler_dummy/src/main.py
 
 The `crawler_general` app loads credentials from `apps/crawler/crawler_general/.env` and lists root folders from the configured FTP server.
 
-For `crawler_dummy`, create `apps/crawler/crawler_dummy/.env` (you can copy `.env.example`) with:
+For `crawler_dummy`, create `apps/crawler/crawler_dummy/.env.docker` (you can copy `.env.docker.example`) with:
 
 ```bash
 MANAGEMENT_BACKEND_URL=http://localhost:3002
@@ -82,34 +82,36 @@ Example Secret:
 apiVersion: v1
 kind: Secret
 metadata:
-	name: crawler-management-auth
+  name: crawler-management-auth
 type: Opaque
 stringData:
-	MANAGEMENT_BACKEND_URL: https://management-backend.example.com
-	MANAGEMENT_API_KEY: <raw-api-key>
+
+  MANAGEMENT_BACKEND_URL: https://management-backend.example.com
+  MANAGEMENT_API_KEY: <raw-api-key>
 ```
 
 Example Deployment env wiring:
 
 ```yaml
 spec:
-	template:
-		spec:
-			containers:
-				- name: crawler-dummy
-					env:
-						- name: MANAGEMENT_BACKEND_URL
-							valueFrom:
-								secretKeyRef:
-									name: crawler-management-auth
-									key: MANAGEMENT_BACKEND_URL
-						- name: MANAGEMENT_API_KEY
-							valueFrom:
-								secretKeyRef:
-									name: crawler-management-auth
-									key: MANAGEMENT_API_KEY
-						- name: CRAWLER_DUMMY_ENDPOINT
-							value: /api/v1/crawler-runs/default/crawler-dummy/events
+
+  template:
+    spec:
+      containers:
+        - name: crawler-dummy
+          env:
+            - name: MANAGEMENT_BACKEND_URL
+              valueFrom:
+                secretKeyRef:
+                  name: crawler-management-auth
+                  key: MANAGEMENT_BACKEND_URL
+            - name: MANAGEMENT_API_KEY
+              valueFrom:
+                secretKeyRef:
+                  name: crawler-management-auth
+                  key: MANAGEMENT_API_KEY
+            - name: CRAWLER_DUMMY_ENDPOINT
+              value: /api/v1/crawler-runs/default/crawler-dummy/events
 ```
 
 `crawler_dummy` reads process environment variables at runtime, so this works directly in Kubernetes without a `.env` file inside the container.
