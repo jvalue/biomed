@@ -44,3 +44,28 @@ export function getNextRunDate(cronExpr?: string, scheduleTimezone?: string): Da
 		return null;
 	}
 }
+
+/**
+ * Return a short hint explaining that the displayed next-run time is local.
+ * Returns `null` for empty/invalid cron expressions so callers can suppress the hint.
+ */
+export function getCronLocalTimeHint(cronExpr?: string, scheduleTimezone?: string): string | null {
+	if (!cronExpr) return null;
+
+	try {
+		// Validate the expression by attempting to parse it. We don't need the result here,
+		// just ensure it's a resolvable cron expression.
+		CronExpressionParser.parse(cronExpr, {
+			currentDate: new Date(),
+			tz: scheduleTimezone ?? 'UTC',
+		});
+	} catch {
+		return null;
+	}
+
+	if (scheduleTimezone) {
+		return `Times shown are converted from ${scheduleTimezone} to your local time.`;
+	}
+
+	return 'Times shown are in your local timezone.';
+}

@@ -100,4 +100,16 @@ export class TargetsService {
 			return false;
 		}
 	}
+
+	async findTargetsBySchedule(namespace: string, name: string): Promise<TargetEntity[]> {
+		return this.targetsRepository
+			.createQueryBuilder('target')
+			.innerJoinAndSelect(
+				'target.schedules',
+				'schedule',
+				'schedule.namespace = :namespace AND schedule.name = :name',
+				{ namespace, name },
+			)
+			.getMany();
+	}
 }

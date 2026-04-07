@@ -3,6 +3,7 @@ import { createFileRoute } from '@tanstack/react-router';
 import { AxiosError } from 'axios';
 import React, { useMemo } from 'react';
 import { toast } from 'react-toastify';
+import { useTargetHealthForSchedule } from '@/src/app/api/hooks/useHealthCheck';
 import {
 	useDeleteSchedule,
 	useResumeSchedule,
@@ -28,6 +29,7 @@ import ScheduleErrorsComponent from '@/src/app/components/schedules/schedule-err
 import { ScheduleFormDialog } from '@/src/app/components/schedules/schedule-form-dialog';
 import ScheduleMetricsChartComponent from '@/src/app/components/schedules/schedule-metrics-chart.component';
 import ScheduleMetricsSummaryComponent from '@/src/app/components/schedules/schedule-metrics-summary.component';
+import ScheduleWarningsComponent from '@/src/app/components/schedules/schedule-warnings.component';
 import ScheduleConfigurationSectionComponent from '@/src/app/components/schedules/scheduleConfigurationSection.component';
 import { useAuth } from '@/src/app/contexts/AuthContext';
 import { formatCronReadable, getNextRunDate } from '@/src/app/utils/cron';
@@ -72,6 +74,14 @@ function RouteComponent() {
 		isLoading: scheduleQueryIsLoading,
 		error: scheduleQueryError,
 	} = useScheduleByNamespaceAndName(scheduleNamespace, scheduleName, { enabled: !isDeleting });
+
+	const canReadHealth = ability.can('read', 'health');
+
+	const {
+		data: targetWarnings,
+		isLoading: targetWarningsLoading,
+		error: targetWarningsError,
+	} = useTargetHealthForSchedule(scheduleNamespace, scheduleName, canReadHealth);
 
 	if (scheduleQueryIsLoading && !scheduleQueryError) {
 		return (
@@ -232,6 +242,12 @@ function RouteComponent() {
 						crawlerTemplateName={schedule?.crawlerTemplateName}
 						activeErrors={schedule?.activeErrors}
 					/>
+
+					<Can ability={ability} I="read" a="health">
+						{!targetWarningsLoading && !targetWarningsError && (
+							<ScheduleWarningsComponent targetWarnings={targetWarnings} />
+						)}
+					</Can>
 
 					<ScheduleMetricsSummaryComponent
 						scheduleName={scheduleName}
