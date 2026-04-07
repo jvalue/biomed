@@ -64,13 +64,36 @@ export default function SchedulesTable({ schedules = [], targetHealth = [] }: Sc
 				<TableCaption>Schedules</TableCaption>
 				<TableHeader>
 					<TableRow>
-						<TableHead className="text-primary">Name</TableHead>
+						<TableHead className="text-primary">
+							Name{' '}
+							<span className="block text-xs font-normal invisible" aria-hidden="true">
+								placeholder
+							</span>
+						</TableHead>
 						<TableHead className="text-primary">&nbsp;</TableHead>
-						<TableHead className="text-primary">Crawler Name</TableHead>
-						<TableHead className="text-primary">Namespace</TableHead>
-						<TableHead className="text-primary">Schedule (UTC)</TableHead>
-						<TableHead className="text-primary">Next Run</TableHead>
-						<TableHead className="text-primary">Created at</TableHead>
+						<TableHead className="text-primary" aria-hidden="true">
+							Crawler Name{' '}
+							<span className="block text-xs font-normal invisible" aria-hidden="true">
+								placeholder
+							</span>
+						</TableHead>
+						<TableHead className="text-primary" aria-hidden="true">
+							Namespace <span className="block text-xs font-normal invisible">placeholder</span>
+						</TableHead>
+						<TableHead className="text-primary">
+							Schedule
+							<span className="block text-xs font-normal text-muted-foreground">
+								(schedule timezone)
+							</span>
+						</TableHead>
+						<TableHead className="text-primary">
+							Next Run
+							<span className="block text-xs font-normal text-muted-foreground">(local time)</span>
+						</TableHead>
+						<TableHead className="text-primary">
+							Created at
+							<span className="block text-xs font-normal text-muted-foreground">(local time)</span>
+						</TableHead>
 					</TableRow>
 				</TableHeader>
 				<TableBody>

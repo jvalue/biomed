@@ -32,7 +32,7 @@ import ScheduleMetricsSummaryComponent from '@/src/app/components/schedules/sche
 import ScheduleWarningsComponent from '@/src/app/components/schedules/schedule-warnings.component';
 import ScheduleConfigurationSectionComponent from '@/src/app/components/schedules/scheduleConfigurationSection.component';
 import { useAuth } from '@/src/app/contexts/AuthContext';
-import { formatCronReadable, getCronLocalTimeHint, getNextRunDate } from '@/src/app/utils/cron';
+import { formatCronReadable, getNextRunDate } from '@/src/app/utils/cron';
 import { createSetPageSearch } from '@/src/app/utils/set-page-search';
 import { Badge } from '../../components/design-components/badge';
 import { Switch } from '../../components/design-components/switch';
@@ -51,6 +51,7 @@ function RouteComponent() {
 	const deleteSchedule = useDeleteSchedule();
 
 	const [deleteDialogOpen, setDeleteDialogOpen] = React.useState(false);
+	const [isDeleting, setIsDeleting] = React.useState(false);
 	const [isEditOpen, setIsEditOpen] = React.useState(false);
 
 	const handleToggleSuspend = () => {
@@ -72,7 +73,7 @@ function RouteComponent() {
 		data: schedule,
 		isLoading: scheduleQueryIsLoading,
 		error: scheduleQueryError,
-	} = useScheduleByNamespaceAndName(scheduleNamespace, scheduleName);
+	} = useScheduleByNamespaceAndName(scheduleNamespace, scheduleName, { enabled: !isDeleting });
 
 	const canReadHealth = ability.can('read', 'health');
 
@@ -104,10 +105,9 @@ function RouteComponent() {
 	}
 
 	const suspended = schedule?.suspended ?? false;
-	const nextRun = schedule?.schedule ? getNextRunDate(schedule.schedule) : null;
+	const nextRun = schedule?.schedule ? getNextRunDate(schedule.schedule, schedule.timezone) : null;
 	const createdAt = schedule?.createdAt ? new Date(schedule.createdAt).toLocaleString() : '-';
 	const stats = schedule?.statistics;
-	const cronLocalHint = schedule?.schedule ? getCronLocalTimeHint(schedule.schedule) : null;
 
 	return (
 		<AuthGuard>
@@ -192,24 +192,24 @@ function RouteComponent() {
 						<Card className="shadow-sm min-h-[120px] flex flex-col">
 							<CardHeader className="pb-3 flex-1">
 								<CardDescription className="text-xs uppercase tracking-wide">
-									Cron Schedule (UTC)
+									Cron Schedule
 								</CardDescription>
 								<CardTitle className="text-lg">
-									{schedule?.schedule ? (
-										<div className="flex flex-col">
-											<span>{formatCronReadable(schedule.schedule)}</span>
-											{cronLocalHint && (
-												<span className="text-muted-foreground font-normal">({cronLocalHint})</span>
-											)}
-										</div>
-									) : (
-										'-'
-									)}
+									{schedule?.schedule
+										? formatCronReadable(schedule.schedule, schedule.timezone)
+										: '-'}
 								</CardTitle>
 							</CardHeader>
 							<CardContent className="text-xs text-muted-foreground pb-4">
 								{schedule?.schedule && !suspended ? (
-									<>Next Run: {nextRun ? nextRun.toLocaleString() : 'invalid cron expression'}</>
+									<>
+										Next Run:{' '}
+										{nextRun ? (
+											<>{nextRun.toLocaleString()} (local time)</>
+										) : (
+											'Invalid cron expression'
+										)}
+									</>
 								) : (
 									<span className="invisible">Placeholder</span>
 								)}
@@ -218,8 +218,8 @@ function RouteComponent() {
 
 						<Card className="shadow-sm">
 							<CardHeader className="pb-3">
-								<CardDescription className="text-xs uppercase tracking-wide">
-									Created At
+								<CardDescription className="text-xs tracking-wide">
+									<span className="uppercase"> Created At </span> (local time)
 								</CardDescription>
 								<CardTitle className="text-lg">{createdAt}</CardTitle>
 							</CardHeader>
@@ -296,6 +296,7 @@ function RouteComponent() {
 							navigate({ to: '/schedules' });
 							toast.success(`Schedule ${scheduleName} deleted successfully`);
 						}}
+						setIsDeleting={setIsDeleting}
 					/>
 
 					{/* Edit Schedule Dialog */}

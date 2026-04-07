@@ -80,6 +80,7 @@ export function mapArgoCronWorkflowDtoToScheduleDto(
 		};
 	}
 	schedule.schedule = cronWorkflow.spec.schedules ? cronWorkflow.spec.schedules[0] : '';
+	schedule.timezone = cronWorkflow.spec.timezone ?? 'UTC';
 	schedule.suspended = cronWorkflow.spec.suspend;
 	schedule.createdAt = cronWorkflow.metadata.creationTimestamp;
 	schedule.statistics = {
