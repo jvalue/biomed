@@ -85,6 +85,13 @@ def test_main_persists_ftp_structure(monkeypatch):
         def close(self) -> None:
             self.closed = True
 
+        def scalars(self, statement):
+            """Mock scalars() method to return a result proxy."""
+            class FakeResult:
+                def all(self):
+                    return []  # Return empty list for file paths in test
+            return FakeResult()
+
     session = FakeSession()
     monkeypatch.setattr(
         "crawler_general.src.main.get_session",

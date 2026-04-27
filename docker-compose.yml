@@ -18,6 +18,12 @@ services:
       - PGPORT=5436
     ports:
       - "5436:5436"
+
+  rabbitmq:
+    image: rabbitmq:3-management
+    ports:
+      - "5672:5672"
+      - "15672:15672"
       
   crawler-general:
     build:
@@ -25,8 +31,12 @@ services:
       dockerfile: apps/crawler/crawler_general/Dockerfile
     env_file:
       - ./apps/crawler/crawler_general/.env.docker
+    environment:
+      - RABBITMQ_URL=amqp://guest:guest@rabbitmq:5672/
+      - RABBITMQ_QUEUE=download-urls
     depends_on:
       - biomed-crawler-db
+      - rabbitmq
 
   crawler-dummy:
     build:
@@ -34,6 +44,26 @@ services:
       dockerfile: apps/crawler/crawler_dummy/Dockerfile
     env_file:
       - ./apps/crawler/crawler_dummy/.env.docker
+
+  downloader-general:
+    build:
+      context: .
+      dockerfile: apps/crawler/downloader_general/Dockerfile
+    environment:
+      - RABBITMQ_URL=amqp://guest:guest@rabbitmq:5672/
+      - RABBITMQ_QUEUE=download-urls
+      - DOWNLOAD_DESTINATION_DIR=/tmp/downloader-general
+      - DOWNLOAD_TIMEOUT_SECONDS=30
+      - DOWNLOAD_DEBUG_LARGE_FILE_MODE=true
+      - DOWNLOAD_DEBUG_LARGE_FILE_THRESHOLD_MB=100
+      - S3_ENDPOINT_URL=http://minio:9000
+      - S3_BUCKET=biomed-data
+      - S3_DEBUG_PREFIX=downloader-debug
+      - AWS_ACCESS_KEY_ID=minioadmin
+      - AWS_SECRET_ACCESS_KEY=minioadmin
+    depends_on:
+      - rabbitmq
+      - minio-init
 
 
   management-backend:
@@ -60,3 +90,28 @@ services:
       - "4201:80"
     depends_on:
       - management-backend
+
+  minio:
+    image: minio/minio:latest
+    command: server /data --console-address ":9001"
+    environment:
+      - MINIO_ROOT_USER=minioadmin
+      - MINIO_ROOT_PASSWORD=minioadmin
+    ports:
+      - "9000:9000"
+      - "9001:9001"
+    volumes:
+      - minio-data:/data
+
+  minio-init:
+    image: minio/mc:latest
+    depends_on:
+      - minio
+    entrypoint: >
+      /bin/sh -c "
+      until mc alias set local http://minio:9000 minioadmin minioadmin; do sleep 1; done;
+      mc mb --ignore-existing local/biomed-data;
+      "
+
+volumes:
+  minio-data:
