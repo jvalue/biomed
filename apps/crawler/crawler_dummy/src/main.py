@@ -64,11 +64,13 @@ async def _send_event(client: HttpClient, endpoint: str, message: str) -> None:
         "message": message,
         "timestamp": datetime.now(timezone.utc).isoformat(),
     }
+    print(f"[crawler] POST event -> {endpoint} payload={payload}")
     response = await client.call_management_endpoint_from_env(
         endpoint=endpoint,
         method="POST",
         json_body=payload,
     )
+    print(f"[crawler] Event reported: {response.status_code} ({endpoint})")
     logger.info(f"Event reported successfully ({endpoint}): {response.status_code}")
 
 
@@ -103,6 +105,7 @@ async def _send_metrics(
         method="POST",
         json_body=payload,
     )
+    print(f"[crawler] Metrics reported: {response.status_code} ({endpoint}) progress={progress}")
     logger.info(f"Metrics reported successfully ({endpoint}): {response.status_code}")
 
 
@@ -139,6 +142,7 @@ async def _send_download_metrics(
         method="POST",
         json_body=payload,
     )
+    print(f"[crawler] Download metrics reported: {response.status_code} ({endpoint}) downloaded={downloaded_datasets}/{total_datasets_to_download}")
     logger.info(f"Download metrics reported successfully ({endpoint}): {response.status_code}")
 
 
