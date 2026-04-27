@@ -41,7 +41,7 @@ def build_ftp_download_url(ftp_url: str, node_path: str) -> str:
 def main():
     # Load FTP credentials and ensure .env is processed
     env_path = Path(__file__).parent.parent / ".env"
-    ftp_url, ftp_user, ftp_password = ftp_conf.load_env_vars(env_path)
+    ftp_url, ftp_user, ftp_password, ftp_max_depth = ftp_conf.load_env_vars(env_path)
     logger.info(f"FTP Config: ({ftp_url}, {ftp_user}, '****')")
 
     # Initialize database connection
@@ -53,18 +53,10 @@ def main():
     # Create tables if they don't exist
     Base.metadata.create_all(engine)
     logger.info("Database tables created/verified")
-
-    # Resolve max depth from environment (default to 3)
-    max_depth_str = os.getenv("FTP_MAX_DEPTH")
-    try:
-        max_depth = int(max_depth_str) if max_depth_str else 3
-    except ValueError:
-        logger.warning(f"Invalid max depth '{max_depth_str}', defaulting to 3")
-        max_depth = 3
-
+    
     logger.info("Fetching FTP structure...")
     root = ftp_tools.get_ftp_structure(
-        ftp_url, ftp_user, ftp_password, max_depth=max_depth
+        ftp_url, ftp_user, ftp_password, max_depth=ftp_max_depth
     )
 
     # Save FTP structure to database
@@ -75,7 +67,7 @@ def main():
         # Create a new FTPDiscoveryRun for this crawl
         ftp_run = FTPDiscoveryRun(
             ftp_url=ftp_url,
-            max_depth=max_depth,
+            max_depth=ftp_max_depth,
             started_at=datetime.now(timezone.utc),
         )
         session.add(ftp_run)
@@ -87,7 +79,7 @@ def main():
         session.commit()
         logger.info(
             f"FTP structure saved to database (Run ID: {ftp_run.id}, "
-            f"Max Depth: {max_depth})"
+            f"Max Depth: {ftp_max_depth})"
         )
 
         rabbitmq_url = os.getenv("RABBITMQ_URL", "amqp://guest:guest@localhost:5672/")

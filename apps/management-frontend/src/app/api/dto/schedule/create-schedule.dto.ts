@@ -6,6 +6,8 @@ export class CreateScheduleDto {
 
 	cronExpression!: string;
 
+	timezone!: string;
+
 	crawlerTemplateNamespace!: string;
 
 	crawlerTemplateName!: string;

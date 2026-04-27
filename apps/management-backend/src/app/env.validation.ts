@@ -9,6 +9,9 @@ export class EnvironmentVariables {
 	STAGE!: string;
 
 	@IsString()
+	NODE_ENV!: string;
+
+	@IsString()
 	DATABASE_HOST!: string;
 
 	@IsNumber({ maxDecimalPlaces: 0, allowInfinity: false, allowNaN: false })
@@ -37,6 +40,9 @@ export class EnvironmentVariables {
 
 	@IsString()
 	ADMIN_PASSWORD!: string;
+
+	@IsString()
+	JWT_SECRET!: string;
 
 	@IsBoolean()
 	ORCHESTRATOR_SYNC_ENABLED!: boolean;

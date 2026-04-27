@@ -40,6 +40,8 @@ export interface ScheduleFormDialogProps {
 	onOpenChange: (open: boolean) => void;
 }
 
+const USER_TIMEZONE = Intl.DateTimeFormat().resolvedOptions().timeZone;
+
 export function ScheduleFormDialog({
 	mode,
 	template: propTemplate,
@@ -60,6 +62,7 @@ export function ScheduleFormDialog({
 
 	const [scheduleName, setScheduleName] = useState('');
 	const [cronExpression, setCronExpression] = useState('');
+	const [scheduleTimezone, setScheduleTimezone] = useState('');
 	const [retries, setRetries] = useState<number>(0);
 	const [backoffDuration, setBackoffDuration] = useState<string>('');
 	const [backoffFactor, setBackoffFactor] = useState<string>('');
@@ -75,6 +78,7 @@ export function ScheduleFormDialog({
 			if (mode === 'edit' && initialSchedule) {
 				setScheduleName(initialSchedule.name);
 				setCronExpression(initialSchedule.schedule);
+				setScheduleTimezone(initialSchedule.timezone);
 
 				// Retry Strategy
 				if (initialSchedule.retryStrategy) {
@@ -101,21 +105,27 @@ export function ScheduleFormDialog({
 				// Create Mode defaults
 				setScheduleName('');
 				setCronExpression('');
+				setScheduleTimezone(USER_TIMEZONE);
 				setRetries(0);
 				setBackoffDuration('');
 				setBackoffFactor('');
 				setBackoffCap('');
 				setBackoffMaxDuration('');
-				const initialParams: Record<string, string> = {};
-				if (template?.parameters) {
-					template.parameters.forEach((param) => {
-						initialParams[param.name] = param.defaultValue ?? '';
-					});
-				}
-				setParameters(initialParams);
+				setParameters({});
 			}
 		}
-	}, [open, mode, initialSchedule, template]);
+	}, [open, mode, initialSchedule]);
+
+	// Apply template defaults in create mode once template data arrives
+	useEffect(() => {
+		if (!open || mode !== 'create' || !template?.parameters) return;
+
+		const params = template.parameters;
+
+		setParameters((prev) =>
+			Object.fromEntries(params.map((p) => [p.name, prev[p.name] ?? p.defaultValue ?? ''])),
+		);
+	}, [open, mode, template]);
 
 	// Regex validation for name (Kubernetes-style DNS-1123 subdomain)
 	const nameRegex = useMemo(
@@ -141,15 +151,25 @@ export function ScheduleFormDialog({
 
 	const cronReadable = useMemo(() => {
 		if (!cronExpression) return null;
-		const readable = formatCronReadable(cronExpression);
+		const readable = formatCronReadable(cronExpression, scheduleTimezone);
 		return readable !== 'Invalid cron expression' && readable !== '-' ? readable : null;
-	}, [cronExpression]);
+	}, [cronExpression, scheduleTimezone]);
 
 	const cronIsInvalid = useMemo(() => {
 		if (!cronExpression) return false;
 		const readable = formatCronReadable(cronExpression);
 		return readable === 'Invalid cron expression';
 	}, [cronExpression]);
+
+	const timezoneIsInvalid = useMemo(() => {
+		if (!scheduleTimezone) return false;
+		try {
+			Intl.DateTimeFormat(undefined, { timeZone: scheduleTimezone });
+			return false;
+		} catch {
+			return true;
+		}
+	}, [scheduleTimezone]);
 
 	// Helper function to validate backoff factor
 	const validateBackoffFactor = (factor: string): string | null => {
@@ -256,6 +276,11 @@ export function ScheduleFormDialog({
 			return;
 		}
 
+		if (timezoneIsInvalid) {
+			setErrorMessage('Invalid Timezone.');
+			return;
+		}
+
 		if (mode === 'create' && (nameIsInvalid || scheduleNameExists)) {
 			setErrorMessage('Invalid Schedule Name.');
 			return;
@@ -296,6 +321,7 @@ export function ScheduleFormDialog({
 				{
 					name: scheduleName,
 					cronExpression,
+					timezone: scheduleTimezone,
 					crawlerTemplateName: template.name,
 					crawlerTemplateNamespace: template.namespace,
 					parameters: parameterList,
@@ -321,6 +347,7 @@ export function ScheduleFormDialog({
 					namespace: initialSchedule.namespace,
 					dto: {
 						cronExpression,
+						timezone: scheduleTimezone,
 						retryStrategy: retryStrategyDto,
 						parameters: parameterList,
 					},
@@ -427,6 +454,30 @@ export function ScheduleFormDialog({
 									Examples: <code className="bg-muted px-1 py-0.5 rounded">0 0 * * *</code> (daily
 									at midnight), <code className="bg-muted px-1 py-0.5 rounded">0 */6 * * *</code>{' '}
 									(every 6 hours)
+								</p>
+							</div>
+
+							<div className="space-y-2">
+								<Label htmlFor="scheduleTimezone" className="text-sm font-medium">
+									Timezone
+								</Label>
+								<Input
+									id="scheduleTimezone"
+									value={scheduleTimezone}
+									onChange={(e) => setScheduleTimezone(e.target.value.trim())}
+									placeholder="e.g., Europe/Berlin"
+									className={`w-full font-mono text-sm ${timezoneIsInvalid ? 'border-red-500 focus-visible:ring-red-500' : ''}`}
+								/>
+								{timezoneIsInvalid && (
+									<div className="flex items-center gap-2 mt-2 p-2 bg-red-50 dark:bg-red-950 rounded-md border border-red-200 dark:border-red-800">
+										<AlertCircle className="h-4 w-4 text-red-600 dark:text-red-400" />
+										<span className="text-sm text-red-800 dark:text-red-300">
+											Invalid timezone. Use IANA format, e.g. Europe/Berlin
+										</span>
+									</div>
+								)}
+								<p className="text-xs text-muted-foreground">
+									IANA timezone for this schedule (defaults to your local timezone)
 								</p>
 							</div>
 						</div>
@@ -588,6 +639,8 @@ export function ScheduleFormDialog({
 							isPending ||
 							!cronExpression ||
 							cronIsInvalid ||
+							!scheduleTimezone ||
+							timezoneIsInvalid ||
 							retryValidationError !== null ||
 							(mode === 'create' &&
 								(!scheduleName ||

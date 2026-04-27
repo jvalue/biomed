@@ -21,6 +21,7 @@ describe('ArgoScheduleEngine', () => {
 		const dto: CreateScheduleDto = {
 			name: 'nightly-sync',
 			cronExpression: '0 2 * * *',
+			timezone: 'UTC',
 			crawlerTemplateName: 'sync-template',
 			crawlerTemplateNamespace: 'argo-managed-crawler',
 			parameters: [{ name: 'inputPath', value: '/data/in' }],
@@ -50,6 +51,7 @@ describe('ArgoScheduleEngine', () => {
 			},
 			spec: {
 				schedules: [dto.cronExpression],
+				timezone: 'UTC',
 				workflowSpec: {
 					workflowTemplateRef: {
 						name: dto.crawlerTemplateName,
@@ -67,6 +69,7 @@ describe('ArgoScheduleEngine', () => {
 		const dto: CreateScheduleDto = {
 			name: 'no-template',
 			cronExpression: '0 2 * * *',
+			timezone: 'UTC',
 			crawlerTemplateName: '', // missing
 			parameters: [],
 			crawlerTemplateNamespace: 'argo-managed-crawler',

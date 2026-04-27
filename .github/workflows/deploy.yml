@@ -1,0 +1,167 @@
+name: Deploy via Helm
+
+on:
+  workflow_dispatch:
+    inputs:
+      image_tag:
+        description: 'Docker image tag to deploy (leer lassen = wird automatisch aus publish-images Run ermittelt)'
+        required: false
+        default: ''
+      target_env:
+        description: 'Target environment to deploy to'
+        required: true
+        default: 'dev'
+        type: choice
+        options:
+          - dev
+          - prod
+
+jobs:
+  # -----------------------------------------------------------------------
+  # Step 1: Trigger publish-images and wait for it to finish.
+  # -----------------------------------------------------------------------
+  publish-images:
+    name: Publish Container Images
+    runs-on: ubuntu-latest
+    outputs:
+      image_tag: ${{ steps.get-sha.outputs.image_tag }}
+    steps:
+      - name: Trigger publish-images workflow and wait
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          # Trigger the workflow and capture the run ID
+          gh workflow run publish-images.yml \
+            --repo "${{ github.repository }}" \
+            --ref main
+
+          # Wait briefly so the run appears in the API
+          sleep 20
+
+          # Poll until the run is no longer queued/in_progress
+          echo "Waiting for publish-images workflow to complete..."
+          for i in $(seq 1 60); do
+            STATUS=$(gh run list \
+              --repo "${{ github.repository }}" \
+              --workflow publish-images.yml \
+              --branch main \
+              --limit 1 \
+              --json status,conclusion,databaseId \
+              --jq '.[0].status')
+
+            echo "  Attempt $i/60 – status: $STATUS"
+
+            if [ "$STATUS" = "completed" ]; then
+              break
+            fi
+            sleep 10
+          done
+
+          CONCLUSION=$(gh run list \
+            --repo "${{ github.repository }}" \
+            --workflow publish-images.yml \
+            --branch main \
+            --limit 1 \
+            --json conclusion \
+            --jq '.[0].conclusion')
+
+          if [ "$CONCLUSION" != "success" ]; then
+            echo "❌ publish-images workflow failed with conclusion: $CONCLUSION"
+            exit 1
+          fi
+
+          echo "✅ publish-images completed successfully."
+
+      - name: Resolve image tag
+        id: get-sha
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          TAG="${{ inputs.image_tag }}"
+          if [ -z "$TAG" ]; then
+            TAG=$(gh run list \
+              --repo "${{ github.repository }}" \
+              --workflow publish-images.yml \
+              --branch main \
+              --limit 1 \
+              --json headSha \
+              --jq '.[0].headSha')
+          fi
+          echo "image_tag=$TAG" >> "$GITHUB_OUTPUT"
+          echo "Using image tag: $TAG"
+
+
+  # -----------------------------------------------------------------------
+  # Step 2: Deploy
+  # -----------------------------------------------------------------------
+  deploy:
+    name: Deploy to ${{ inputs.target_env }}
+    runs-on: [Linux, k8s-access]
+    needs: publish-images
+    environment: ${{ inputs.target_env }}
+
+    container:
+      image: ubuntu:latest
+
+    steps:
+      - name: Install dependencies
+        run: apt-get update && apt-get install -y git curl
+
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Install Helm
+        uses: azure/setup-helm@v3
+        with:
+          version: 'v3.12.0'
+
+      - name: Set Kubeconfig
+        run: |
+          mkdir -p ~/.kube
+          TARGET="${{ inputs.target_env }}"
+
+          if [ "$TARGET" == "prod" ]; then
+            KUBECONFIG_CONTENT="${{ secrets.KUBECONFIG_PROD }}"
+            SECRET_NAME="KUBECONFIG_PROD"
+          else
+            KUBECONFIG_CONTENT="${{ secrets.KUBECONFIG_DEV }}"
+            SECRET_NAME="KUBECONFIG_DEV"
+          fi
+
+          if [ -z "$KUBECONFIG_CONTENT" ]; then
+            echo "❌ Secret $SECRET_NAME is empty or not set!"
+            exit 1
+          fi
+
+          echo "$KUBECONFIG_CONTENT" > ~/.kube/config
+          chmod 600 ~/.kube/config
+          echo "✅ Kubeconfig written for environment: $TARGET"
+
+      - name: Helm dependency build
+        run: helm dependency build ./biomed-chart
+
+      - name: Helm upgrade --install
+        run: |
+          IMAGE_TAG="${{ needs.publish-images.outputs.image_tag }}"
+          REGISTRY="ghcr.io/${{ github.repository_owner }}"
+          TARGET="${{ inputs.target_env }}"
+
+          helm upgrade --install biomed ./biomed-chart \
+            --namespace "crawler-management" \
+            --create-namespace \
+            --atomic \
+            --timeout 5m \
+            --set management-backend.image.name="${REGISTRY}/management-backend" \
+            --set management-backend.image.tag="${IMAGE_TAG}" \
+            --set management-frontend.image.name="${REGISTRY}/management-frontend" \
+            --set management-frontend.image.tag="${IMAGE_TAG}"
+
+      - name: Deployment summary
+        run: |
+          echo "## ✅ Deployment to ${{ inputs.target_env }} successful" >> "$GITHUB_STEP_SUMMARY"
+          echo "" >> "$GITHUB_STEP_SUMMARY"
+          echo "| | |" >> "$GITHUB_STEP_SUMMARY"
+          echo "|---|---|" >> "$GITHUB_STEP_SUMMARY"
+          echo "| **Environment** | \`${{ inputs.target_env }}\` |" >> "$GITHUB_STEP_SUMMARY"
+          echo "| **Image tag** | \`${{ needs.publish-images.outputs.image_tag }}\` |" >> "$GITHUB_STEP_SUMMARY"
+          echo "| **Triggered by** | \`${{ github.actor }}\` |" >> "$GITHUB_STEP_SUMMARY"

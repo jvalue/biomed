@@ -33,6 +33,8 @@ export class ScheduleDto {
 
 	schedule!: string;
 
+	timezone!: string;
+
 	retryStrategy?: RetryStrategyDto;
 
 	suspended!: boolean;

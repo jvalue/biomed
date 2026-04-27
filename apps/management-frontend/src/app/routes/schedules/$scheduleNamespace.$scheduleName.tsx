@@ -3,6 +3,7 @@ import { createFileRoute } from '@tanstack/react-router';
 import { AxiosError } from 'axios';
 import React, { useMemo } from 'react';
 import { toast } from 'react-toastify';
+import { useTargetHealthForSchedule } from '@/src/app/api/hooks/useHealthCheck';
 import {
 	useDeleteSchedule,
 	useResumeSchedule,
@@ -28,6 +29,7 @@ import ScheduleErrorsComponent from '@/src/app/components/schedules/schedule-err
 import { ScheduleFormDialog } from '@/src/app/components/schedules/schedule-form-dialog';
 import ScheduleMetricsChartComponent from '@/src/app/components/schedules/schedule-metrics-chart.component';
 import ScheduleMetricsSummaryComponent from '@/src/app/components/schedules/schedule-metrics-summary.component';
+import ScheduleWarningsComponent from '@/src/app/components/schedules/schedule-warnings.component';
 import ScheduleConfigurationSectionComponent from '@/src/app/components/schedules/scheduleConfigurationSection.component';
 import { useAuth } from '@/src/app/contexts/AuthContext';
 import { formatCronReadable, getNextRunDate } from '@/src/app/utils/cron';
@@ -49,6 +51,7 @@ function RouteComponent() {
 	const deleteSchedule = useDeleteSchedule();
 
 	const [deleteDialogOpen, setDeleteDialogOpen] = React.useState(false);
+	const [isDeleting, setIsDeleting] = React.useState(false);
 	const [isEditOpen, setIsEditOpen] = React.useState(false);
 
 	const handleToggleSuspend = () => {
@@ -70,7 +73,15 @@ function RouteComponent() {
 		data: schedule,
 		isLoading: scheduleQueryIsLoading,
 		error: scheduleQueryError,
-	} = useScheduleByNamespaceAndName(scheduleNamespace, scheduleName);
+	} = useScheduleByNamespaceAndName(scheduleNamespace, scheduleName, { enabled: !isDeleting });
+
+	const canReadHealth = ability.can('read', 'health');
+
+	const {
+		data: targetWarnings,
+		isLoading: targetWarningsLoading,
+		error: targetWarningsError,
+	} = useTargetHealthForSchedule(scheduleNamespace, scheduleName, canReadHealth);
 
 	if (scheduleQueryIsLoading && !scheduleQueryError) {
 		return (
@@ -94,7 +105,7 @@ function RouteComponent() {
 	}
 
 	const suspended = schedule?.suspended ?? false;
-	const nextRun = schedule?.schedule ? getNextRunDate(schedule.schedule) : null;
+	const nextRun = schedule?.schedule ? getNextRunDate(schedule.schedule, schedule.timezone) : null;
 	const createdAt = schedule?.createdAt ? new Date(schedule.createdAt).toLocaleString() : '-';
 	const stats = schedule?.statistics;
 
@@ -184,12 +195,21 @@ function RouteComponent() {
 									Cron Schedule
 								</CardDescription>
 								<CardTitle className="text-lg">
-									{schedule?.schedule ? formatCronReadable(schedule.schedule) : '-'}
+									{schedule?.schedule
+										? formatCronReadable(schedule.schedule, schedule.timezone)
+										: '-'}
 								</CardTitle>
 							</CardHeader>
 							<CardContent className="text-xs text-muted-foreground pb-4">
 								{schedule?.schedule && !suspended ? (
-									<>Next Run: {nextRun ? nextRun.toLocaleString() : 'invalid cron expression'}</>
+									<>
+										Next Run:{' '}
+										{nextRun ? (
+											<>{nextRun.toLocaleString()} (local time)</>
+										) : (
+											'Invalid cron expression'
+										)}
+									</>
 								) : (
 									<span className="invisible">Placeholder</span>
 								)}
@@ -198,8 +218,8 @@ function RouteComponent() {
 
 						<Card className="shadow-sm">
 							<CardHeader className="pb-3">
-								<CardDescription className="text-xs uppercase tracking-wide">
-									Created At
+								<CardDescription className="text-xs tracking-wide">
+									<span className="uppercase"> Created At </span> (local time)
 								</CardDescription>
 								<CardTitle className="text-lg">{createdAt}</CardTitle>
 							</CardHeader>
@@ -222,6 +242,12 @@ function RouteComponent() {
 						crawlerTemplateName={schedule?.crawlerTemplateName}
 						activeErrors={schedule?.activeErrors}
 					/>
+
+					<Can ability={ability} I="read" a="health">
+						{!targetWarningsLoading && !targetWarningsError && (
+							<ScheduleWarningsComponent targetWarnings={targetWarnings} />
+						)}
+					</Can>
 
 					<ScheduleMetricsSummaryComponent
 						scheduleName={scheduleName}
@@ -270,6 +296,7 @@ function RouteComponent() {
 							navigate({ to: '/schedules' });
 							toast.success(`Schedule ${scheduleName} deleted successfully`);
 						}}
+						setIsDeleting={setIsDeleting}
 					/>
 
 					{/* Edit Schedule Dialog */}

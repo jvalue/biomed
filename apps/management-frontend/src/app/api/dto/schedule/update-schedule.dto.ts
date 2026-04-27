@@ -3,6 +3,7 @@ import { RetryStrategyDto } from './schedule.dto';
 
 export interface UpdateScheduleDto {
 	cronExpression?: string;
+	timezone?: string;
 	retryStrategy?: RetryStrategyDto;
 	parameters?: ParameterDto[];
 }

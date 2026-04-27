@@ -42,13 +42,6 @@ export class ArgoCronWorkflowBuilder {
 					workflowMetadata: {
 						labels: {},
 					},
-					ttlStrategy: {
-						// Default: Keep the workflow for 7 days after completion
-						secondsAfterCompletion: 604800, // 7 days
-					},
-					podGC: {
-						strategy: 'OnWorkflowSuccess',
-					},
 				},
 			},
 		};
@@ -66,6 +59,11 @@ export class ArgoCronWorkflowBuilder {
 
 	public setSchedule(cron: string): this {
 		this.workflow.spec.schedules = [cron];
+		return this;
+	}
+
+	public setTimezone(timezone: string): this {
+		this.workflow.spec.timezone = timezone;
 		return this;
 	}
 
@@ -192,13 +190,15 @@ export class ArgoCronWorkflowBuilder {
 		if (!this.workflow.spec.schedules || this.workflow.spec.schedules.length === 0) {
 			throw new Error('Schedule is required');
 		}
+		if (!this.workflow.spec.timezone) {
+			throw new Error('Timezone is required');
+		}
 		if (!this.workflow.spec.workflowSpec.workflowTemplateRef.name) {
 			throw new Error('Workflow template reference name is required');
 		}
 		if (!this.workflow.spec.workflowSpec.workflowMetadata?.labels?.customSetWorkflowTemplateName) {
 			throw new Error('Workflow metadata label for workflow-template-name is required');
 		}
-
 		return this.workflow;
 	}
 }
