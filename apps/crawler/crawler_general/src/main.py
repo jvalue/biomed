@@ -2,6 +2,9 @@ import logging
 import os
 from datetime import datetime, timezone
 from pathlib import Path
+from urllib.parse import urlparse
+
+from sqlalchemy import select
 
 from crawler_common.database import (
     get_database_url_from_env,
@@ -10,14 +13,29 @@ from crawler_common.database import (
     insert_ftp_nodes_to_database,
 )
 from crawler_common.ftp import ftp_conf, ftp_tools
-from crawler_common.models.db import Base, FTPDiscoveryRun
+from crawler_common.models.db import Base, FTPDiscoveryEntry, FTPDiscoveryRun
+from crawler_common.queue import publish_download_urls
 
 
 logging.basicConfig(
     # TODO: make this configurable via env
-    level=logging.INFO, format="%(asctime)s - %(name)s - %(levelname)s - %(message)s"
+    level=logging.INFO,
+    format="%(asctime)s - %(name)s - %(levelname)s - %(message)s",
 )
 logger = logging.getLogger(__name__)
+
+
+def build_ftp_download_url(ftp_url: str, node_path: str) -> str:
+    parsed = urlparse(ftp_url)
+    if parsed.scheme and parsed.netloc:
+        scheme = parsed.scheme
+        netloc = parsed.netloc
+    else:
+        scheme = "ftp"
+        netloc = ftp_url
+
+    normalized_path = node_path if node_path.startswith("/") else f"/{node_path}"
+    return f"{scheme}://{netloc}{normalized_path}"
 
 
 def main():
@@ -28,9 +46,7 @@ def main():
 
     # Initialize database connection
     database_url = get_database_url_from_env(env_path)
-    logger.info(
-        f"Database URL: {database_url.render_as_string(hide_password=True)}"
-    )
+    logger.info(f"Database URL: {database_url.render_as_string(hide_password=True)}")
 
     engine = init_database(database_url, echo=True)
 
@@ -65,6 +81,34 @@ def main():
             f"FTP structure saved to database (Run ID: {ftp_run.id}, "
             f"Max Depth: {ftp_max_depth})"
         )
+
+        rabbitmq_url = os.getenv("RABBITMQ_URL", "amqp://guest:guest@localhost:5672/")
+        rabbitmq_queue = os.getenv("RABBITMQ_QUEUE", "download-urls")
+
+        new_file_paths = session.scalars(
+            select(FTPDiscoveryEntry.path).where(
+                FTPDiscoveryEntry.run_id == ftp_run.id,
+                FTPDiscoveryEntry.is_dir.is_(False),
+            )
+        ).all()
+
+        if new_file_paths:
+            download_urls = [
+                build_ftp_download_url(ftp_url, file_path)
+                for file_path in new_file_paths
+            ]
+            published_count = publish_download_urls(
+                rabbitmq_url=rabbitmq_url,
+                queue_name=rabbitmq_queue,
+                download_urls=download_urls,
+            )
+            logger.info(
+                "Published %s download URLs to RabbitMQ queue '%s'",
+                published_count,
+                rabbitmq_queue,
+            )
+        else:
+            logger.info("No new files discovered for queue publishing")
 
     except Exception as e:
         session.rollback()

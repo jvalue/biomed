@@ -77,3 +77,4 @@ vite.config.*.timestamp*
 vitest.config.*.timestamp*
 .coverage
 progress.txt
+.github/workflows/biomed.code-workspace

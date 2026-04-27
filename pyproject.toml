@@ -10,3 +10,10 @@ members = [
 
 [tool.uv.sources]
 crawler-common = { workspace = true }
+
+[tool.mypy]
+python_version = "3.13"
+
+[[tool.mypy.overrides]]
+module = ["pika", "pika.*"]
+ignore_missing_imports = true

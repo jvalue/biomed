@@ -36,10 +36,16 @@ uv run apps/crawler/crawler_general/src/main.py
 
 # crawler_dummy
 uv run apps/crawler/crawler_dummy/src/main.py
+
+# downloader_general
+uv run apps/crawler/downloader_general/src/main.py
 ```
 
 The `crawler_general` app loads credentials from `apps/crawler/crawler_general/.env` and lists root folders from the configured FTP server.
 
+For `downloader_general`, copy `apps/crawler/downloader_general/.env.example` to `apps/crawler/downloader_general/.env` for local RabbitMQ consumer settings.
+
+`crawler_general` publishes discovered file download URLs into RabbitMQ (`RABBITMQ_QUEUE`), and `downloader_general` consumes that queue and downloads the files locally.
 For `crawler_dummy`, create `apps/crawler/crawler_dummy/.env.docker` (you can copy `.env.docker.example`) with:
 
 ```bash
@@ -64,6 +70,13 @@ docker compose up crawler-general
 # crawler_dummy
 docker compose build --no-cache crawler-dummy
 docker compose up crawler-dummy
+
+# downloader_general
+docker compose build --no-cache downloader-general
+docker compose up downloader-general
+
+# RabbitMQ (queue broker)
+docker compose up -d rabbitmq
 ```
 
 The Compose setup uses `apps/crawler/crawler_general/.env.docker` for container config. The `.env.docker.example` file is a template.
