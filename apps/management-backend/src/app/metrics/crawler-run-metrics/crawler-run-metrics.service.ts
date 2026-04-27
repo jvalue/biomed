@@ -1,6 +1,7 @@
-import { Injectable, Logger } from '@nestjs/common';
+import { Injectable, NotFoundException } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
+import { ArgoClientService } from '../../orchestrator-client/argo-client/argo-client.service';
 import { HistoricalMetricsQueryDto } from '../../schedules/dto/historical-metrics-query.dto';
 import { ScheduleHistoricalMetricsItemDto } from '../../schedules/dto/schedule-historical-metrics-item.dto';
 import { ScheduleOverallMetricsDto } from '../../schedules/dto/schedule-overall-metrics.dto';
@@ -14,13 +15,12 @@ import { CrawlerRunMetricEntity } from './entity/crawler-run-metric.entity';
 
 @Injectable()
 export class CrawlerRunMetricsService {
-	private readonly logger = new Logger(CrawlerRunMetricsService.name);
-
 	constructor(
 		@InjectRepository(CrawlerRunMetricEntity)
 		private readonly crawlerRunMetricsRepository: Repository<CrawlerRunMetricEntity>,
 		@InjectRepository(CrawlerRunEventEntity)
 		private readonly crawlerRunEventEntityRepository: Repository<CrawlerRunEventEntity>,
+		private readonly orchestratorClientService: ArgoClientService,
 	) {}
 
 	/**
@@ -34,24 +34,27 @@ export class CrawlerRunMetricsService {
 		runName: string,
 		metric: CrawlerRunMetricsIncomingDto,
 	): Promise<void> {
-		this.logger.log(`Saving metrics for crawler run ${runName} in namespace ${runNamespace}`);
-		try {
-			await this.crawlerRunMetricsRepository.save({
-				runName,
-				runNamespace,
-				scheduleName: metric.scheduleName,
-				scheduleNamespace: metric.scheduleNamespace,
-				progress: metric.progress,
-				crawledDataSets: metric.crawledDataSets,
-				cacheHits: metric.cacheHits,
-				runStartedAt: new Date(metric.runStartedAt),
-			});
-		} catch (error) {
-			this.logger.error(
-				`Failed to save metrics for crawler run ${runName} in namespace ${runNamespace}: ${error.message}`,
+		const run = await this.orchestratorClientService.getCrawlerRunByNamespaceAndName(
+			runNamespace,
+			runName,
+		);
+		if (!run) {
+			// If the run doesn't exist in the orchestrator, we shouldn't save metrics for it
+			throw new NotFoundException(
+				`Run ${runName} in namespace ${runNamespace} not found in orchestrator. Cannot save metrics for a non-existent run.`,
 			);
-			throw error;
 		}
+
+		await this.crawlerRunMetricsRepository.save({
+			runName,
+			runNamespace,
+			scheduleName: run.scheduleName,
+			scheduleNamespace: runNamespace,
+			progress: metric.progress,
+			crawledDataSets: metric.crawledDataSets,
+			cacheHits: metric.cacheHits,
+			runStartedAt: new Date(metric.runStartedAt),
+		});
 	}
 
 	/**
@@ -65,27 +68,28 @@ export class CrawlerRunMetricsService {
 		runName: string,
 		metric: CrawlerRunDownloadMetricsIncomingDto,
 	): Promise<void> {
-		this.logger.log(
-			`Saving download metrics for crawler run ${runName} in namespace ${runNamespace}`,
+		const run = await this.orchestratorClientService.getCrawlerRunByNamespaceAndName(
+			runNamespace,
+			runName,
 		);
-		try {
-			await this.crawlerRunMetricsRepository.save({
-				runName,
-				runNamespace,
-				scheduleName: metric.scheduleName,
-				scheduleNamespace: metric.scheduleNamespace,
-				totalDatasetsToDownload: metric.totalDatasetsToDownload,
-				downloadedDatasets: metric.downloadedDatasets,
-				totalGBToDownload: metric.totalGBToDownload,
-				downloadedGB: metric.downloadedGB,
-				runStartedAt: new Date(metric.runStartedAt),
-			});
-		} catch (error) {
-			this.logger.error(
-				`Failed to save download metrics for crawler run ${runName} in namespace ${runNamespace}: ${error.message}`,
+		if (!run) {
+			// If the run doesn't exist in the orchestrator, we shouldn't save metrics for it
+			throw new NotFoundException(
+				`Run ${runName} in namespace ${runNamespace} not found in orchestrator. Cannot save metrics for a non-existent run.`,
 			);
-			throw error;
 		}
+
+		await this.crawlerRunMetricsRepository.save({
+			runName,
+			runNamespace,
+			scheduleName: run.scheduleName,
+			scheduleNamespace: runNamespace,
+			totalDatasetsToDownload: metric.totalDatasetsToDownload,
+			downloadedDatasets: metric.downloadedDatasets,
+			totalGBToDownload: metric.totalGBToDownload,
+			downloadedGB: metric.downloadedGB,
+			runStartedAt: new Date(metric.runStartedAt),
+		});
 	}
 
 	/**
@@ -112,7 +116,6 @@ export class CrawlerRunMetricsService {
 		runName: string,
 		event: CrawlerRunEventIncomingDto,
 	) {
-		this.logger.log(`Saving event for crawler run ${runName} in namespace ${runNamespace}`);
 		// Ensure run already exists
 		await this.createEmptyCrawlerRunMetricIfDoesntExist(runNamespace, runName);
 		await this.crawlerRunEventEntityRepository.save({

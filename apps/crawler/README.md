@@ -46,6 +46,17 @@ The `crawler_general` app loads credentials from `apps/crawler/crawler_general/.
 For `downloader_general`, copy `apps/crawler/downloader_general/.env.example` to `apps/crawler/downloader_general/.env` for local RabbitMQ consumer settings.
 
 `crawler_general` publishes discovered file download URLs into RabbitMQ (`RABBITMQ_QUEUE`), and `downloader_general` consumes that queue and downloads the files locally.
+For `crawler_dummy`, create `apps/crawler/crawler_dummy/.env.docker` (you can copy `.env.docker.example`) with:
+
+```bash
+MANAGEMENT_BACKEND_URL=http://localhost:3002
+MANAGEMENT_API_KEY=<raw-api-key>
+CRAWLER_DUMMY_RUN_NAMESPACE=default
+CRAWLER_DUMMY_RUN_NAME=crawler-dummy
+```
+
+`crawler_dummy` uses these variables to authenticate against management-backend with the `X-API-KEY` header and posts a startup event to:
+`/api/v1/crawler-runs/{namespace}/{name}/events`.
 
 ## Docker
 
@@ -73,6 +84,50 @@ The Compose setup uses `apps/crawler/crawler_general/.env.docker` for container 
 Containers mount `libs/crawler-common` for live code changes; `crawler_general` also mounts its app directory. If you prefer immutable images, remove the volume mounts in `docker-compose.yml`.
 
 The Dockerfiles install `uv`, the shared `crawler-common` library, and the apps system-wide (no venv inside containers for isolation).
+
+## Kubernetes Secrets (crawler API auth)
+
+For deployments, provide management-backend credentials via Kubernetes Secrets and inject them as environment variables.
+
+Example Secret:
+
+```yaml
+apiVersion: v1
+kind: Secret
+metadata:
+  name: crawler-management-auth
+type: Opaque
+stringData:
+
+  MANAGEMENT_BACKEND_URL: https://management-backend.example.com
+  MANAGEMENT_API_KEY: <raw-api-key>
+```
+
+Example Deployment env wiring:
+
+```yaml
+spec:
+
+  template:
+    spec:
+      containers:
+        - name: crawler-dummy
+          env:
+            - name: MANAGEMENT_BACKEND_URL
+              valueFrom:
+                secretKeyRef:
+                  name: crawler-management-auth
+                  key: MANAGEMENT_BACKEND_URL
+            - name: MANAGEMENT_API_KEY
+              valueFrom:
+                secretKeyRef:
+                  name: crawler-management-auth
+                  key: MANAGEMENT_API_KEY
+            - name: CRAWLER_DUMMY_ENDPOINT
+              value: /api/v1/crawler-runs/default/crawler-dummy/events
+```
+
+`crawler_dummy` reads process environment variables at runtime, so this works directly in Kubernetes without a `.env` file inside the container.
 
 ## Tests
 

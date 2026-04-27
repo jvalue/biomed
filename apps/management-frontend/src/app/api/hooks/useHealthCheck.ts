@@ -10,10 +10,19 @@ export const useSystemHealthCheck = (enabled?: boolean) => {
 	});
 };
 
-export const useTargetUrlsHealthCheck = () => {
+export const useTargetUrlsHealthCheck = (enabled?: boolean) => {
 	return useQuery({
 		queryKey: ['targets-health'],
 		queryFn: () => healthService.getTargetHealthStatus(),
 		refetchInterval: 5 * 60 * 1000, // 5 minutes
+		enabled: enabled ?? true,
 	});
 };
+
+export function useTargetHealthForSchedule(namespace: string, name: string, enabled = true) {
+	return useQuery({
+		queryKey: ['targets-health', 'schedule', namespace, name],
+		queryFn: () => healthService.getTargetHealthForSchedule(namespace, name),
+		enabled: enabled,
+	});
+}

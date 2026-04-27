@@ -15,17 +15,7 @@ interface WorkflowSpec {
 	workflowMetadata?: {
 		labels?: Record<string, string>;
 	};
-	ttlStrategy?: TtlStrategy;
-	podGC?: PodGC;
 	retryStrategy?: RetryStrategy;
-}
-
-interface TtlStrategy {
-	secondsAfterCompletion?: number;
-}
-
-interface PodGC {
-	strategy: 'OnWorkflowCompletion' | 'OnWorkflowSuccess' | 'OnPodCompletion' | 'OnPodSuccess';
 }
 
 interface CronWorkflowSpec {

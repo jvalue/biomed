@@ -1,4 +1,4 @@
-import { Injectable } from '@nestjs/common';
+import { ForbiddenException, Injectable } from '@nestjs/common';
 import axios from 'axios';
 import { AbilityFactory } from '../auth/ability-factory';
 import { KubernetesClientService } from '../kubernetes-client/kubernetes-client.service';
@@ -11,6 +11,15 @@ import { TargetsService } from './targets/targets.service';
 
 @Injectable()
 export class HealthService {
+	private readonly SYSTEM_HEALTH_TTL_MS = 60_000;
+	private readonly TARGETS_HEALTH_TTL_MS = 5 * 60_000;
+
+	private systemHealthCache: { value: SystemHealthDto; expiresAt: number } | null = null;
+	private targetsHealthCache: { value: TargetUrlStatusDto[]; expiresAt: number } | null = null;
+
+	private systemHealthInFlight: Promise<SystemHealthDto> | null = null;
+	private targetsHealthInFlight: Promise<TargetUrlStatusDto[]> | null = null;
+
 	constructor(
 		private readonly orchestratorClientService: ArgoClientService,
 		private readonly kubernetesClientService: KubernetesClientService,
@@ -19,18 +28,43 @@ export class HealthService {
 	) {}
 
 	async getTargetsHealth(user: UserEntity): Promise<TargetUrlStatusDto[]> {
-		const targets = await this.targetsService.findAllActiveTargets();
+		const now = Date.now();
 
-		// Run checks in parallel
-		const checks = await Promise.all(
-			targets.map(async (target) => {
-				const status = await this.checkServiceHealth(target.url);
-				const dto = new TargetUrlStatusDto();
-				dto.target = target;
-				dto.status = status;
-				return dto;
-			}),
-		);
+		let checks: TargetUrlStatusDto[];
+
+		if (this.targetsHealthCache && this.targetsHealthCache.expiresAt > now) {
+			checks = this.cloneTargetHealthDtos(this.targetsHealthCache.value);
+		} else {
+			if (!this.targetsHealthInFlight) {
+				this.targetsHealthInFlight = (async () => {
+					const targets = await this.targetsService.findAllActiveTargets();
+
+					// Run checks in parallel
+					const result = await Promise.all(
+						targets.map(async (target) => {
+							const status = await this.checkServiceHealth(target.url);
+							const dto = new TargetUrlStatusDto();
+							dto.target = target;
+							dto.status = status;
+							return dto;
+						}),
+					);
+
+					this.targetsHealthCache = {
+						value: this.cloneTargetHealthDtos(result),
+						expiresAt: Date.now() + this.TARGETS_HEALTH_TTL_MS,
+					};
+
+					return this.cloneTargetHealthDtos(result);
+				})();
+			}
+
+			try {
+				checks = await this.targetsHealthInFlight;
+			} finally {
+				this.targetsHealthInFlight = null;
+			}
+		}
 
 		// Check if user has permissions to see schedules
 		const ability = this.abilityFactory.defineAbilityFor(user);
@@ -44,13 +78,86 @@ export class HealthService {
 	}
 
 	async getSystemHealth(): Promise<SystemHealthDto> {
-		const kubernetesStatus = await this.kubernetesClientService.checkHealth();
-		const orchestratorStatus = await this.orchestratorClientService.checkHealth();
+		const now = Date.now();
 
-		return {
-			kubernetesStatus,
-			orchestratorStatus,
-		};
+		if (this.systemHealthCache && this.systemHealthCache.expiresAt > now) {
+			return { ...this.systemHealthCache.value };
+		}
+
+		if (!this.systemHealthInFlight) {
+			this.systemHealthInFlight = (async () => {
+				const kubernetesStatus = await this.kubernetesClientService.checkHealth();
+				const orchestratorStatus = await this.orchestratorClientService.checkHealth();
+
+				const value: SystemHealthDto = {
+					kubernetesStatus,
+					orchestratorStatus,
+				};
+
+				this.systemHealthCache = {
+					value,
+					expiresAt: Date.now() + this.SYSTEM_HEALTH_TTL_MS,
+				};
+
+				return { ...value };
+			})();
+		}
+
+		try {
+			return await this.systemHealthInFlight;
+		} finally {
+			this.systemHealthInFlight = null;
+		}
+	}
+
+	private cloneTargetHealthDtos(items: TargetUrlStatusDto[]): TargetUrlStatusDto[] {
+		return items.map((item) =>
+			Object.assign(new TargetUrlStatusDto(), item, {
+				target: { ...item.target },
+			}),
+		);
+	}
+
+	async getTargetsHealthForSchedule(
+		namespace: string,
+		name: string,
+		user: UserEntity,
+	): Promise<TargetUrlStatusDto[]> {
+		const ability = this.abilityFactory.defineAbilityFor(user);
+
+		if (ability.cannot('read', 'schedule')) {
+			throw new ForbiddenException('Missing permission to read schedules');
+		}
+
+		const now = Date.now();
+
+		// Reuse fresh global cache if available
+		if (this.targetsHealthCache && this.targetsHealthCache.expiresAt > now) {
+			return this.cloneTargetHealthDtos(
+				this.targetsHealthCache.value.filter(
+					(check) =>
+						check.status !== HealthStatusEnum.AVAILABLE &&
+						check.target.schedules?.some(
+							(schedule) => schedule.namespace === namespace && schedule.name === name,
+						),
+				),
+			);
+		}
+
+		// Otherwise only load targets for the requested schedule
+		const targets = await this.targetsService.findTargetsBySchedule(namespace, name);
+
+		const checks = await Promise.all(
+			targets.map(async (target) => {
+				const status = await this.checkServiceHealth(target.url);
+				const dto = new TargetUrlStatusDto();
+				dto.target = target;
+				dto.status = status;
+				return dto;
+			}),
+		);
+
+		return checks.filter((check) => check.status !== HealthStatusEnum.AVAILABLE);
 	}
 
 	/**

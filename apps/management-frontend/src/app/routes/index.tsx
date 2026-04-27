@@ -17,34 +17,48 @@ function RouteComponent() {
 			<h2 className="text-xl mt-6">Core Capabilities</h2>
 			<ul className="list-disc pl-5 mt-2 space-y-2">
 				<li>
-					<strong>Scheduling:</strong> Create and manage recurring or one-time crawl schedules.
+					<strong>Scheduling:</strong> Create and manage recurring executions for crawler templates
+					with parametrization and retry strategy.
 				</li>
 				<li>
-					<strong>Parameterization:</strong> Define and modify crawler parameters.
+					<strong>Starting runs:</strong> Start parametrized runs for crawler templates on demand,
+					with the ability to override default parameters.
 				</li>
 				<li>
-					<strong>Insights &amp; Statistics:</strong> View run history, success/failure rates,
-					durations, and resource usage, as well as insights regarding datasets and other crawler
-					specific information.
+					<strong>Statistics:</strong> View run history, success/failure rates, durations, and
+					statistics regarding retrieved datasets.
 				</li>
 				<li>
-					<strong>User &amp; Access Management:</strong> Fine-grained control over user roles and
-					permissions.
+					<strong>Run Insights:</strong> See run insights such as crawling and download progress,
+					retrieved datasets and live events from the crawler.
+				</li>
+				<li>
+					<strong>User &amp; Access Management:</strong> Fine-grained control over user permissions.
+				</li>
+				<li>
+					<strong>Health Overview:</strong> See the system's health status as well as the
+					availability of target URLs for the crawlers.
 				</li>
 			</ul>
 
 			<h2 className="text-xl mt-6">Getting Started</h2>
 			<ol className="list-decimal pl-5 mt-2 space-y-2">
-				<li>Create a new crawler definition with input parameters and target sources.</li>
-				<li>Define a schedule or trigger for automatic runs.</li>
-				<li>Monitor the first runs in the Runs/History view to validate results.</li>
-				<li>Invite users and assign roles according to access needs.</li>
+				<li>
+					Go to crawler templates and find a crawler template for which you want to create a
+					schedule.
+				</li>
+				<li>
+					Create a schedule and define the cron expression as well as parameters and the retry
+					strategy if needed.
+				</li>
+				<li>Wait for the first runs to occur and monitor their progress.</li>
+				<li>Check in again after a few runs and view the statistics of your schedule.</li>
 			</ol>
 
 			<p className="mt-6 text-gray-600">
-				Note: This is a static informational start page. Interactive management screens (scheduling
-				UI, run details, user settings) will be available once the application components are
-				implemented.
+				Note: If you're not able to see specific pages, such as crawler templates, schedules or
+				crawler runs, you probably do not have permissions to view them. Contact your administrator
+				for access.
 			</p>
 
 			<footer className="mt-10 text-gray-500 text-sm">

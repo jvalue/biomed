@@ -2,6 +2,7 @@ import { ApiProperty } from '@nestjs/swagger';
 import { Type } from 'class-transformer';
 import { IsOptional, IsString, Validate, ValidateNested } from 'class-validator';
 import { IsCronExpression } from '../infrastructure/argo/cron.validator';
+import { IsIanaTimezone } from '../infrastructure/argo/timezone.validator';
 import { RetryStrategyDto } from './retry-strategy.dto';
 import { ScheduleParameterDto } from './schedule.dto';
 
@@ -12,8 +13,18 @@ export class UpdateScheduleDto {
 	@Validate(IsCronExpression)
 	cronExpression?: string;
 
+	@ApiProperty({
+		description: 'The new IANA timezone for interpreting the cron expression',
+		required: false,
+	})
+	@IsOptional()
+	@IsString()
+	@Validate(IsIanaTimezone)
+	timezone?: string;
+
 	@ApiProperty({ description: 'The new retry strategy', required: false })
 	@IsOptional()
+	@ValidateNested()
 	@Type(() => RetryStrategyDto)
 	retryStrategy?: RetryStrategyDto;
 

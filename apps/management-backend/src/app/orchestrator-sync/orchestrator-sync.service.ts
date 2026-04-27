@@ -34,13 +34,13 @@ export class OrchestratorSyncService implements OnModuleInit, OnModuleDestroy {
 			return;
 		}
 		this.logger.log('Starting OrchestratorSyncService timers');
-		this.syncTimer = setInterval(() => void this.syncCronWorkflows(), this.SYNC_INTERVAL);
+		this.syncTimer = setInterval(() => void this.syncSchedules(), this.SYNC_INTERVAL);
 		this.templateCheckTimer = setInterval(
 			() => void this.checkTemplates(),
 			this.SCHEDULE_TEMPLATE_VALIDATION_INTERVAL,
 		);
 		// run immediately once
-		void this.syncCronWorkflows();
+		void this.syncSchedules();
 		void this.checkTemplates();
 	}
 
@@ -53,7 +53,7 @@ export class OrchestratorSyncService implements OnModuleInit, OnModuleDestroy {
 	/**
 	 * Get all schedules from Orchestrator and send them to the SchedulesService to update the schedules table if needed
 	 */
-	async syncCronWorkflows(): Promise<void> {
+	async syncSchedules(): Promise<void> {
 		this.logger.log('Starting Orchestrator Schedule sync job');
 		// Prevent overlapping runs: skip if a sync is already in progress
 		if (this.syncInProgress) {
@@ -169,7 +169,7 @@ export class OrchestratorSyncService implements OnModuleInit, OnModuleDestroy {
 			}
 		} catch (err) {
 			this.logger.error(
-				`Error checking template for schedule ${localSchedule?.name ?? '<unknown>'}`,
+				`Error checking template for schedule ${localSchedule?.name ?? 'N/A'}`,
 				err,
 			);
 		}

@@ -1,26 +1,28 @@
 import { CoreV1Api, KubeConfig } from '@kubernetes/client-node';
 import { Injectable, Logger } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
+import { EnvironmentVariables } from '../../env.validation';
 
 @Injectable()
 export class KubernetesAuthService {
 	private readonly logger = new Logger(KubernetesAuthService.name);
 
-	constructor(private readonly configService: ConfigService) {}
+	constructor(private readonly configService: ConfigService<EnvironmentVariables, true>) {}
+
+	/**
+	 * Detect if running inside Kubernetes
+	 */
+	private isRunningInCluster(): boolean {
+		return this.configService.get<string>('STAGE') !== 'local';
+	}
 
 	/**
 	 * Gets Kubernetes API Client
 	 */
 	getApiClient(): CoreV1Api {
-		let kubeConfig: KubeConfig | null = this.getKubeconfigFromCluster();
-		if (!kubeConfig) {
-			const kubeConfigPath = this.configService.get<string>('KUBE_CONFIG_PATH');
-			kubeConfig = this.getKubeconfigFromFile(kubeConfigPath);
-		}
-		if (!kubeConfig) {
-			this.logger.error('Unable to load Kubernetes configuration from both cluster and file.');
-			throw new Error('Failed to load Kubernetes configuration from both cluster and file.');
-		}
+		const kubeConfig = this.isRunningInCluster()
+			? this.getKubeconfigFromCluster()
+			: this.getKubeconfigFromFile();
 
 		// Test cluster validity
 		const cluster = kubeConfig.getCurrentCluster();
@@ -32,43 +34,28 @@ export class KubernetesAuthService {
 	}
 
 	/**
-	 * Get Kubeconfig from cluster
+	 * Get Kubeconfig from cluster (in-cluster)
 	 */
-	private getKubeconfigFromCluster(): KubeConfig | null {
+	private getKubeconfigFromCluster(): KubeConfig {
 		const kubeConfig = new KubeConfig();
-		try {
-			kubeConfig.loadFromCluster();
-			// Check if the loaded config is valid
-			const cluster = kubeConfig.getCurrentCluster();
-			if (!cluster?.server || cluster.server.includes('undefined')) {
-				throw new Error('In-cluster config loaded but invalid (server URL undefined).');
-			}
-		} catch (err) {
-			this.logger.warn(`Failed to load in-cluster config: ${err.message}`);
-			return null;
-		}
+		kubeConfig.loadFromCluster();
 		this.logger.log('Loaded Kubernetes config from cluster');
 		return kubeConfig;
 	}
 
 	/**
-	 * Get Kubeconfig from file
-	 * @param kubeConfigPath
+	 * Get Kubeconfig from file or default location
 	 */
-	private getKubeconfigFromFile(kubeConfigPath: string): KubeConfig | null {
+	private getKubeconfigFromFile(): KubeConfig {
 		const kubeConfig = new KubeConfig();
-		try {
-			if (kubeConfigPath) {
-				kubeConfig.loadFromFile(kubeConfigPath);
-				this.logger.log(`Loaded Kubernetes config from file: ${kubeConfigPath}`);
-			} else {
-				// Fallback to default location ($HOME/.kube/config)
-				kubeConfig.loadFromDefault();
-				this.logger.log('Loaded Kubernetes config from default location');
-			}
-		} catch (err) {
-			this.logger.error(`Failed to load Kubernetes config from file: ${err.message}`);
-			return null;
+		const kubeConfigPath = this.configService.get<string>('KUBE_CONFIG_PATH');
+		if (kubeConfigPath) {
+			kubeConfig.loadFromFile(kubeConfigPath);
+			this.logger.log(`Loaded Kubernetes config from file: ${kubeConfigPath}`);
+		} else {
+			// Fallback to default location ($HOME/.kube/config)
+			kubeConfig.loadFromDefault();
+			this.logger.log('Loaded Kubernetes config from default location');
 		}
 		return kubeConfig;
 	}

@@ -178,9 +178,11 @@ export default function ScheduleMetricsChartComponent({
 						show: false,
 						dimension: 1,
 						pieces: [
-							{ gte: 20, color: 'rgba(22, 163, 74, 1)' }, // Green
-							{ gte: 10, lt: 20, color: 'rgba(244, 164, 98, 1)' }, // Orange
-							{ lt: 10, color: 'rgba(220, 38, 38, 1)' }, // Red
+							{ gt: 30, color: 'rgba(220, 38, 38, 1)' }, // Red (> 30%)
+							{ gt: 20, lte: 30, color: 'rgba(244, 164, 98, 1)' }, // Orange (20-30%)
+							{ gte: 10, lte: 20, color: 'rgba(22, 163, 74, 1)' }, // Green (10-20%)
+							{ gte: 5, lt: 10, color: 'rgba(244, 164, 98, 1)' }, // Orange (5-10%)
+							{ lt: 5, color: 'rgba(220, 38, 38, 1)' }, // Red (< 5%)
 						],
 						outOfRange: {
 							color: 'rgba(22, 163, 74, 1)',
