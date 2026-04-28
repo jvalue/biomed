@@ -28,7 +28,7 @@ def extract_file_paths(node, base_url, paths=None):
     
     for child in node.children:
         child_path = f"{node.path}/{child.name}" if node.path else child.name
-        if child.is_file:
+        if not child.is_dir:
             # Create full FTP URL
             file_url = f"{base_url}/{child_path}".replace("//", "/")
             paths.append(file_url)
