@@ -1,5 +1,11 @@
-"""Queue utilities for crawler apps."""
+"""Queue utilities for RabbitMQ integration."""
 
-from crawler_common.queue.rabbitmq import consume_download_urls, publish_download_urls
+from crawler_common.queue.rabbitmq import (
+    consume_download_urls,
+    publish_to_queue,
+)
 
-__all__ = ["publish_download_urls", "consume_download_urls"]
+__all__ = [
+    "publish_to_queue",
+    "consume_download_urls",
+]
