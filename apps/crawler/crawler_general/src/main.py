@@ -2,6 +2,7 @@ import logging
 import os
 from datetime import datetime, timezone
 from pathlib import Path
+from urllib.parse import urljoin
 
 from crawler_common.database import (
     get_database_url_from_env,
@@ -29,8 +30,8 @@ def extract_file_paths(node, base_url, paths=None):
     for child in node.children:
         child_path = f"{node.path}/{child.name}" if node.path else child.name
         if not child.is_dir:
-            # Create full FTP URL
-            file_url = f"{base_url}/{child_path}".replace("//", "/")
+            # Create full FTP URL using urljoin to handle slashes properly
+            file_url = urljoin(base_url, child_path.lstrip("/"))
             paths.append(file_url)
         elif child.children:
             # Recursively process subdirectories
