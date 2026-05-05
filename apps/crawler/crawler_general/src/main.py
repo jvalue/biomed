@@ -20,6 +20,8 @@ logging.basicConfig(
     level=logging.INFO, format="%(asctime)s - %(name)s - %(levelname)s - %(message)s"
 )
 logger = logging.getLogger(__name__)
+# Reduce SQLAlchemy engine logging verbosity by default
+logging.getLogger('sqlalchemy.engine').setLevel(logging.WARNING)
 
 
 def extract_file_paths(node, base_url, paths=None):
@@ -57,7 +59,8 @@ def main():
         f"Database URL: {database_url.render_as_string(hide_password=True)}"
     )
 
-    engine = init_database(database_url, echo=True)
+    # Disable SQLAlchemy echo to reduce verbose SQL logging in production runs
+    engine = init_database(database_url, echo=False)
 
     # Create tables if they don't exist
     Base.metadata.create_all(engine)
