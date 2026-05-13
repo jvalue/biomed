@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import ftplib
 import logging
+from collections.abc import Iterator
 from datetime import datetime, timezone
 from pathlib import Path
 from urllib.parse import urlparse
@@ -67,6 +68,79 @@ def get_ftp_structure(
                 )
 
 
+def iter_ftp_nodes(
+    ftp_url: str,
+    ftp_user: str,
+    ftp_password: str,
+    max_depth: int = 3,
+) -> Iterator[tuple[FTPNode, int]]:
+    """Iterate FTP nodes lazily as ``(node, depth)`` pairs.
+
+    This avoids constructing and keeping the entire FTP tree in memory.
+    Depth 0 corresponds to the root node.
+    """
+    if not isinstance(max_depth, int) or max_depth < 1:
+        raise ValueError(f"max_depth must be a positive integer (got {max_depth!r})")
+
+    ftp: ftplib.FTP | None = None
+    try:
+        logger.info(f"Connecting to FTP server: {ftp_url}")
+        logger.info(f"Starting streaming traversal with max_depth={max_depth}")
+        ftp, initial_path = _open_ftp_connection(ftp_url, ftp_user, ftp_password)
+
+        root_path = initial_path or "/"
+        root = FTPNode(name=root_path.rstrip("/") or "/", is_dir=True, path=root_path)
+        yield root, 0
+        yield from _iter_traverse_ftp(ftp, root_path, depth=0, max_depth=max_depth)
+        logger.info("FTP streaming traversal completed")
+    except ftplib.all_errors as exc:  # pragma: no cover - network dependent
+        logger.exception(f"FTP error: {exc}")
+        raise
+    finally:
+        if ftp is not None:
+            try:
+                ftp.quit()
+            except Exception as exc:
+                logger.debug(
+                    "Error while quitting FTP connection: %s", exc, exc_info=True
+                )
+
+
+def _iter_traverse_ftp(
+    ftp: ftplib.FTP,
+    current_path: str,
+    depth: int,
+    max_depth: int,
+) -> Iterator[tuple[FTPNode, int]]:
+    """Yield child FTP nodes lazily without storing a full tree."""
+    if depth >= max_depth:
+        return
+
+    logger.info(f"Traversing: {current_path} (depth {depth}/{max_depth})")
+    entries = _list_entries(ftp, current_path)
+    if entries is None:
+        return
+
+    child_depth = depth + 1
+    for name, facts in entries:
+        if name in {".", ".."}:
+            continue
+
+        path = _child_path(current_path, name)
+        node = _build_node(name, facts, path)
+        _ensure_file_metadata(ftp, node, path)
+        _verify_is_dir(ftp, node)
+        yield node, child_depth
+
+        if not node.is_dir:
+            continue
+
+        if depth < max_depth - 1:
+            yield from _iter_traverse_ftp(ftp, path, child_depth, max_depth)
+        else:
+            logger.debug(f"Max depth reached at {path}; not descending further")
+
+
 def _open_ftp_connection(
     ftp_url: str, ftp_user: str, ftp_password: str
 ) -> tuple[ftplib.FTP, str]:
@@ -123,18 +197,7 @@ def _traverse_ftp(
     truncated = False
 
     for name, facts in entries:
-        if name in {".", ".."}:
-            continue
-
-        path = _child_path(current_path, name)
-        node = _build_node(name, facts, path)
-        _ensure_file_metadata(ftp, node, path)
-        parent.children.append(node)
-
-        if not node.is_dir:
-            continue
-
-        if _maybe_descend(ftp, node, path, depth, max_depth):
+        if _process_entry(ftp, parent, name, facts, current_path, depth, max_depth):
             truncated = True
 
     return truncated
@@ -145,16 +208,91 @@ def _list_entries(
 ) -> list[tuple[str, dict]] | None:
     """List entries in the current directory, handling FTP errors."""
     try:
-        ftp.cwd(current_path)
-        entries = list(ftp.mlsd())
-        logger.debug(f"Found {len(entries)} entries in {current_path}")
-        return entries
+        return _mlsd_listing(ftp, current_path)
     except ftplib.error_perm:
         logger.warning(f"Permission denied: {current_path}")
         return None
+    except EOFError:
+        # Some servers close the connection unexpectedly during MLSD.
+        logger.debug(
+            "EOFError from MLSD on %s: falling back to NLST/LIST", current_path
+        )
     except ftplib.all_errors as exc:  # pragma: no cover - network dependent
         logger.exception(f"Error traversing {current_path}: {exc}")
+
+    # Attempt a tolerant fallback using NLST and directory detection
+    try:
+        entries = _nlst_fallback(ftp)
+        logger.debug(
+            "Found %d entries in %s using NLST fallback", len(entries), current_path
+        )
+        return entries
+    except Exception as fallback_exc:
+        logger.exception(
+            "Fallback listing failed for %s: %s", current_path, fallback_exc
+        )
         return None
+
+
+def _mlsd_listing(ftp: ftplib.FTP, current_path: str) -> list[tuple[str, dict]]:
+    """Attempt MLSD listing for the given path; may raise EOFError or ftplib errors.
+
+    Returns a list of (name, facts) tuples.
+    """
+    ftp.cwd(current_path)
+    entries = list(ftp.mlsd())
+    logger.debug(f"Found {len(entries)} entries in {current_path} using MLSD")
+    return entries
+
+
+def _nlst_fallback(ftp: ftplib.FTP) -> list[tuple[str, dict]]:
+    """NLST-based fallback listing that best-effort detects directories."""
+    names = ftp.nlst()
+    entries: list[tuple[str, dict]] = []
+    for name in names:
+        if name in {".", ".."}:
+            continue
+        facts: dict = {}
+        try:
+            cur = ftp.pwd()
+            ftp.cwd(name)
+            facts["type"] = "dir"
+            ftp.cwd(cur)
+        except ftplib.error_perm:
+            facts["type"] = "file"
+        except Exception:
+            facts = {}
+        entries.append((name, facts))
+    return entries
+
+
+def _process_entry(
+    ftp: ftplib.FTP,
+    parent: FTPNode,
+    name: str,
+    facts: dict,
+    current_path: str,
+    depth: int,
+    max_depth: int,
+) -> bool:
+    """Handle a single directory entry; returns True if traversal truncated here.
+
+    This extracts path, builds node, ensures metadata, verifies directory status,
+    appends the node and descends into directories when appropriate.
+    """
+    if name in {".", ".."}:
+        return False
+
+    path = _child_path(current_path, name)
+    node = _build_node(name, facts, path)
+    _ensure_file_metadata(ftp, node, path)
+    _verify_is_dir(ftp, node)
+    parent.children.append(node)
+
+    if not node.is_dir:
+        return False
+
+    return _maybe_descend(ftp, node, path, depth, max_depth)
 
 
 def _child_path(current_path: str, name: str) -> str:
@@ -179,11 +317,32 @@ def _maybe_descend(
 
 def _build_node(name: str, facts: dict, path: str) -> FTPNode:
     """Build a FTPNode from MLSD entry facts."""
-    node = FTPNode(name=name, is_dir=(facts.get("type") == "dir"), path=path)
+    node = FTPNode(name=name, is_dir=(facts.get("type") == "dir"), path=path, downloaded=False)
     f_size, f_modified = _extract_metadata_from_facts(facts)
     node.size = f_size
     node.modified = f_modified
     return node
+
+
+def _verify_is_dir(ftp: ftplib.FTP, node: FTPNode) -> None:
+    """Attempt to verify if a node marked as file is actually a directory.
+    
+    This is a best-effort check using NLST; if listing succeeds, mark as directory.
+    Modifies node.is_dir in-place.
+    """
+    if node.is_dir:
+        return  # Already marked as directory
+    
+    try:
+        # Try to list the path; if it succeeds, it's a directory
+        ftp.nlst(node.path)
+        logger.debug(f"Verified {node.path} is a directory (NLST succeeded)")
+        node.is_dir = True
+    except ftplib.error_perm:
+        # Permission denied or path not found; likely a file or inaccessible
+        pass
+    except Exception as exc:
+        logger.debug(f"Could not verify {node.path} as directory: {exc}")
 
 
 def _ensure_file_metadata(ftp: ftplib.FTP, node: FTPNode, path: str) -> None:

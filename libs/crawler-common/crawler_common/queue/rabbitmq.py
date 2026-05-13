@@ -91,7 +91,7 @@ def publish_to_queue(
 def consume_download_urls(
     rabbitmq_url: str,
     queue_name: str,
-    on_download_url: Callable[[str], None],
+    on_download_url: Callable[[str, object], None],
 ) -> None:
     """
     Consume download URLs from a RabbitMQ queue and process them.
@@ -145,7 +145,7 @@ def consume_download_urls(
             try:
                 message = json.loads(body.decode("utf-8"))
                 download_url = message.get("url")
-                ftp_run_id = message.get("ftp_run_id", "unknown")
+                ftp_run_id = message.get("ftp_run_id", None)
 
                 if not download_url:
                     logger.warning(
@@ -157,7 +157,7 @@ def consume_download_urls(
                 logger.info(
                     f"Message #{message_count}: Processing download URL from FTP run {ftp_run_id}: {download_url}"
                 )
-                on_download_url(download_url)
+                on_download_url(download_url, ftp_run_id)
                 logger.debug(f"Message #{message_count}: Successfully processed: {download_url}")
                 ch.basic_ack(delivery_tag=method.delivery_tag)
 

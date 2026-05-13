@@ -57,6 +57,7 @@ class FTPDiscoveryEntry(Base):
     discovered_at: Mapped[datetime] = mapped_column(
         DateTime(timezone=True), default=lambda: datetime.now(timezone.utc)
     )
+    downloaded: Mapped[bool] = mapped_column(Boolean, nullable=False, default=False)
     run: Mapped["FTPDiscoveryRun"] = relationship(
         "FTPDiscoveryRun", back_populates="entries"
     )
@@ -82,4 +83,5 @@ class FTPDiscoveryEntry(Base):
             size=int(node.size) if node.size is not None else None,
             modified=node.modified,
             depth=int(depth),
+            downloaded=False,
         )

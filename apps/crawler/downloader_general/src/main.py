@@ -8,6 +8,10 @@ from urllib.request import urlopen
 from dotenv import load_dotenv
 from crawler_common.queue import consume_download_urls
 from crawler_common.s3.client import create_s3_client
+from crawler_common.database import get_database_url_from_env, init_database, get_session
+from crawler_common.models.db import FTPDiscoveryEntry
+from sqlalchemy import select
+from botocore.exceptions import ClientError
 
 
 logging.basicConfig(
@@ -55,6 +59,67 @@ def main() -> None:
         timeout_seconds=timeout_seconds,
     )
 
+    # Initialize database connection to allow marking entries as downloaded
+    database_url = get_database_url_from_env(APP_DIR / ".env")
+    engine = init_database(database_url, echo=False)
+    session = get_session(engine)
+
+    def _path_key_from_url(parsed) -> str:
+        return parsed.path.lstrip("/") or ""
+
+    def _to_int_or_none(val: object) -> int | None:
+        try:
+            return int(val)
+        except Exception:
+            return None
+
+    def _mark_entry_by_run(run_id: int, path_key: str) -> bool:
+        logger.debug(f"Attempting mark by run: run_id={run_id}, path_key='{path_key}'")
+        # Try exact match first, then try with a leading slash if not found
+        stmt = select(FTPDiscoveryEntry).where(
+            FTPDiscoveryEntry.run_id == run_id,
+            FTPDiscoveryEntry.path == path_key,
+        ).order_by(FTPDiscoveryEntry.id.desc())
+        entry = session.execute(stmt).scalars().first()
+        if not entry and path_key:
+            alt = "/" + path_key.lstrip("/")
+            logger.debug(f"No entry found, trying alternate path '{alt}'")
+            stmt2 = select(FTPDiscoveryEntry).where(
+                FTPDiscoveryEntry.run_id == run_id,
+                FTPDiscoveryEntry.path == alt,
+            ).order_by(FTPDiscoveryEntry.id.desc())
+            entry = session.execute(stmt2).scalars().first()
+        if not entry:
+            return False
+        entry.downloaded = True
+        session.commit()
+        logger.info(f"Marked FTPDiscoveryEntry id={entry.id} as downloaded (run {run_id})")
+        return True
+
+    def _mark_entry_fallback(path_key: str) -> bool:
+        logger.debug(f"Attempting fallback mark for path_key='{path_key}'")
+        stmt = (
+            select(FTPDiscoveryEntry)
+            .where(FTPDiscoveryEntry.path == path_key)
+            .order_by(FTPDiscoveryEntry.id.desc())
+        )
+        entry = session.execute(stmt).scalars().first()
+        if not entry and path_key:
+            alt = "/" + path_key.lstrip("/")
+            logger.debug(f"Fallback: trying alternate path '{alt}'")
+            stmt2 = (
+                select(FTPDiscoveryEntry)
+                .where(FTPDiscoveryEntry.path == alt)
+                .order_by(FTPDiscoveryEntry.id.desc())
+            )
+            entry = session.execute(stmt2).scalars().first()
+        if not entry:
+            return False
+        entry.downloaded = True
+        session.commit()
+        logger.info(f"Marked FTPDiscoveryEntry id={entry.id} as downloaded (fallback)")
+        return True
+
     def upload_file_to_s3(download_url: str, source_file: Path) -> None:
         try:
             parsed = urlparse(download_url)
@@ -63,7 +128,6 @@ def main() -> None:
             file_size = source_file.stat().st_size
 
             logger.debug(f"Uploading file to S3: {object_key} ({file_size} bytes)")
-            
             with source_file.open("rb") as file_handle:
                 s3_client.put_object(
                     Bucket=s3_bucket,
@@ -71,12 +135,38 @@ def main() -> None:
                     Body=file_handle,
                     ContentType="application/octet-stream",
                 )
-            
+
             logger.info(
                 f"Successfully uploaded to s3://{s3_bucket}/{object_key} "
                 f"({file_size / (1024 * 1024):.2f} MB)"
             )
+
+            # remove local file after successful upload to free disk
+            try:
+                source_file.unlink(missing_ok=True)
+                logger.debug(f"Removed local file {source_file} after upload")
+            except Exception:
+                logger.exception(f"Failed to remove local file {source_file} after upload")
         except Exception as e:
+            # Special-case: if S3/MinIO reports no space left on device, upload a debug marker
+            # and clean up the local file to avoid repeated failures and disk exhaustion.
+            try:
+                msg = str(e)
+            except Exception:
+                msg = ""
+
+            if isinstance(e, ClientError) and ("no space left on device" in msg.lower() or "no space" in msg.lower()):
+                logger.error(f"S3 reported no space left: {e}. Uploading debug marker and cleaning up local file")
+                try:
+                    upload_dummy_marker(download_url, source_file.stat().st_size if source_file.exists() else 0)
+                except Exception:
+                    logger.exception("Failed to upload dummy marker after no-space error")
+                try:
+                    source_file.unlink(missing_ok=True)
+                except Exception:
+                    logger.exception(f"Failed to remove local file {source_file} after no-space error")
+                return
+
             logger.error(f"Failed to upload {source_file} to S3: {e}")
             raise
 
@@ -107,7 +197,7 @@ def main() -> None:
             logger.error(f"Failed to upload debug marker for {download_url}: {e}")
             raise
 
-    def handle_download_url(download_url: str) -> None:
+    def handle_download_url(download_url: str, ftp_run_id: object = None) -> None:
         try:
             parsed = urlparse(download_url)
             file_name = Path(parsed.path).name or "downloaded-file"
@@ -164,6 +254,18 @@ def main() -> None:
             logger.info(f"Download completed: {downloaded_bytes} bytes saved to {destination}")
             upload_file_to_s3(download_url, destination)
             logger.info(f"Successfully processed: {download_url}")
+            # Mark corresponding FTP discovery entry as downloaded (best-effort)
+            try:
+                path_key = _path_key_from_url(parsed)
+                if path_key:
+                    run_id_int = _to_int_or_none(ftp_run_id)
+                    if run_id_int is not None:
+                        if not _mark_entry_by_run(run_id_int, path_key):
+                            _mark_entry_fallback(path_key)
+                    else:
+                        _mark_entry_fallback(path_key)
+            except Exception:
+                logger.exception("Failed to mark FTP discovery entry as downloaded")
         except Exception as e:
             logger.exception(f"Error downloading {download_url}: {e}")
             raise
