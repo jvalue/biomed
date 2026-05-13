@@ -4,14 +4,15 @@ from datetime import datetime, timezone
 from pathlib import Path
 from urllib.parse import urljoin
 
+from sqlalchemy import func, select
+
 from crawler_common.database import (
     get_database_url_from_env,
     get_session,
     init_database,
-    insert_ftp_nodes_to_database,
 )
 from crawler_common.ftp import ftp_conf, ftp_tools
-from crawler_common.models.db import Base, FTPDiscoveryRun
+from crawler_common.models.db import Base, FTPDiscoveryEntry, FTPDiscoveryRun
 from crawler_common.queue import publish_to_queue as publish_to_rabbitmq
 
 
@@ -24,22 +25,107 @@ logger = logging.getLogger(__name__)
 logging.getLogger('sqlalchemy.engine').setLevel(logging.WARNING)
 
 
-def extract_file_paths(node, base_url, paths=None):
-    """Recursively extract all file paths from FTP structure."""
-    if paths is None:
-        paths = []
-    
-    for child in node.children:
-        child_path = f"{node.path}/{child.name}" if node.path else child.name
-        if not child.is_dir:
-            # Create full FTP URL using urljoin to handle slashes properly
-            file_url = urljoin(base_url, child_path.lstrip("/"))
-            paths.append(file_url)
-        elif child.children:
-            # Recursively process subdirectories
-            extract_file_paths(child, base_url, paths)
-    
-    return paths
+ENTRY_BATCH_SIZE = 500
+# Treat small timestamp differences (FTP servers/MLSD/MDTM jitter) as unchanged
+MODIFIED_TOLERANCE_SECONDS = 60
+
+
+def _entry_has_changed(
+    current: FTPDiscoveryEntry, previous: FTPDiscoveryEntry | None
+) -> bool:
+    """Return True if an entry is new or differs from the latest known state."""
+    if previous is None:
+        return True
+    if current.is_dir != previous.is_dir:
+        return True
+
+    if current.size != previous.size:
+        return True
+
+    # Treat small differences in modification times as unchanged (FTP timestamp jitter)
+    if current.modified is None and previous.modified is None:
+        return False
+    if (current.modified is None) != (previous.modified is None):
+        return True
+
+    # Both are not None here
+    delta = abs((current.modified - previous.modified).total_seconds())
+    if delta > MODIFIED_TOLERANCE_SECONDS:
+        return True
+
+    return False
+
+
+def _latest_entries_by_path(
+    session,
+    paths: list[str],
+) -> dict[str, FTPDiscoveryEntry]:
+    """Load the most recent known entry for each path across all runs."""
+    if not paths:
+        return {}
+
+    latest_ids = (
+        select(
+            FTPDiscoveryEntry.path,
+            func.max(FTPDiscoveryEntry.id).label("max_id"),
+        )
+        .where(FTPDiscoveryEntry.path.in_(paths))
+        .group_by(FTPDiscoveryEntry.path)
+        .subquery()
+    )
+
+    rows = session.execute(
+        select(FTPDiscoveryEntry).join(
+            latest_ids,
+            FTPDiscoveryEntry.id == latest_ids.c.max_id,
+        )
+    ).scalars().all()
+    return {row.path: row for row in rows}
+
+
+def _flush_discovery_batch(
+    session,
+    rabbitmq_url: str,
+    rabbitmq_queue: str,
+    batch: list[tuple[FTPDiscoveryEntry, str | None]],
+) -> tuple[int, int, int]:
+    """Persist changed entries and publish changed files.
+
+    Returns a tuple of (inserted_count, published_count, skipped_unchanged_count).
+    """
+    if not batch:
+        return 0, 0, 0
+
+    paths = [entry.path for entry, _ in batch]
+    previous_by_path = _latest_entries_by_path(session, paths)
+
+    changed = [
+        (entry, file_url)
+        for entry, file_url in batch
+        if _entry_has_changed(entry, previous_by_path.get(entry.path))
+    ]
+
+    skipped_unchanged = len(batch) - len(changed)
+    batch.clear()
+
+    if not changed:
+        return 0, 0, skipped_unchanged
+
+    changed_entries = [entry for entry, _ in changed]
+    session.add_all(changed_entries)
+    session.commit()
+
+    published = 0
+    if rabbitmq_url:
+        messages = [
+            {"url": file_url, "ftp_run_id": entry.run_id}
+            for entry, file_url in changed
+            if file_url is not None
+        ]
+        if messages:
+            published = publish_to_rabbitmq(rabbitmq_url, rabbitmq_queue, messages)
+
+    return len(changed_entries), published, skipped_unchanged
 
 
 def main():
@@ -66,13 +152,7 @@ def main():
     Base.metadata.create_all(engine)
     logger.info("Database tables created/verified")
     
-    logger.info("Fetching FTP structure...")
-    root = ftp_tools.get_ftp_structure(
-        ftp_url, ftp_user, ftp_password, max_depth=ftp_max_depth
-    )
-
-    # Save FTP structure to database
-    logger.info("Saving FTP structure to database...")
+    logger.info("Starting streaming FTP discovery...")
     session = get_session(engine)
 
     try:
@@ -85,43 +165,60 @@ def main():
         session.add(ftp_run)
         session.flush()  # Get the ID before adding entries
 
-        # Recursively insert FTP structure into database
-        insert_ftp_nodes_to_database(root, ftp_run.id, session)
+        discovery_batch: list[tuple[FTPDiscoveryEntry, str | None]] = []
+        inserted_entries = 0
+        published_messages = 0
+        skipped_unchanged = 0
+
+        for node, depth in ftp_tools.iter_ftp_nodes(
+            ftp_url,
+            ftp_user,
+            ftp_password,
+            max_depth=ftp_max_depth,
+        ):
+            entry = FTPDiscoveryEntry.from_ftp_node(node, ftp_run.id, depth)
+            file_url = None
+            if not node.is_dir:
+                file_url = urljoin(ftp_url, node.path.lstrip("/"))
+
+            discovery_batch.append((entry, file_url))
+
+            if len(discovery_batch) >= ENTRY_BATCH_SIZE:
+                inserted, published, skipped = _flush_discovery_batch(
+                    session,
+                    rabbitmq_url,
+                    rabbitmq_queue,
+                    discovery_batch,
+                )
+                inserted_entries += inserted
+                published_messages += published
+                skipped_unchanged += skipped
+
+        inserted, published, skipped = _flush_discovery_batch(
+            session,
+            rabbitmq_url,
+            rabbitmq_queue,
+            discovery_batch,
+        )
+        inserted_entries += inserted
+        published_messages += published
+        skipped_unchanged += skipped
+
         ftp_run.completed_at = datetime.now(timezone.utc)
         session.commit()
         logger.info(
-            f"FTP structure saved to database (Run ID: {ftp_run.id}, "
-            f"Max Depth: {ftp_max_depth})"
+            f"FTP streaming discovery saved to database (Run ID: {ftp_run.id}, "
+            f"Max Depth: {ftp_max_depth}, Inserted: {inserted_entries}, "
+            f"Skipped unchanged: {skipped_unchanged})"
         )
 
-        # Extract all file URLs from the FTP structure
-        file_urls = extract_file_paths(root, ftp_url)
-        logger.info(f"Extracted {len(file_urls)} files from FTP structure")
-        
-        # Publish file URLs to RabbitMQ queue
-        if file_urls and rabbitmq_url:
-            logger.info(f"Preparing to publish {len(file_urls)} download tasks to RabbitMQ")
-            messages = [{"url": url, "ftp_run_id": ftp_run.id} for url in file_urls]
-            logger.debug(f"Created message batch with {len(messages)} messages for queue '{rabbitmq_queue}'")
-            
-            published = publish_to_rabbitmq(rabbitmq_url, rabbitmq_queue, messages)
-            
-            if published > 0:
-                success_rate = (published / len(file_urls)) * 100
-                logger.info(
-                    f"Successfully published {published}/{len(file_urls)} download tasks "
-                    f"({success_rate:.1f}%) to RabbitMQ queue '{rabbitmq_queue}' "
-                    f"(FTP run ID: {ftp_run.id})"
-                )
-            else:
-                logger.error(f"Failed to publish any messages to RabbitMQ queue '{rabbitmq_queue}'")
+        if rabbitmq_url:
+            logger.info(
+                f"Published {published_messages} download tasks to RabbitMQ queue '{rabbitmq_queue}' "
+                f"(FTP run ID: {ftp_run.id})"
+            )
         else:
-            if not file_urls:
-                logger.warning("No files extracted from FTP structure - nothing to publish")
-            elif not rabbitmq_url:
-                logger.warning("RabbitMQ URL not configured - skipping queue publishing")
-            else:
-                logger.warning("No files to publish or RabbitMQ not configured")
+            logger.warning("RabbitMQ URL not configured - skipping queue publishing")
 
     except Exception as e:
         session.rollback()

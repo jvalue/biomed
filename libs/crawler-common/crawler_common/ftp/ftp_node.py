@@ -15,6 +15,7 @@ class FTPNode:
     path: str
     size: int | None = None
     modified: datetime | None = None
+    downloaded: bool = False
     children: list[FTPNode] = field(default_factory=list)
 
     def __repr__(self) -> str:  # pragma: no cover - for debugging only
