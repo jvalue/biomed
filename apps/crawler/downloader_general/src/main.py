@@ -12,6 +12,7 @@ from crawler_common.s3.client import create_s3_client
 from crawler_common.database import get_database_url_from_env, init_database, get_session
 from crawler_common.models.db import FTPDiscoveryEntry
 from sqlalchemy import select
+from sqlalchemy.exc import SQLAlchemyError
 from botocore.exceptions import ClientError
 
 
@@ -94,50 +95,58 @@ def main() -> None:
 
     def _mark_entry_by_run(run_id: int, path_key: str) -> bool:
         logger.debug(f"Attempting mark by run: run_id={run_id}, path_key='{path_key}'")
-        # Try exact match first, then try with a leading slash if not found
-        stmt = select(FTPDiscoveryEntry).where(
-            FTPDiscoveryEntry.run_id == run_id,
-            FTPDiscoveryEntry.path == path_key,
-        ).order_by(FTPDiscoveryEntry.id.desc())
-        entry = session.execute(stmt).scalars().first()
-        if not entry and path_key:
-            alt = "/" + path_key.lstrip("/")
-            logger.debug(f"No entry found, trying alternate path '{alt}'")
-            stmt2 = select(FTPDiscoveryEntry).where(
+        try:
+            # Try exact match first, then try with a leading slash if not found
+            stmt = select(FTPDiscoveryEntry).where(
                 FTPDiscoveryEntry.run_id == run_id,
-                FTPDiscoveryEntry.path == alt,
+                FTPDiscoveryEntry.path == path_key,
             ).order_by(FTPDiscoveryEntry.id.desc())
-            entry = session.execute(stmt2).scalars().first()
-        if not entry:
-            return False
-        entry.downloaded = True
-        session.commit()
-        logger.info(f"Marked FTPDiscoveryEntry id={entry.id} as downloaded (run {run_id})")
-        return True
+            entry = session.execute(stmt).scalars().first()
+            if not entry and path_key:
+                alt = "/" + path_key.lstrip("/")
+                logger.debug(f"No entry found, trying alternate path '{alt}'")
+                stmt2 = select(FTPDiscoveryEntry).where(
+                    FTPDiscoveryEntry.run_id == run_id,
+                    FTPDiscoveryEntry.path == alt,
+                ).order_by(FTPDiscoveryEntry.id.desc())
+                entry = session.execute(stmt2).scalars().first()
+            if not entry:
+                return False
+            entry.downloaded = True
+            session.commit()
+            logger.info(f"Marked FTPDiscoveryEntry id={entry.id} as downloaded (run {run_id})")
+            return True
+        except SQLAlchemyError:
+            session.rollback()
+            raise
 
     def _mark_entry_fallback(path_key: str) -> bool:
         logger.debug(f"Attempting fallback mark for path_key='{path_key}'")
-        stmt = (
-            select(FTPDiscoveryEntry)
-            .where(FTPDiscoveryEntry.path == path_key)
-            .order_by(FTPDiscoveryEntry.id.desc())
-        )
-        entry = session.execute(stmt).scalars().first()
-        if not entry and path_key:
-            alt = "/" + path_key.lstrip("/")
-            logger.debug(f"Fallback: trying alternate path '{alt}'")
-            stmt2 = (
+        try:
+            stmt = (
                 select(FTPDiscoveryEntry)
-                .where(FTPDiscoveryEntry.path == alt)
+                .where(FTPDiscoveryEntry.path == path_key)
                 .order_by(FTPDiscoveryEntry.id.desc())
             )
-            entry = session.execute(stmt2).scalars().first()
-        if not entry:
-            return False
-        entry.downloaded = True
-        session.commit()
-        logger.info(f"Marked FTPDiscoveryEntry id={entry.id} as downloaded (fallback)")
-        return True
+            entry = session.execute(stmt).scalars().first()
+            if not entry and path_key:
+                alt = "/" + path_key.lstrip("/")
+                logger.debug(f"Fallback: trying alternate path '{alt}'")
+                stmt2 = (
+                    select(FTPDiscoveryEntry)
+                    .where(FTPDiscoveryEntry.path == alt)
+                    .order_by(FTPDiscoveryEntry.id.desc())
+                )
+                entry = session.execute(stmt2).scalars().first()
+            if not entry:
+                return False
+            entry.downloaded = True
+            session.commit()
+            logger.info(f"Marked FTPDiscoveryEntry id={entry.id} as downloaded (fallback)")
+            return True
+        except SQLAlchemyError:
+            session.rollback()
+            raise
 
     def upload_file_to_s3(download_url: str, source_file: Path) -> None:
         try:
