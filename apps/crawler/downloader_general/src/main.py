@@ -1,6 +1,7 @@
 import logging
 import os
 import sys
+from collections import defaultdict
 from pathlib import Path
 from urllib.parse import urlparse
 from urllib.request import urlopen
@@ -30,6 +31,15 @@ def as_bool(value: str | None, default: bool = False) -> bool:
     return value.strip().lower() in {"1", "true", "yes", "on"}
 
 
+def as_int(value: str | None, default: int = 0) -> int:
+    if value is None:
+        return default
+    try:
+        return int(value)
+    except ValueError:
+        return default
+
+
 def main() -> None:
     """Consume download URLs from RabbitMQ and download files locally."""
     rabbitmq_url = os.getenv("RABBITMQ_URL", "amqp://guest:guest@localhost:5672/")
@@ -46,6 +56,10 @@ def main() -> None:
         os.getenv("DOWNLOAD_DEBUG_LARGE_FILE_THRESHOLD_MB", "100")
     )
     debug_large_file_threshold_bytes = debug_large_file_threshold_mb * 1024 * 1024
+    debug_max_files_per_folder = as_int(
+        os.getenv("DOWNLOAD_DEBUG_MAX_FILES_PER_FOLDER"),
+        0,
+    )
     download_chunk_size_bytes = int(
         os.getenv("DOWNLOAD_CHUNK_SIZE_BYTES", str(8 * 1024 * 1024))
     )
@@ -53,6 +67,7 @@ def main() -> None:
     s3_bucket = os.getenv("S3_BUCKET", "biomed-data")
     s3_debug_prefix = os.getenv("S3_DEBUG_PREFIX", "downloader-debug")
     s3_upload_prefix = os.getenv("S3_UPLOAD_PREFIX", "downloader-files")
+    folder_download_counts: dict[str, int] = defaultdict(int)
 
     s3_client = create_s3_client(
         endpoint_url=s3_endpoint_url,
@@ -66,6 +81,10 @@ def main() -> None:
 
     def _path_key_from_url(parsed) -> str:
         return parsed.path.lstrip("/") or ""
+
+    def _folder_key_from_url(parsed) -> str:
+        folder_path = Path(parsed.path).parent.as_posix().lstrip("/")
+        return folder_path or "/"
 
     def _to_int_or_none(val: object) -> int | None:
         try:
@@ -200,6 +219,19 @@ def main() -> None:
     def handle_download_url(download_url: str, ftp_run_id: object = None) -> None:
         try:
             parsed = urlparse(download_url)
+            folder_key = _folder_key_from_url(parsed)
+            if debug_max_files_per_folder > 0:
+                current_folder_count = folder_download_counts[folder_key]
+                if current_folder_count >= debug_max_files_per_folder:
+                    logger.info(
+                        "Skipping download for %s because folder '%s' reached the debug cap of %s files",
+                        download_url,
+                        folder_key,
+                        debug_max_files_per_folder,
+                    )
+                    return
+                folder_download_counts[folder_key] = current_folder_count + 1
+
             file_name = Path(parsed.path).name or "downloaded-file"
             destination = download_dir / file_name
             download_dir.mkdir(parents=True, exist_ok=True)
@@ -281,6 +313,11 @@ def main() -> None:
             f"S3 Configuration: Endpoint={s3_endpoint_url}, Bucket={s3_bucket}, "
             f"Upload prefix={s3_upload_prefix}"
         )
+        if debug_max_files_per_folder > 0:
+            logger.warning(
+                "DEBUG MODE: downloading at most %s files per folder",
+                debug_max_files_per_folder,
+            )
         
         if debug_large_file_mode:
             logger.warning(
