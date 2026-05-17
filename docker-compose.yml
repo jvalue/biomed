@@ -56,6 +56,7 @@ services:
       - DOWNLOAD_TIMEOUT_SECONDS=30
       - DOWNLOAD_DEBUG_LARGE_FILE_MODE=true
       - DOWNLOAD_DEBUG_LARGE_FILE_THRESHOLD_MB=100
+      - DOWNLOAD_DEBUG_MAX_FILES_PER_FOLDER=3
       - S3_ENDPOINT_URL=http://minio:9000
       - S3_BUCKET=biomed-data
       - S3_DEBUG_PREFIX=downloader-debug
