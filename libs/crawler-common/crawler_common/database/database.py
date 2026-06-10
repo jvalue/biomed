@@ -6,6 +6,9 @@ import logging
 from collections.abc import Iterator
 from typing import TYPE_CHECKING, Optional
 
+import os
+from dotenv import load_dotenv
+
 from sqlalchemy import create_engine, Engine, select
 from sqlalchemy.engine import URL
 from sqlalchemy.orm import sessionmaker, Session
@@ -14,7 +17,7 @@ from crawler_common.database.db_conf import load_database_config
 from crawler_common.models.db import FTPDiscoveryEntry
 
 if TYPE_CHECKING:
-    from crawler_common.ftp.ftp_node import FTPNode
+    from crawler_common.ftp.ftp_node import SourceNode
 
 logger = logging.getLogger(__name__)
 
@@ -37,6 +40,15 @@ def create_postgres_url(
     )
 
 
+def create_sqlite_url(database_path: str) -> URL:
+    """Create a SQLite connection URL for pysqlite.
+
+    The `database_path` may be a filesystem path or ':memory:' for an
+    in-memory database.
+    """
+    return URL.create(drivername="sqlite+pysqlite", database=database_path)
+
+
 def get_database_url_from_env(dotenv_path: str | None = None) -> URL:
     """Get database connection URL from environment variables.
 
@@ -46,6 +58,18 @@ def get_database_url_from_env(dotenv_path: str | None = None) -> URL:
     Returns:
         PostgreSQL connection URL.
     """
+    # Allow selecting a simple SQLite mode via `DB_ENGINE=sqlite`.
+    # Load dotenv first so callers can pass a .env path.
+    if dotenv_path:
+        load_dotenv(dotenv_path)
+    else:
+        load_dotenv()
+
+    db_engine = os.getenv("DB_ENGINE", "postgres").lower()
+    if db_engine == "sqlite":
+        sqlite_path = os.getenv("DB_SQLITE_PATH", ":memory:")
+        return create_sqlite_url(sqlite_path)
+
     config = load_database_config(dotenv_path)
     return create_postgres_url(
         host=str(config["host"]),
@@ -57,16 +81,25 @@ def get_database_url_from_env(dotenv_path: str | None = None) -> URL:
 
 
 def init_database(database_url: str | URL, echo: bool = False) -> Engine:
-    """Initialize database engine.
+    """Initialize a SQLAlchemy Engine from a URL.
 
-    Tables must be created manually or already exist.
+    This accepts any SQLAlchemy URL or URL-like string (PostgreSQL, SQLite,
+    etc.). Tables are not created automatically — callers should create tables
+    (for example via ``Base.metadata.create_all(engine)``) when needed.
 
     Args:
-        database_url: PostgreSQL connection URL.
+        database_url: SQLAlchemy connection URL or :class:`sqlalchemy.engine.URL`.
+            Examples:
+                - Postgres: "postgresql+psycopg2://user:pw@host:5432/dbname"
+                - SQLite (in-memory): "sqlite+pysqlite:///:memory:"
         echo: If True, log all SQL statements.
 
     Returns:
         SQLAlchemy Engine instance.
+
+    Example:
+        >>> from crawler_common.database import init_database
+        >>> engine = init_database("sqlite+pysqlite:///:memory:")
     """
     logger.info("Initializing database connection")
     engine = create_engine(database_url, echo=echo)
@@ -122,7 +155,7 @@ def set_engine(engine: Engine) -> None:
 
 
 def insert_ftp_nodes_to_database(
-    node: FTPNode,
+    node: "SourceNode",
     run_id: int,
     session: Session,
     current_depth: int = 0,
@@ -139,7 +172,7 @@ def insert_ftp_nodes_to_database(
         batch_size: Number of entries per batch flush.
         only_changed: If True, skip entries that already exist with same values.
     """
-    def iter_nodes(root: FTPNode, start_depth: int) -> Iterator[tuple[FTPNode, int]]:
+    def iter_nodes(root: "SourceNode", start_depth: int) -> Iterator[tuple["SourceNode", int]]:
         stack: list[tuple[FTPNode, int]] = [(root, start_depth)]
 
         while stack:

@@ -6,6 +6,7 @@ build-backend = "hatchling.build"
 members = [
     "libs/crawler-common",
     "apps/crawler",
+    "apps/s3_mcp",
 ]
 
 [tool.uv.sources]

@@ -76,6 +76,17 @@ def test_get_database_url_from_env(monkeypatch: pytest.MonkeyPatch) -> None:
     assert database_url.username == "crawler"
 
 
+def test_get_database_url_from_env_supports_sqlite(monkeypatch: pytest.MonkeyPatch) -> None:
+    """Support a simple SQLite mode via DB_ENGINE=sqlite and DB_SQLITE_PATH."""
+    monkeypatch.setenv("DB_ENGINE", "sqlite")
+    monkeypatch.setenv("DB_SQLITE_PATH", ":memory:")
+
+    database_url = get_database_url_from_env()
+
+    assert database_url.drivername == "sqlite+pysqlite"
+    assert database_url.database == ":memory:"
+
+
 def test_get_engine_requires_initialization(monkeypatch: pytest.MonkeyPatch) -> None:
     """Raise when global engine is requested before set_engine."""
 
