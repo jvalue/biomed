@@ -29,6 +29,7 @@ class FTPDiscoveryRun(Base):
         DateTime(timezone=True), nullable=True
     )
     ftp_url: Mapped[str] = mapped_column(String(255), nullable=False)
+    db_name: Mapped[str | None] = mapped_column(String(255), nullable=True)
     max_depth: Mapped[int] = mapped_column(Integer, default=3)
     entries: Mapped[list["FTPDiscoveryEntry"]] = relationship(
         "FTPDiscoveryEntry", back_populates="run", cascade="all, delete-orphan"

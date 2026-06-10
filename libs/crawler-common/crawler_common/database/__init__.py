@@ -21,3 +21,5 @@ __all__ = [
     "insert_ftp_nodes_to_database",
     "set_engine",
 ]
+
+__all__.append("create_sqlite_url")

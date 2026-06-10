@@ -92,6 +92,22 @@ def main() -> None:
             return int(val)
         except Exception:
             return None
+    
+    def _get_db_name_from_run_id(run_id: int) -> str:
+        # Attempt to look up a run-specific database name. If not found,
+        # fall back to the configured DB_NAME environment variable.
+        try:
+            from crawler_common.models.db import FTPDiscoveryRun
+
+            stmt = select(FTPDiscoveryRun).where(FTPDiscoveryRun.id == run_id)
+            run = session.execute(stmt).scalars().first()
+            if run is not None and getattr(run, "db_name", None):
+                return str(run.db_name)
+        except Exception:
+            logger.debug("Failed to lookup db_name for run_id=%s", run_id, exc_info=True)
+
+        # Default DB name from environment
+        return os.getenv("DB_NAME", "postgres")
 
     def _mark_entry_by_run(run_id: int, path_key: str) -> bool:
         logger.debug(f"Attempting mark by run: run_id={run_id}, path_key='{path_key}'")
