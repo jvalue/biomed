@@ -79,6 +79,9 @@ def main() -> None:
     database_url = get_database_url_from_env(APP_DIR / ".env")
     engine = init_database(database_url, echo=False)
     session = get_session(engine)
+    # Simple in-memory cache for run_id -> db_name to avoid repeated DB lookups
+    db_name_cache: dict[int, str] = {}
+    DB_NAME_CACHE_MAX = int(os.getenv("DB_NAME_CACHE_SIZE", "1000"))
 
     def _path_key_from_url(parsed) -> str:
         return parsed.path.lstrip("/") or ""
@@ -94,20 +97,38 @@ def main() -> None:
             return None
     
     def _get_db_name_from_run_id(run_id: int) -> str:
+        # Use cached value if available
+        try:
+            if run_id in db_name_cache:
+                return db_name_cache[run_id]
+        except Exception:
+            # Defensive: if cache access fails, continue to DB lookup
+            logger.debug("Cache access error for run_id=%s", run_id, exc_info=True)
+
         # Attempt to look up a run-specific database name. If not found,
-        # fall back to the configured DB_NAME environment variable.
+        # fall back to the configured CRAWL_DB_NAME environment variable.
         try:
             from crawler_common.models.db import FTPDiscoveryRun
 
             stmt = select(FTPDiscoveryRun).where(FTPDiscoveryRun.id == run_id)
             run = session.execute(stmt).scalars().first()
             if run is not None and getattr(run, "db_name", None):
-                return str(run.db_name)
+                db_name = str(run.db_name)
+                # Cache the resolved name with simple eviction
+                try:
+                    db_name_cache[run_id] = db_name
+                    if len(db_name_cache) > DB_NAME_CACHE_MAX:
+                        # pop oldest inserted item
+                        first_key = next(iter(db_name_cache))
+                        db_name_cache.pop(first_key, None)
+                except Exception:
+                    logger.debug("Failed to update db_name cache for run_id=%s", run_id, exc_info=True)
+                return db_name
         except Exception:
             logger.debug("Failed to lookup db_name for run_id=%s", run_id, exc_info=True)
 
-        # Default DB name from environment
-        return os.getenv("DB_NAME", "postgres")
+        # Default crawl database name from environment
+        return os.getenv("CRAWL_DB_NAME", "")
 
     def _mark_entry_by_run(run_id: int, path_key: str) -> bool:
         logger.debug(f"Attempting mark by run: run_id={run_id}, path_key='{path_key}'")
@@ -164,11 +185,17 @@ def main() -> None:
             session.rollback()
             raise
 
-    def upload_file_to_s3(download_url: str, source_file: Path) -> None:
+    def upload_file_to_s3(download_url: str, source_file: Path, ftp_run_id: object | None = None) -> None:
         try:
             parsed = urlparse(download_url)
             source_path = parsed.path.lstrip("/") or "unknown-file"
-            object_key = f"{s3_upload_prefix}/{source_path}"
+            # Determine db prefix (run-specific or env default)
+            run_id_int = _to_int_or_none(ftp_run_id)
+            db_prefix = _get_db_name_from_run_id(run_id_int) if run_id_int is not None else os.getenv("CRAWL_DB_NAME", "")
+            if db_prefix:
+                object_key = f"{db_prefix}/{s3_upload_prefix}/{source_path}"
+            else:
+                object_key = f"{s3_upload_prefix}/{source_path}"
             file_size = source_file.stat().st_size
 
             logger.debug(f"Uploading file to S3: {object_key} ({file_size} bytes)")
@@ -202,7 +229,7 @@ def main() -> None:
             if isinstance(e, ClientError) and ("no space left on device" in msg.lower() or "no space" in msg.lower()):
                 logger.error(f"S3 reported no space left: {e}. Uploading debug marker and cleaning up local file")
                 try:
-                    upload_dummy_marker(download_url, source_file.stat().st_size if source_file.exists() else 0)
+                    upload_dummy_marker(download_url, source_file.stat().st_size if source_file.exists() else 0, ftp_run_id=ftp_run_id)
                 except Exception:
                     logger.exception("Failed to upload dummy marker after no-space error")
                 try:
@@ -214,19 +241,23 @@ def main() -> None:
             logger.error(f"Failed to upload {source_file} to S3: {e}")
             raise
 
-    def upload_dummy_marker(download_url: str, file_size_bytes: int) -> None:
+    def upload_dummy_marker(download_url: str, file_size_bytes: int, ftp_run_id: object | None = None) -> None:
         try:
             parsed = urlparse(download_url)
             source_path = parsed.path.lstrip("/") or "unknown-file"
-            object_key = f"{s3_debug_prefix}/{source_path}.txt"
+            # Determine db prefix (run-specific or env default)
+            run_id_int = _to_int_or_none(ftp_run_id)
+            db_prefix = _get_db_name_from_run_id(run_id_int) if run_id_int is not None else os.getenv("CRAWL_DB_NAME", "")
+            if db_prefix:
+                object_key = f"{db_prefix}/{s3_debug_prefix}/{source_path}.txt"
+            else:
+                object_key = f"{s3_debug_prefix}/{source_path}.txt"
             body = (
                 "debug large file mode: original file skipped\n"
                 f"url={download_url}\n"
                 f"size_bytes={file_size_bytes}\n"
             ).encode("utf-8")
-
             logger.debug(f"Uploading debug marker to S3: {object_key}")
-            
             s3_client.put_object(
                 Bucket=s3_bucket,
                 Key=object_key,
@@ -281,7 +312,7 @@ def main() -> None:
                         f"File exceeds debug threshold ({file_size_bytes / (1024 * 1024):.2f} MB), "
                         f"uploading dummy marker instead"
                     )
-                    upload_dummy_marker(download_url, file_size_bytes)
+                    upload_dummy_marker(download_url, file_size_bytes, ftp_run_id=ftp_run_id)
                     return
 
                 downloaded_bytes = 0
@@ -303,13 +334,13 @@ def main() -> None:
                                 f"Download exceeded debug threshold during streaming "
                                 f"({downloaded_bytes / (1024 * 1024):.2f} MB), uploading dummy marker instead"
                             )
-                            upload_dummy_marker(download_url, downloaded_bytes)
+                            upload_dummy_marker(download_url, downloaded_bytes, ftp_run_id=ftp_run_id)
                             return
 
                         destination_file.write(chunk)
 
             logger.info(f"Download completed: {downloaded_bytes} bytes saved to {destination}")
-            upload_file_to_s3(download_url, destination)
+            upload_file_to_s3(download_url, destination, ftp_run_id=ftp_run_id)
             logger.info(f"Successfully processed: {download_url}")
             # Mark corresponding FTP discovery entry as downloaded (best-effort)
             try:
