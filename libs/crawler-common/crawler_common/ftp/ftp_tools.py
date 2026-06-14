@@ -327,17 +327,21 @@ def _build_node(name: str, facts: dict, path: str) -> FTPNode:
 def _verify_is_dir(ftp: ftplib.FTP, node: FTPNode) -> None:
     """Attempt to verify if a node marked as file is actually a directory.
     
-    This is a best-effort check using NLST; if listing succeeds, mark as directory.
+    This is a best-effort check using CWD; if changing into the path succeeds,
+    mark it as a directory.
     Modifies node.is_dir in-place.
     """
     if node.is_dir:
         return  # Already marked as directory
     
     try:
-        # Try to list the path; if it succeeds, it's a directory
-        ftp.nlst(node.path)
-        logger.debug(f"Verified {node.path} is a directory (NLST succeeded)")
-        node.is_dir = True
+        current_path = ftp.pwd()
+        try:
+            ftp.cwd(node.path)
+            logger.debug(f"Verified {node.path} is a directory (CWD succeeded)")
+            node.is_dir = True
+        finally:
+            ftp.cwd(current_path)
     except ftplib.error_perm:
         # Permission denied or path not found; likely a file or inaccessible
         pass
