@@ -2,7 +2,7 @@ import logging
 import os
 from datetime import datetime, timezone
 from pathlib import Path
-from urllib.parse import urljoin
+from urllib.parse import urljoin, urlparse
 
 from sqlalchemy import func, select
 
@@ -157,6 +157,21 @@ def main():
     logger.info("Starting streaming FTP discovery...")
     session = get_session(engine)
 
+    def _download_url_for_node(node_path: str) -> str:
+        """Build a download URL relative to the FTP URL path root."""
+        normalized_base = ftp_url if ftp_url.endswith("/") else f"{ftp_url}/"
+        root_path = urlparse(ftp_url).path.rstrip("/")
+
+        normalized_node_path = node_path.lstrip("/")
+        if root_path and root_path != "/":
+            root_prefix = root_path.lstrip("/")
+            if normalized_node_path.startswith(root_prefix + "/"):
+                normalized_node_path = normalized_node_path[len(root_prefix) + 1 :]
+            elif normalized_node_path == root_prefix:
+                normalized_node_path = ""
+
+        return urljoin(normalized_base, normalized_node_path)
+
     try:
         # Create a new FTPDiscoveryRun for this crawl
         ftp_run = FTPDiscoveryRun(
@@ -181,7 +196,7 @@ def main():
             entry = FTPDiscoveryEntry.from_ftp_node(node, ftp_run.id, depth)
             file_url = None
             if not node.is_dir:
-                file_url = urljoin(ftp_url, node.path.lstrip("/"))
+                file_url = _download_url_for_node(node.path)
 
             discovery_batch.append((entry, file_url))
 
