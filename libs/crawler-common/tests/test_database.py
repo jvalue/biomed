@@ -6,6 +6,7 @@ import pytest
 from sqlalchemy import select
 
 from crawler_common.database import (
+    ensure_crawler_schema,
     create_postgres_url,
     get_database_url_from_env,
     get_engine,
@@ -172,6 +173,47 @@ def test_model_from_ftp_node_converts_values() -> None:
     assert entry.size == 123
     assert entry.modified == modified_at
     assert entry.depth == 3
+
+
+def test_ensure_crawler_schema_adds_missing_columns() -> None:
+    """Backfill missing crawler columns on an existing database."""
+
+    engine = init_database("sqlite+pysqlite:///:memory:")
+    Base.metadata.create_all(engine)
+
+    with engine.begin() as connection:
+        connection.exec_driver_sql("ALTER TABLE ftp_discovery_entries RENAME TO ftp_discovery_entries_old")
+        connection.exec_driver_sql(
+            """
+            CREATE TABLE ftp_discovery_entries (
+                id INTEGER NOT NULL PRIMARY KEY,
+                run_id INTEGER NOT NULL,
+                path VARCHAR(2048) NOT NULL,
+                is_dir BOOLEAN NOT NULL,
+                size BIGINT,
+                modified DATETIME,
+                depth INTEGER NOT NULL,
+                discovered_at DATETIME NOT NULL
+            )
+            """
+        )
+        connection.exec_driver_sql(
+            """
+            INSERT INTO ftp_discovery_entries (
+                id, run_id, path, is_dir, size, modified, depth, discovered_at
+            )
+            SELECT id, run_id, path, is_dir, size, modified, depth, discovered_at
+            FROM ftp_discovery_entries_old
+            """
+        )
+        connection.exec_driver_sql("DROP TABLE ftp_discovery_entries_old")
+
+    ensure_crawler_schema(engine)
+
+    with engine.connect() as connection:
+        columns = {row[1] for row in connection.exec_driver_sql("PRAGMA table_info(ftp_discovery_entries)")}
+
+    assert "downloaded" in columns
 
 
 def test_insert_ftp_nodes_to_database_traverses_and_batches() -> None:

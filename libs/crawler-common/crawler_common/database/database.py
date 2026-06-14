@@ -9,7 +9,7 @@ from typing import TYPE_CHECKING, Optional
 import os
 from dotenv import load_dotenv
 
-from sqlalchemy import create_engine, Engine, select
+from sqlalchemy import Engine, create_engine, inspect, select, text
 from sqlalchemy.engine import URL
 from sqlalchemy.orm import sessionmaker, Session
 
@@ -20,6 +20,36 @@ if TYPE_CHECKING:
     from crawler_common.ftp.ftp_node import SourceNode
 
 logger = logging.getLogger(__name__)
+
+
+def ensure_crawler_schema(engine: Engine) -> None:
+    """Add missing crawler tables/columns to an existing database.
+
+    This is a lightweight compatibility layer for older databases that were
+    created before newer model fields such as ``downloaded`` or ``db_name``.
+    """
+
+    inspector = inspect(engine)
+
+    def add_column(table_name: str, column_sql: str) -> None:
+        with engine.begin() as connection:
+            connection.execute(text(f"ALTER TABLE {table_name} ADD COLUMN {column_sql}"))
+
+    if inspector.has_table("ftp_discovery_entries"):
+        entry_columns = {column["name"] for column in inspector.get_columns("ftp_discovery_entries")}
+        if "downloaded" not in entry_columns:
+            add_column(
+                "ftp_discovery_entries",
+                "downloaded BOOLEAN NOT NULL DEFAULT FALSE",
+            )
+
+    if inspector.has_table("ftp_discovery_runs"):
+        run_columns = {column["name"] for column in inspector.get_columns("ftp_discovery_runs")}
+        if "db_name" not in run_columns:
+            add_column(
+                "ftp_discovery_runs",
+                "db_name VARCHAR(255)",
+            )
 
 
 def create_postgres_url(
@@ -173,7 +203,7 @@ def insert_ftp_nodes_to_database(
         only_changed: If True, skip entries that already exist with same values.
     """
     def iter_nodes(root: "SourceNode", start_depth: int) -> Iterator[tuple["SourceNode", int]]:
-        stack: list[tuple[FTPNode, int]] = [(root, start_depth)]
+        stack: list[tuple[SourceNode, int]] = [(root, start_depth)]
 
         while stack:
             current_node, depth = stack.pop()

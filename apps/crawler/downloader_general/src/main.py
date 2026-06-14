@@ -9,7 +9,12 @@ from urllib.request import urlopen
 from dotenv import load_dotenv
 from crawler_common.queue import consume_download_urls
 from crawler_common.s3.client import create_s3_client
-from crawler_common.database import get_database_url_from_env, init_database, get_session
+from crawler_common.database import (
+    ensure_crawler_schema,
+    get_database_url_from_env,
+    init_database,
+    get_session,
+)
 from crawler_common.models.db import FTPDiscoveryEntry
 from sqlalchemy import select
 from sqlalchemy.exc import SQLAlchemyError
@@ -78,6 +83,7 @@ def main() -> None:
     # Initialize database connection to allow marking entries as downloaded
     database_url = get_database_url_from_env(APP_DIR / ".env")
     engine = init_database(database_url, echo=False)
+    ensure_crawler_schema(engine)
     session = get_session(engine)
     # Simple in-memory cache for run_id -> db_name to avoid repeated DB lookups
     db_name_cache: dict[int, str] = {}

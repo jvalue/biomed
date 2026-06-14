@@ -10,6 +10,7 @@ from crawler_common.database import (
     get_database_url_from_env,
     get_session,
     init_database,
+    ensure_crawler_schema,
 )
 from crawler_common.ftp import ftp_conf, ftp_tools
 from crawler_common.models.db import Base, FTPDiscoveryEntry, FTPDiscoveryRun
@@ -147,6 +148,7 @@ def main():
 
     # Disable SQLAlchemy echo to reduce verbose SQL logging in production runs
     engine = init_database(database_url, echo=False)
+    ensure_crawler_schema(engine)
 
     # Create tables if they don't exist
     Base.metadata.create_all(engine)
