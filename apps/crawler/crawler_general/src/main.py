@@ -173,12 +173,39 @@ def main():
         return urljoin(normalized_base, normalized_node_path)
 
     try:
-        # Create a new FTPDiscoveryRun for this crawl
-        ftp_run = FTPDiscoveryRun(
+        # Determine db_name for this run: prefer the explicit CRAWL_DB_NAME
+        # environment variable (set via the Workflow parameter). If not
+        # provided, derive a short, safe name from the FTP URL hostname/path
+        # so downstream downloaders can use it as a prefix.
+        crawl_db_name = os.getenv("CRAWL_DB_NAME")
+        if not crawl_db_name:
+            from urllib.parse import urlparse
+            import re
+
+            parsed = urlparse(ftp_url)
+            candidate = parsed.netloc or parsed.path.lstrip("/").split("/")[0] or "crawl"
+            # sanitize: keep alphanumerics and replace others with '-'
+            crawl_db_name = re.sub(r"[^A-Za-z0-9]+", "-", candidate).strip("-")[:255]
+            if not crawl_db_name:
+                crawl_db_name = "crawl"
+
+        # Create a new FTPDiscoveryRun for this crawl and persist the db_name.
+        # Be tolerant of test stubs or older model constructors that may not
+        # accept `db_name` as a constructor argument.
+        params = dict(
             ftp_url=ftp_url,
             max_depth=ftp_max_depth,
             started_at=datetime.now(timezone.utc),
         )
+        try:
+            ftp_run = FTPDiscoveryRun(**{**params, "db_name": crawl_db_name})
+        except TypeError:
+            ftp_run = FTPDiscoveryRun(**params)
+            try:
+                setattr(ftp_run, "db_name", crawl_db_name)
+            except Exception:
+                # Non-critical: continue without db_name if assignment fails
+                pass
         session.add(ftp_run)
         session.flush()  # Get the ID before adding entries
 
