@@ -179,7 +179,6 @@ def main():
         # so downstream downloaders can use it as a prefix.
         crawl_db_name = os.getenv("CRAWL_DB_NAME")
         if not crawl_db_name:
-            from urllib.parse import urlparse
             import re
 
             parsed = urlparse(ftp_url)
