@@ -5,6 +5,8 @@ from collections import defaultdict
 from pathlib import Path
 from urllib.parse import urlparse
 from urllib.request import urlopen
+from urllib.error import HTTPError, URLError
+import socket
 
 from dotenv import load_dotenv
 from crawler_common.queue import consume_download_urls
@@ -330,6 +332,56 @@ def main() -> None:
             download_dir.mkdir(parents=True, exist_ok=True)
 
             logger.info(f"Starting download: {download_url} -> {destination}")
+            try:
+                with urlopen(download_url, timeout=timeout_seconds) as response:
+                    pass
+            except HTTPError as he:
+                # Treat common client-side HTTP errors (forbidden/not found)
+                code = getattr(he, "code", None)
+                if code in (401, 403, 404):
+                    logger.warning(
+                        "HTTP error %s for %s; uploading debug marker and marking as downloaded",
+                        code,
+                        download_url,
+                    )
+                    try:
+                        upload_dummy_marker(download_url, 0, ftp_run_id=ftp_run_id)
+                    except Exception:
+                        logger.exception("Failed uploading debug marker for HTTP error")
+
+                    # Mark DB entry as downloaded (best-effort)
+                    try:
+                        path_key = _path_key_from_url(urlparse(download_url))
+                        if path_key:
+                            run_id_int = _to_int_or_none(ftp_run_id)
+                            if run_id_int is not None:
+                                if not _mark_entry_by_run(run_id_int, path_key):
+                                    _mark_entry_fallback(path_key)
+                            else:
+                                _mark_entry_fallback(path_key)
+                    except Exception:
+                        logger.exception("Failed to mark FTP discovery entry after HTTP error")
+
+                    # Count towards per-folder cap as we uploaded a marker
+                    if debug_max_files_per_folder > 0:
+                        folder_download_counts[folder_key] = folder_download_counts.get(folder_key, 0) + 1
+                        logger.debug(
+                            "Per-folder increment (marker): folder='%s' new_count=%s",
+                            folder_key,
+                            folder_download_counts[folder_key],
+                        )
+                    return
+                # Re-raise other HTTP errors to allow retry/requeue
+                raise
+            except URLError as ue:
+                # Network/DNS errors — don't mark as downloaded; re-raise to requeue
+                logger.error("Network error fetching %s: %s", download_url, ue)
+                raise
+            except socket.gaierror as se:
+                logger.error("DNS resolution error for %s: %s", download_url, se)
+                raise
+
+            # If we reach here, urlopen succeeded — re-open and process response
             with urlopen(download_url, timeout=timeout_seconds) as response:
                 content_length_header = response.headers.get("Content-Length")
                 file_size_bytes = (
