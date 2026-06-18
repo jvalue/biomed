@@ -211,9 +211,15 @@ def main() -> None:
             normalized_source = source_path
             if db_prefix and normalized_source.startswith(f"{db_prefix}/"):
                 normalized_source = normalized_source[len(db_prefix) + 1 :]
-            # Always place files under the upload prefix so keys look like
-            # <s3_upload_prefix>/<maybe-run-prefix/...>/file
-            object_key = f"{s3_upload_prefix}/{normalized_source}"
+            # Always place files under the upload prefix. If a crawl DB name
+            # (db_prefix) is configured, include it as an extra path segment
+            # so keys look like <s3_upload_prefix>/<db_prefix>/.../file
+            key_parts = [s3_upload_prefix]
+            if db_prefix:
+                key_parts.append(db_prefix)
+            if normalized_source:
+                key_parts.append(normalized_source)
+            object_key = "/".join(p.strip("/") for p in key_parts if p)
             file_size = source_file.stat().st_size
 
             logger.debug(f"Uploading file to S3: {object_key} ({file_size} bytes)")
@@ -270,8 +276,14 @@ def main() -> None:
             normalized_source = source_path
             if db_prefix and normalized_source.startswith(f"{db_prefix}/"):
                 normalized_source = normalized_source[len(db_prefix) + 1 :]
-            # Always place debug markers under the debug prefix
-            object_key = f"{s3_debug_prefix}/{normalized_source}.txt"
+            # Always place debug markers under the debug prefix. Include the
+            # crawl DB name when available so markers mirror uploaded object
+            # locations.
+            marker_parts = [s3_debug_prefix]
+            if db_prefix:
+                marker_parts.append(db_prefix)
+            marker_parts.append(f"{normalized_source}.txt")
+            object_key = "/".join(p.strip("/") for p in marker_parts if p)
             body = (
                 "debug large file mode: original file skipped\n"
                 f"url={download_url}\n"
