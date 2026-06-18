@@ -66,9 +66,8 @@ def main() -> None:
         os.getenv("DOWNLOAD_DEBUG_MAX_FILES_PER_FOLDER"),
         0,
     )
-    # How many leading path segments to consider when grouping folders
-    # for the debug per-folder cap. Set to 1 to group by top-level (e.g. "1000genomes").
-    debug_folder_depth = as_int(os.getenv("DOWNLOAD_DEBUG_FOLDER_DEPTH"), 1)
+    # Grouping for the per-folder cap: use the full parent folder path
+    # (per-sub-folder behavior). We no longer support truncating by depth.
     download_chunk_size_bytes = int(
         os.getenv("DOWNLOAD_CHUNK_SIZE_BYTES", str(8 * 1024 * 1024))
     )
@@ -103,13 +102,7 @@ def main() -> None:
 
     def _folder_key_from_url(parsed) -> str:
         folder_path = Path(parsed.path).parent.as_posix().lstrip("/")
-        if not folder_path:
-            return "/"
-        if debug_folder_depth <= 0:
-            return folder_path or "/"
-        parts = folder_path.split("/")
-        key = "/".join(parts[:debug_folder_depth])
-        return key or "/"
+        return folder_path or "/"
 
     def _to_int_or_none(val: object) -> int | None:
         try:
