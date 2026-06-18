@@ -204,10 +204,13 @@ def main() -> None:
             # Determine db prefix (run-specific or env default)
             run_id_int = _to_int_or_none(ftp_run_id)
             db_prefix = _get_db_name_from_run_id(run_id_int) if run_id_int is not None else os.getenv("CRAWL_DB_NAME", "")
-            if db_prefix:
-                object_key = f"{db_prefix}/{s3_upload_prefix}/{source_path}"
-            else:
-                object_key = f"{s3_upload_prefix}/{source_path}"
+            # If the source_path already starts with the db_prefix, avoid duplicating it
+            normalized_source = source_path
+            if db_prefix and normalized_source.startswith(f"{db_prefix}/"):
+                normalized_source = normalized_source[len(db_prefix) + 1 :]
+            # Always place files under the upload prefix so keys look like
+            # <s3_upload_prefix>/<maybe-run-prefix/...>/file
+            object_key = f"{s3_upload_prefix}/{normalized_source}"
             file_size = source_file.stat().st_size
 
             logger.debug(f"Uploading file to S3: {object_key} ({file_size} bytes)")
@@ -260,10 +263,12 @@ def main() -> None:
             # Determine db prefix (run-specific or env default)
             run_id_int = _to_int_or_none(ftp_run_id)
             db_prefix = _get_db_name_from_run_id(run_id_int) if run_id_int is not None else os.getenv("CRAWL_DB_NAME", "")
-            if db_prefix:
-                object_key = f"{db_prefix}/{s3_debug_prefix}/{source_path}.txt"
-            else:
-                object_key = f"{s3_debug_prefix}/{source_path}.txt"
+            # If the source_path already starts with the db_prefix, avoid duplicating it
+            normalized_source = source_path
+            if db_prefix and normalized_source.startswith(f"{db_prefix}/"):
+                normalized_source = normalized_source[len(db_prefix) + 1 :]
+            # Always place debug markers under the debug prefix
+            object_key = f"{s3_debug_prefix}/{normalized_source}.txt"
             body = (
                 "debug large file mode: original file skipped\n"
                 f"url={download_url}\n"
