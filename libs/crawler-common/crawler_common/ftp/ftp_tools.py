@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import ftplib
 import logging
+import time
 from collections.abc import Iterator
 from datetime import datetime, timezone
 from pathlib import Path
@@ -169,7 +170,55 @@ def _open_ftp_connection(
         ftp = ftplib.FTP(host)
 
     ftp.login(ftp_user, ftp_password)
+
+    # Store reconnect information on the FTP object so callers can attempt
+    # to recover from broken control connections (BrokenPipeError, resets).
+    try:
+        ftp._reconnect_info = {"host": host, "port": port, "user": ftp_user, "passwd": ftp_password}
+    except Exception:
+        # Non-fatal; best-effort only.
+        pass
+
     return ftp, initial_path
+
+
+def _reconnect_ftp(ftp: ftplib.FTP, retries: int = 2, delay: float = 1.0) -> bool:
+    """Attempt to reconnect the given FTP object using stored reconnect info.
+
+    Returns True on success, False otherwise.
+    """
+    info = getattr(ftp, "_reconnect_info", None)
+    if not info:
+        logger.debug("No reconnect info available on FTP object")
+        return False
+
+    host = info.get("host")
+    port = info.get("port")
+    user = info.get("user")
+    passwd = info.get("passwd")
+
+    for attempt in range(1, retries + 1):
+        try:
+            try:
+                ftp.close()
+            except Exception:
+                # best-effort close
+                pass
+
+            if port:
+                ftp.connect(host, port, timeout=30)
+            else:
+                ftp.connect(host, timeout=30)
+            ftp.login(user, passwd)
+            logger.debug("Reconnected FTP on attempt %d", attempt)
+            return True
+        except Exception as exc:
+            logger.debug("FTP reconnect attempt %d failed: %s", attempt, exc)
+            if attempt < retries:
+                time.sleep(delay)
+
+    logger.debug("All FTP reconnect attempts failed")
+    return False
 
 
 def _traverse_ftp(
@@ -217,6 +266,14 @@ def _list_entries(
         logger.debug(
             "EOFError from MLSD on %s: falling back to NLST/LIST", current_path
         )
+    except BrokenPipeError as exc:
+        # Broken control connection; attempt to reconnect and retry MLSD once.
+        logger.debug("BrokenPipeError during MLSD on %s: %s", current_path, exc)
+        if _reconnect_ftp(ftp):
+            try:
+                return _mlsd_listing(ftp, current_path)
+            except Exception as exc2:
+                logger.exception("Retry after reconnect failed for %s: %s", current_path, exc2)
     except ftplib.all_errors as exc:  # pragma: no cover - network dependent
         logger.exception(f"Error traversing {current_path}: {exc}")
 
@@ -228,6 +285,21 @@ def _list_entries(
         )
         return entries
     except Exception as fallback_exc:
+        # If the fallback failed due to a broken pipe, try reconnecting once
+        if isinstance(fallback_exc, BrokenPipeError):
+            logger.debug("Broken pipe during NLST fallback on %s: %s", current_path, fallback_exc)
+            if _reconnect_ftp(ftp):
+                try:
+                    entries = _nlst_fallback(ftp)
+                    logger.debug(
+                        "Found %d entries in %s using NLST fallback after reconnect", len(entries), current_path
+                    )
+                    return entries
+                except Exception as fallback_exc2:
+                    logger.exception(
+                        "Fallback after reconnect failed for %s: %s", current_path, fallback_exc2
+                    )
+
         logger.exception(
             "Fallback listing failed for %s: %s", current_path, fallback_exc
         )

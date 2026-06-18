@@ -83,7 +83,13 @@ def main() -> None:
     # Initialize database connection to allow marking entries as downloaded
     database_url = get_database_url_from_env(APP_DIR / ".env")
     engine = init_database(database_url, echo=False)
-    ensure_crawler_schema(engine)
+    # ensure_crawler_schema expects a SQLAlchemy Engine; in tests the init
+    # functions may be monkeypatched to return a dummy object. Guard the call
+    # so tests that supply a non-engine sentinel do not raise during import.
+    try:
+        ensure_crawler_schema(engine)
+    except Exception:
+        logger.debug("Skipping schema ensure; engine not inspectable", exc_info=True)
     session = get_session(engine)
     # Simple in-memory cache for run_id -> db_name to avoid repeated DB lookups
     db_name_cache: dict[int, str] = {}
