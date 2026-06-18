@@ -66,6 +66,9 @@ def main() -> None:
         os.getenv("DOWNLOAD_DEBUG_MAX_FILES_PER_FOLDER"),
         0,
     )
+    # How many leading path segments to consider when grouping folders
+    # for the debug per-folder cap. Set to 1 to group by top-level (e.g. "1000genomes").
+    debug_folder_depth = as_int(os.getenv("DOWNLOAD_DEBUG_FOLDER_DEPTH"), 1)
     download_chunk_size_bytes = int(
         os.getenv("DOWNLOAD_CHUNK_SIZE_BYTES", str(8 * 1024 * 1024))
     )
@@ -100,13 +103,20 @@ def main() -> None:
 
     def _folder_key_from_url(parsed) -> str:
         folder_path = Path(parsed.path).parent.as_posix().lstrip("/")
-        return folder_path or "/"
+        if not folder_path:
+            return "/"
+        if debug_folder_depth <= 0:
+            return folder_path or "/"
+        parts = folder_path.split("/")
+        key = "/".join(parts[:debug_folder_depth])
+        return key or "/"
 
     def _to_int_or_none(val: object) -> int | None:
         try:
             return int(val)
         except Exception:
             return None
+    
     
     def _get_db_name_from_run_id(run_id: int) -> str:
         # Use cached value if available
@@ -294,16 +304,21 @@ def main() -> None:
             parsed = urlparse(download_url)
             folder_key = _folder_key_from_url(parsed)
             if debug_max_files_per_folder > 0:
-                current_folder_count = folder_download_counts[folder_key]
-                if current_folder_count >= debug_max_files_per_folder:
-                    logger.info(
-                        "Skipping download for %s because folder '%s' reached the debug cap of %s files",
-                        download_url,
+                    current_folder_count = folder_download_counts[folder_key]
+                    logger.debug(
+                        "Per-folder check: folder='%s' count=%s cap=%s",
                         folder_key,
+                        current_folder_count,
                         debug_max_files_per_folder,
                     )
-                    return
-                folder_download_counts[folder_key] = current_folder_count + 1
+                    if current_folder_count >= debug_max_files_per_folder:
+                        logger.info(
+                            "Skipping download for %s because folder '%s' reached the debug cap of %s files",
+                            download_url,
+                            folder_key,
+                            debug_max_files_per_folder,
+                        )
+                        return
 
             file_name = Path(parsed.path).name or "downloaded-file"
             destination = download_dir / file_name
@@ -358,6 +373,14 @@ def main() -> None:
 
             logger.info(f"Download completed: {downloaded_bytes} bytes saved to {destination}")
             upload_file_to_s3(download_url, destination, ftp_run_id=ftp_run_id)
+            # Only count successful uploads toward the per-folder debug cap
+            if debug_max_files_per_folder > 0:
+                folder_download_counts[folder_key] = folder_download_counts.get(folder_key, 0) + 1
+                logger.debug(
+                    "Per-folder increment: folder='%s' new_count=%s",
+                    folder_key,
+                    folder_download_counts[folder_key],
+                )
             logger.info(f"Successfully processed: {download_url}")
             # Mark corresponding FTP discovery entry as downloaded (best-effort)
             try:
@@ -399,6 +422,33 @@ def main() -> None:
             )
         
         logger.info(f"Consuming messages from queue '{rabbitmq_queue}' from {rabbitmq_url}")
+        # Local dry-run mode for testing without RabbitMQ. Set `DRY_RUN_URLS`
+        # to a comma-separated list of URLs or set `DRY_RUN_FILE` to a file
+        # path containing one URL per line. Useful for local runs.
+        dry_run_urls = os.getenv("DRY_RUN_URLS")
+        dry_run_file = os.getenv("DRY_RUN_FILE")
+        if dry_run_urls or dry_run_file:
+            urls: list[str] = []
+            if dry_run_urls:
+                urls.extend([u.strip() for u in dry_run_urls.split(",") if u.strip()])
+            if dry_run_file:
+                try:
+                    with open(dry_run_file, "r", encoding="utf-8") as f:
+                        for line in f:
+                            v = line.strip()
+                            if v:
+                                urls.append(v)
+                except Exception:
+                    logger.exception(f"Failed to read DRY_RUN_FILE={dry_run_file}")
+
+            logger.info(f"DRY RUN: processing {len(urls)} URLs locally")
+            for u in urls:
+                try:
+                    handle_download_url(u)
+                except Exception:
+                    logger.exception(f"DRY RUN: failed processing {u}")
+            return
+
         consume_download_urls(
             rabbitmq_url=rabbitmq_url,
             queue_name=rabbitmq_queue,
