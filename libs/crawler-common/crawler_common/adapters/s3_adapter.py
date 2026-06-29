@@ -1,7 +1,7 @@
 """Example S3 adapter implementing the SourceAdapter protocol.
 
 This is a small, example adapter that lists objects in a bucket (optionally
-under a prefix) and yields `FTPNode` instances for each object.
+under a prefix) and yields `SourceNode` instances for each object.
 """
 from __future__ import annotations
 
@@ -9,7 +9,6 @@ from pathlib import Path
 from collections.abc import Iterator
 from typing import Tuple
 
-from crawler_common.source_adapter import SourceAdapter
 from crawler_common.ftp.ftp_node import SourceNode
 from crawler_common.s3.client import create_s3_client
 
@@ -25,7 +24,7 @@ class S3Adapter:
     def list_roots(self) -> list[str]:
         return [self.bucket]
 
-    def iter_nodes(self, root: str | None = None, max_depth: int = 3) -> Iterator[Tuple[FTPNode, int]]:
+    def iter_nodes(self, root: str | None = None, max_depth: int = 3) -> Iterator[Tuple[SourceNode, int]]:
         paginator = self.client.list_objects_v2(Bucket=self.bucket, Prefix=self.prefix)
         contents = paginator.get("Contents", [])
         for obj in contents:
@@ -37,7 +36,7 @@ class S3Adapter:
             depth = path.count("/")  # rough depth measure
             yield node, depth
 
-    def download(self, node: FTPNode, dest: Path) -> bool:
+    def download(self, node: SourceNode, dest: Path) -> bool:
         try:
             resp = self.client.get_object(Bucket=self.bucket, Key=node.path.lstrip("/"))
             data = resp["Body"].read()
@@ -83,6 +82,6 @@ class S3Adapter:
         except Exception:
             return False
 
-    def fetch_metadata(self, node: FTPNode) -> FTPNode:
+    def fetch_metadata(self, node: SourceNode) -> SourceNode:
         # No-op for example adapter
         return node

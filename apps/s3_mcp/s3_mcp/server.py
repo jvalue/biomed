@@ -217,14 +217,10 @@ class S3BucketService:
         )
 
     def _prefix_matches(self, candidate: str, allowed_prefix: str) -> bool:
-        if not candidate:
-            return True
+        if not candidate or not allowed_prefix:
+            return False
 
-        return (
-            candidate == allowed_prefix
-            or candidate.startswith(allowed_prefix)
-            or allowed_prefix.startswith(candidate)
-        )
+        return candidate.startswith(allowed_prefix)
 
     def _looks_like_text(self, content_type: str, payload: bytes) -> bool:
         if any(content_type.startswith(prefix) for prefix in TEXT_CONTENT_TYPES):

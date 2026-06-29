@@ -82,6 +82,28 @@ def test_list_objects_returns_keys_and_resource_uris() -> None:
     assert result["objects"][0]["resource_uri"] == "s3://bucket/documents%2Freport.txt"
 
 
+def test_prefix_allowlist_blocks_empty_listing_prefix() -> None:
+    service = make_service(("documents/",))
+
+    try:
+        service.list_objects(prefix="")
+    except PermissionError as exc:
+        assert "S3_ALLOWED_PREFIXES" in str(exc)
+    else:
+        raise AssertionError("Expected PermissionError")
+
+
+def test_prefix_allowlist_blocks_short_non_matching_prefix() -> None:
+    service = make_service(("documents/",))
+
+    try:
+        service.list_objects(prefix="doc")
+    except PermissionError as exc:
+        assert "S3_ALLOWED_PREFIXES" in str(exc)
+    else:
+        raise AssertionError("Expected PermissionError")
+
+
 def test_read_object_returns_text_or_binary() -> None:
     service = make_service()
 
