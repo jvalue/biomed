@@ -78,3 +78,4 @@ vitest.config.*.timestamp*
 .coverage
 progress.txt
 .github/workflows/biomed.code-workspace
+.github/copilot-instructions.md

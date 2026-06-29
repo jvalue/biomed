@@ -45,6 +45,8 @@ The `crawler_general` app loads credentials from `apps/crawler/crawler_general/.
 
 For `downloader_general`, copy `apps/crawler/downloader_general/.env.example` to `apps/crawler/downloader_general/.env` for local RabbitMQ consumer settings.
 
+Set `DOWNLOAD_DEBUG_MAX_FILES_PER_FOLDER` to a positive integer to make the downloader skip files after it has processed that many items from the same folder path. This is useful when you want a representative sample without pulling an entire directory tree.
+
 `crawler_general` publishes discovered file download URLs into RabbitMQ (`RABBITMQ_QUEUE`), and `downloader_general` consumes that queue and downloads the files locally.
 For `crawler_dummy`, create `apps/crawler/crawler_dummy/.env.docker` (you can copy `.env.docker.example`) with:
 
