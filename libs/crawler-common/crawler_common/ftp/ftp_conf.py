@@ -27,7 +27,7 @@ def _load_env(dotenv_path: Path | str | None) -> None:
         load_dotenv(dotenv_path=dotenv_path)
 
 
-def load_env_vars(dotenv_path: Path | str | None = None) -> tuple[str, str, str]:
+def load_env_vars(dotenv_path: Path | str | None = None) -> tuple[str, str, str, int]:
     """Load FTP credentials from environment variables.
 
     Args:
@@ -36,7 +36,7 @@ def load_env_vars(dotenv_path: Path | str | None = None) -> tuple[str, str, str]
             python-dotenv) is used.
 
     Returns:
-        Tuple of (ftp_url, ftp_user, ftp_password).
+        Tuple of (ftp_url, ftp_user, ftp_password, ftp_max_depth).
 
     Raises:
         ValueError: If any required variable is missing.
