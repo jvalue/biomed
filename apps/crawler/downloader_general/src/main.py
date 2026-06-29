@@ -311,21 +311,21 @@ def main() -> None:
             parsed = urlparse(download_url)
             folder_key = _folder_key_from_url(parsed)
             if debug_max_files_per_folder > 0:
-                    current_folder_count = folder_download_counts[folder_key]
-                    logger.debug(
-                        "Per-folder check: folder='%s' count=%s cap=%s",
+                current_folder_count = folder_download_counts[folder_key]
+                logger.debug(
+                    "Per-folder check: folder='%s' count=%s cap=%s",
+                    folder_key,
+                    current_folder_count,
+                    debug_max_files_per_folder,
+                )
+                if current_folder_count >= debug_max_files_per_folder:
+                    logger.info(
+                        "Skipping download for %s because folder '%s' reached the debug cap of %s files",
+                        download_url,
                         folder_key,
-                        current_folder_count,
                         debug_max_files_per_folder,
                     )
-                    if current_folder_count >= debug_max_files_per_folder:
-                        logger.info(
-                            "Skipping download for %s because folder '%s' reached the debug cap of %s files",
-                            download_url,
-                            folder_key,
-                            debug_max_files_per_folder,
-                        )
-                        return
+                    return
 
             file_name = Path(parsed.path).name or "downloaded-file"
             destination = download_dir / file_name
@@ -334,9 +334,54 @@ def main() -> None:
             logger.info(f"Starting download: {download_url} -> {destination}")
             try:
                 with urlopen(download_url, timeout=timeout_seconds) as response:
-                    pass
+                    content_length_header = response.headers.get("Content-Length")
+                    file_size_bytes = (
+                        int(content_length_header) if content_length_header else None
+                    )
+
+                    if file_size_bytes:
+                        file_size_mb = file_size_bytes / (1024 * 1024)
+                        logger.debug(f"File size: {file_size_mb:.2f} MB ({file_size_bytes} bytes)")
+
+                    if (
+                        debug_large_file_mode
+                        and file_size_bytes is not None
+                        and file_size_bytes > debug_large_file_threshold_bytes
+                    ):
+                        logger.warning(
+                            f"File exceeds debug threshold ({file_size_bytes / (1024 * 1024):.2f} MB), "
+                            f"uploading dummy marker instead"
+                        )
+                        upload_dummy_marker(download_url, file_size_bytes, ftp_run_id=ftp_run_id)
+                        return
+
+                    downloaded_bytes = 0
+                    with destination.open("wb") as destination_file:
+                        while True:
+                            chunk = response.read(download_chunk_size_bytes)
+                            if not chunk:
+                                break
+
+                            downloaded_bytes += len(chunk)
+
+                            if (
+                                debug_large_file_mode
+                                and downloaded_bytes > debug_large_file_threshold_bytes
+                            ):
+                                destination_file.close()
+                                destination.unlink(missing_ok=True)
+                                logger.warning(
+                                    f"Download exceeded debug threshold during streaming "
+                                    f"({downloaded_bytes / (1024 * 1024):.2f} MB), uploading dummy marker instead"
+                                )
+                                upload_dummy_marker(download_url, downloaded_bytes, ftp_run_id=ftp_run_id)
+                                return
+
+                            destination_file.write(chunk)
+
             except HTTPError as he:
                 # Treat common client-side HTTP errors (forbidden/not found)
+                # as handled downloads by uploading a marker instead.
                 code = getattr(he, "code", None)
                 if code in (401, 403, 404):
                     logger.warning(
@@ -380,53 +425,6 @@ def main() -> None:
             except socket.gaierror as se:
                 logger.error("DNS resolution error for %s: %s", download_url, se)
                 raise
-
-            # If we reach here, urlopen succeeded — re-open and process response
-            with urlopen(download_url, timeout=timeout_seconds) as response:
-                content_length_header = response.headers.get("Content-Length")
-                file_size_bytes = (
-                    int(content_length_header) if content_length_header else None
-                )
-                
-                if file_size_bytes:
-                    file_size_mb = file_size_bytes / (1024 * 1024)
-                    logger.debug(f"File size: {file_size_mb:.2f} MB ({file_size_bytes} bytes)")
-
-                if (
-                    debug_large_file_mode
-                    and file_size_bytes is not None
-                    and file_size_bytes > debug_large_file_threshold_bytes
-                ):
-                    logger.warning(
-                        f"File exceeds debug threshold ({file_size_bytes / (1024 * 1024):.2f} MB), "
-                        f"uploading dummy marker instead"
-                    )
-                    upload_dummy_marker(download_url, file_size_bytes, ftp_run_id=ftp_run_id)
-                    return
-
-                downloaded_bytes = 0
-                with destination.open("wb") as destination_file:
-                    while True:
-                        chunk = response.read(download_chunk_size_bytes)
-                        if not chunk:
-                            break
-
-                        downloaded_bytes += len(chunk)
-
-                        if (
-                            debug_large_file_mode
-                            and downloaded_bytes > debug_large_file_threshold_bytes
-                        ):
-                            destination_file.close()
-                            destination.unlink(missing_ok=True)
-                            logger.warning(
-                                f"Download exceeded debug threshold during streaming "
-                                f"({downloaded_bytes / (1024 * 1024):.2f} MB), uploading dummy marker instead"
-                            )
-                            upload_dummy_marker(download_url, downloaded_bytes, ftp_run_id=ftp_run_id)
-                            return
-
-                        destination_file.write(chunk)
 
             logger.info(f"Download completed: {downloaded_bytes} bytes saved to {destination}")
             upload_file_to_s3(download_url, destination, ftp_run_id=ftp_run_id)
