@@ -24,4 +24,6 @@ __all__ = [
     "set_engine",
 ]
 
+from crawler_common.database.database import create_sqlite_url  # noqa: F401
+
 __all__.append("create_sqlite_url")

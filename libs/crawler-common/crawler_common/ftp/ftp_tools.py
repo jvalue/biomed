@@ -279,7 +279,7 @@ def _list_entries(
 
     # Attempt a tolerant fallback using NLST and directory detection
     try:
-        entries = _nlst_fallback(ftp)
+        entries = _nlst_fallback(ftp, current_path)
         logger.debug(
             "Found %d entries in %s using NLST fallback", len(entries), current_path
         )
@@ -290,7 +290,7 @@ def _list_entries(
             logger.debug("Broken pipe during NLST fallback on %s: %s", current_path, fallback_exc)
             if _reconnect_ftp(ftp):
                 try:
-                    entries = _nlst_fallback(ftp)
+                    entries = _nlst_fallback(ftp, current_path)
                     logger.debug(
                         "Found %d entries in %s using NLST fallback after reconnect", len(entries), current_path
                     )
@@ -317,9 +317,18 @@ def _mlsd_listing(ftp: ftplib.FTP, current_path: str) -> list[tuple[str, dict]]:
     return entries
 
 
-def _nlst_fallback(ftp: ftplib.FTP) -> list[tuple[str, dict]]:
+def _nlst_fallback(ftp: ftplib.FTP, current_path: str) -> list[tuple[str, dict]]:
     """NLST-based fallback listing that best-effort detects directories."""
-    names = ftp.nlst()
+    previous_path = ftp.pwd()
+    try:
+        ftp.cwd(current_path)
+        names = ftp.nlst()
+    finally:
+        try:
+            ftp.cwd(previous_path)
+        except Exception:
+            pass
+
     entries: list[tuple[str, dict]] = []
     for name in names:
         if name in {".", ".."}:

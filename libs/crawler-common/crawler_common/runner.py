@@ -32,7 +32,7 @@ class CrawlerRunner:
         For non-slash paths (e.g. S3 keys) a leading slash is inserted for
         consistent parent lookup.
         """
-        node_map: Dict[str, FTPNode] = {}
+        node_map: Dict[str, SourceNode] = {}
 
         def normalize_path(p: str) -> str:
             return p if p.startswith("/") else f"/{p}"

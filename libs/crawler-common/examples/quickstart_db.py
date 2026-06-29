@@ -8,10 +8,11 @@ Run with:
   python -m examples.quickstart_db
 """
 
+from crawler_common.ftp.ftp_node import SourceNode
 from crawler_common.database import init_database, get_session
-from crawler_common.models.db import Base
 from crawler_common.database.database import insert_ftp_nodes_to_database
-from crawler_common.ftp.ftp_node import FTPNode
+from crawler_common.models.db import Base
+from sqlalchemy import text
 
 
 def main() -> None:  # pragma: no cover - example
@@ -22,9 +23,9 @@ def main() -> None:  # pragma: no cover - example
     session = get_session(engine)
 
     # Build a tiny FTP tree
-    root = FTPNode(name="/", is_dir=True, path="/")
-    sub = FTPNode(name="a", is_dir=True, path="/a")
-    file1 = FTPNode(name="file1.txt", is_dir=False, path="/a/file1.txt", size=123)
+    root = SourceNode(name="/", is_dir=True, path="/")
+    sub = SourceNode(name="a", is_dir=True, path="/a")
+    file1 = SourceNode(name="file1.txt", is_dir=False, path="/a/file1.txt", size=123)
     sub.children.append(file1)
     root.children.append(sub)
 
@@ -32,7 +33,7 @@ def main() -> None:  # pragma: no cover - example
     session.commit()
 
     # Inspect rows
-    rows = session.execute("SELECT path, depth FROM ftp_discovery_entries").fetchall()
+    rows = session.execute(text("SELECT path, depth FROM ftp_discovery_entries")).fetchall()
     for path, depth in rows:
         print(path, depth)
 
