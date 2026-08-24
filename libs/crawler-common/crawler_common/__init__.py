@@ -8,6 +8,15 @@ from crawler_common.ftp.ftp_tools import get_ftp_structure, get_root_folders
 from crawler_common.ftp.ftp_node import FTPNode, SourceNode
 from crawler_common.http_client import HttpClient
 from crawler_common.models.api import CrawlRequest, CrawlResponse
+from crawler_common.xmlschema import (
+    ColumnSpec,
+    SchemaPlan,
+    TableSpec,
+    build_sqlalchemy_metadata,
+    create_sqlalchemy_schema,
+    parse_xsd_schema,
+    stream_xml_to_database,
+)
 
 __all__ = [
     "HttpClient",
@@ -21,4 +30,11 @@ __all__ = [
     "SourceAdapter",
     "CrawlerRunner",
     "S3Adapter",
+    "ColumnSpec",
+    "SchemaPlan",
+    "TableSpec",
+    "build_sqlalchemy_metadata",
+    "create_sqlalchemy_schema",
+    "parse_xsd_schema",
+    "stream_xml_to_database",
 ]

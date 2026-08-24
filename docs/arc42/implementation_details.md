@@ -419,6 +419,107 @@ configurations is executed efficiently straight on the database level through op
 fetch all runs directly into the container's memory first.
 Lastly, an endpoint retrieves all recorded events belonging to a designated run.
 
+### 10.1.12 XML Data Model Proposal
+
+The XSD-to-Postgres generator in `xml_ingestor` is best treated as a landing layer, not as the final serving model. A more NCBI-like design keeps the raw XML source, extracts stable business entities into curated tables, and builds read-optimized projections on top.
+
+```mermaid
+flowchart LR
+	A[Source XML + XSD snapshot] --> B[Landing tables from XML ingest]
+	B --> C[Curated relational core]
+	C --> D[Query views / API projections]
+	C --> E[Search and indexing layer]
+```
+
+#### Layer 1: Source Archive
+
+The first layer stores the original input for replay and auditability.
+
+- `source_document`: one row per XML file, with checksum, source URI, schema name, schema version, load time, and parser version.
+- `schema_snapshot`: the resolved XSD set used for a load, including includes and imports.
+- `ingest_batch`: the execution unit for one import run, with status, started/finished timestamps, and record counts.
+
+#### Layer 2: Landing Tables
+
+The generated tables from the XML parser remain useful as a durable landing zone for complex or sparse structures, but they should not be the primary API surface.
+
+- One landing table per important XML subtree.
+- Repeating groups stay normalized into child landing tables.
+- XML attributes become columns in the same landing table.
+- Raw XML fragments can be retained for fields that are too flexible to flatten safely.
+
+#### Layer 3: Curated Core Tables
+
+The curated schema should use stable biological concepts and accession-based identifiers rather than path-derived names.
+
+- `project`: the central project record, keyed by a stable accession.
+- `project_identifier`: archive-specific identifiers such as NCBI, EMBL, or DDBJ accessions.
+- `project_type`: normalized project classification and subtype.
+- `project_publication`: relation table between projects and publications.
+- `publication`: bibliographic record with title, journal, year, DOI, PMID, and status.
+- `publication_author`: ordered many-to-many relation between publications and authors.
+- `author`: normalized person or consortium record.
+- `organism`: organism-level entity with taxonomy and lineage information.
+- `project_organism`: link table for project-to-organism relations when the source model allows multiple organisms.
+- `sample`: the biological sample or target entity used in the experiment.
+- `replicon`: chromosome, plasmid, or other replicon-level object.
+- `replicon_part`: child rows for repeating or nested replicon details.
+- `xref`: external database references and internal cross references.
+- `controlled_term`: curated vocabulary values such as sample scope, material, capture, and phenotype categories.
+
+#### Layer 4: Serving Projections
+
+For application queries, the curated core should be exposed through projections instead of direct table scans.
+
+- materialized views for common lookup patterns
+- API-facing DTO projections for nested read models
+- denormalized search documents for full-text search and faceted queries
+
+#### Design Rules
+
+The proposal follows a few rules that match the way large biological archives are usually structured:
+
+1. Stable identifiers come from the domain, not from the XML path.
+2. Repeated groups are modeled as child rows, not as repeated columns.
+3. Source provenance is preserved end to end.
+4. Curated tables are optimized for serving and joining, not for mirroring every XML branch.
+5. The landing layer can be regenerated without losing the curated core.
+
+This keeps the parser useful for loading NCBI-like data while avoiding a database that is permanently tied to the shape of one XSD file.
+
+#### Domain-Agnostic First Pass
+
+If the domain is still not well understood, the first serving layer should stay intentionally generic. The goal is to make the data queryable without pretending to know which structures are biologically important yet.
+
+The initial projections can stay close to the source and use neutral names:
+
+- `source_document`: the original XML document and its metadata.
+- `entity`: one row per meaningful XML node or repeatable subtree.
+- `entity_attribute`: flattened attributes and scalar child values.
+- `relation`: parent-child or cross-reference links between entities.
+- `identifier`: accession-like values, external IDs, and local IDs.
+- `reference`: titles, URLs, citations, and other lookup-friendly references.
+- `controlled_value`: enumerations, vocabulary values, and code-like fields.
+- `load_batch`: import execution metadata and provenance.
+
+This model is intentionally conservative. It gives you three useful properties:
+
+1. You can serve and search the data before the domain model is finalized.
+2. You can rename or split projections later without losing the raw landing data.
+3. You avoid encoding wrong biological assumptions into the database too early.
+
+#### Promotion Rules
+
+Generic projections should only be promoted into named domain tables when at least one of the following becomes true:
+
+- The same subtree appears in many records and is used in queries.
+- The data represents a stable real-world concept rather than just XML structure.
+- The field is used as a join key, accession, or external reference.
+- The group has a clear semantic meaning that experts recognize.
+- A user-facing API would otherwise have to expose an awkward generic shape.
+
+Until then, keep the data in the landing tables or in generic projections. In practice, this means the system can start with a neutral model and gradually evolve toward a curated model as the schema and usage patterns become clearer.
+
 ## 10.2 Management Frontend
 
 ### 10.2.1 Auth Context

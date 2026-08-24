@@ -105,7 +105,9 @@ class S3BucketService:
             MaxKeys=self._coerce_max_keys(max_keys),
         )
 
-        objects = [self._object_from_listing(item) for item in response.get("Contents", [])]
+        objects = [
+            self._object_from_listing(item) for item in response.get("Contents", [])
+        ]
         prefixes = [
             entry.get("Prefix", "")
             for entry in response.get("CommonPrefixes", [])
@@ -209,7 +211,10 @@ class S3BucketService:
         if not self._settings.allowed_prefixes:
             return
 
-        if any(self._prefix_matches(path, prefix) for prefix in self._settings.allowed_prefixes):
+        if any(
+            self._prefix_matches(path, prefix)
+            for prefix in self._settings.allowed_prefixes
+        ):
             return
 
         raise PermissionError(
@@ -280,4 +285,10 @@ def read_object(key: str) -> str | bytes:
 
 def run() -> None:
     transport = os.getenv("MCP_TRANSPORT", "stdio")
+    port_val = int(os.getenv("FASTMCP_PORT") or os.getenv("PORT") or "8000")
+    host_val = os.getenv("FASTMCP_HOST") or os.getenv("HOST") or "127.0.0.1"
+
+    mcp.settings.port = port_val
+    mcp.settings.host = host_val
+
     mcp.run(transport=transport)
