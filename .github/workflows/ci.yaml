@@ -8,6 +8,7 @@ on:
       - "libs/**"
       - ".github/workflows/**"
       - "pyproject.toml"
+      - "uv.lock"
       - "tsconfig.json"
       - "tsconfig.base.json"
       - "package.json"
@@ -26,6 +27,7 @@ on:
       - "libs/**"
       - ".github/workflows/**"
       - "pyproject.toml"
+      - "uv.lock"
       - "tsconfig.json"
       - "tsconfig.base.json"
       - "package.json"
@@ -64,6 +66,7 @@ jobs:
               - 'apps/crawler/**'
               - 'libs/crawler-common/**'
               - 'pyproject.toml'
+              - 'uv.lock'
             config:
               - '.github/workflows/**'
               - 'tsconfig.json'
