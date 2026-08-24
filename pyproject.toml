@@ -2,19 +2,21 @@
 requires = ["hatchling"]
 build-backend = "hatchling.build"
 
-[tool.uv.workspace]
-members = [
-    "libs/crawler-common",
-    "apps/crawler",
-    "apps/s3_mcp",
-]
-
-[tool.uv.sources]
-crawler-common = { workspace = true }
-
 [tool.mypy]
 python_version = "3.13"
 
 [[tool.mypy.overrides]]
 module = ["pika", "pika.*"]
 ignore_missing_imports = true
+
+[tool.uv.sources]
+crawler-common = { workspace = true }
+
+[tool.uv.workspace]
+members = [
+  "libs/crawler-common",
+  "apps/crawler",
+  "apps/postgres_mcp",
+  "apps/s3_mcp",
+  "apps/xml_ingestor",
+]

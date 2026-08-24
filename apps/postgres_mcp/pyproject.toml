@@ -1,0 +1,69 @@
+[tool.coverage.run]
+branch = true
+source = ["postgres_mcp"]
+
+[tool.coverage.report]
+exclude_lines = ["if TYPE_CHECKING:"]
+show_missing = true
+
+[tool.pytest.ini_options]
+addopts = "--cov=postgres_mcp --cov-report=term-missing"
+
+[project]
+name = "postgres-mcp"
+version = "0.1.0"
+description = "MCP server for browsing and querying the biomed PostgreSQL database"
+requires-python = ">=3.13"
+dependencies = [
+    "crawler-common",
+    "mcp[cli]>=1.0.0",
+    "psycopg2-binary>=2.9.9",
+    "python-dotenv>=1.0.0",
+    "sqlalchemy>=2.0.0",
+]
+
+[tool.hatch.build.targets.wheel]
+packages = ["postgres_mcp"]
+
+[tool.hatch.metadata]
+allow-direct-references = true
+
+[dependency-groups]
+dev = [
+  "autopep8>=2.3.1",
+  "ruff>=0.8.2",
+  "pytest>=8.3.4",
+  "pytest-sugar>=1.0.0",
+  "pytest-cov>=6.0.0",
+  "pytest-html>=4.1.1",
+]
+
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"
+
+[tool.ruff]
+exclude = [
+  ".ruff_cache",
+  ".svn",
+  ".tox",
+  ".venv",
+  "dist",
+]
+
+line-length = 88
+indent-width = 4
+
+[tool.ruff.lint]
+select = [
+  "E",
+  "F",
+  "UP",
+  "B",
+  "SIM",
+  "I",
+]
+ignore = []
+
+fixable = ["ALL"]
+unfixable = []
