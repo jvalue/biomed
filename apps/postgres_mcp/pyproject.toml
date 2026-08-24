@@ -16,7 +16,7 @@ description = "MCP server for browsing and querying the biomed PostgreSQL databa
 requires-python = ">=3.13"
 dependencies = [
     "crawler-common",
-    "mcp[cli]>=1.0.0",
+    "mcp[cli]>=1.0.0,<2",
     "psycopg2-binary>=2.9.9",
     "python-dotenv>=1.0.0",
     "sqlalchemy>=2.0.0",
