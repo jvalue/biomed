@@ -1235,7 +1235,6 @@ wheels = [
 ]
 
 [[package]]
->>>>>>> Stashed changes
 name = "typing-extensions"
 version = "4.15.0"
 source = { registry = "https://pypi.org/simple" }
