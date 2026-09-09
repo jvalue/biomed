@@ -1,4 +1,4 @@
-import { CoreV1Api } from '@kubernetes/client-node';
+import { AppsV1Api, CoreV1Api } from '@kubernetes/client-node';
 import { Injectable, Logger } from '@nestjs/common';
 import { HealthStatusEnum } from '../health/enum/healthStatus.enum';
 import { KubernetesAuthService } from './auth/kubernetes-auth.service';
@@ -7,10 +7,20 @@ import { KubernetesAuthService } from './auth/kubernetes-auth.service';
 export class KubernetesClientService {
 	private readonly logger = new Logger(KubernetesClientService.name);
 	private readonly coreV1: CoreV1Api;
+	private readonly appsV1: AppsV1Api;
 
 	constructor(kubernetesAuthService: KubernetesAuthService) {
-		// Get Kubernetes API Client from Auth Service
+		// Get Kubernetes API Clients from Auth Service
 		this.coreV1 = kubernetesAuthService.getApiClient();
+		this.appsV1 = kubernetesAuthService.getAppsApiClient();
+	}
+
+	getCoreV1(): CoreV1Api {
+		return this.coreV1;
+	}
+
+	getAppsV1(): AppsV1Api {
+		return this.appsV1;
 	}
 
 	/**
@@ -106,16 +116,16 @@ export class KubernetesClientService {
 					const phase = pod.status?.phase ?? 'N/A';
 					const conds =
 						pod.status?.conditions?.map((c) => {
-							const reasonPart = c.reason ? ' reason=' + c.reason : '';
-							return c.type + '=' + c.status + reasonPart;
+							const reasonPart = c.reason ? ` reason=${c.reason}` : '';
+							return `${c.type}=${c.status}${reasonPart}`;
 						}) ?? [];
 					const containerStatuses =
 						pod.status?.containerStatuses?.map((cs) => {
 							const waitingPart = cs.state?.waiting?.reason
-								? ' waiting=' + cs.state.waiting.reason
+								? ` waiting=${cs.state.waiting.reason}`
 								: '';
 							const terminatedPart = cs.state?.terminated?.reason
-								? ' terminated=' + cs.state.terminated.reason
+								? ` terminated=${cs.state.terminated.reason}`
 								: '';
 							return `${cs.name}:${cs.ready ? 'ready' : 'not-ready'}${waitingPart}${terminatedPart}`;
 						}) ?? [];

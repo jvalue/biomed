@@ -46,6 +46,13 @@ export class AbilityFactory {
 			[UserPermission.HEALTH_CREATE]: () => can('create', 'health'),
 			[UserPermission.HEALTH_UPDATE]: () => can('update', 'health'),
 			[UserPermission.HEALTH_DELETE]: () => can('delete', 'health'),
+
+			// Service Management Permissions
+			[UserPermission.SERVICE_CREATE]: () => can('create', 'service'),
+			[UserPermission.SERVICE_READ]: () => can('read', 'service'),
+			[UserPermission.SERVICE_UPDATE]: () => can('update', 'service'),
+			[UserPermission.SERVICE_DELETE]: () => can('delete', 'service'),
+			[UserPermission.SERVICE_ABORT]: () => can('abort', 'service'),
 		};
 
 		user.permissions?.forEach((permission) => {

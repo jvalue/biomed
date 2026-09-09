@@ -1,0 +1,14 @@
+.git
+.gitignore
+.nx
+.husky
+.pytest_cache
+.ruff_cache
+.tanstack
+.venv
+node_modules
+dist
+tmp
+coverage
+reports
+*.log
