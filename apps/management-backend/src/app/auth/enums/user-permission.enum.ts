@@ -33,4 +33,11 @@ export enum UserPermission {
 	HEALTH_CREATE = 'health:create',
 	HEALTH_UPDATE = 'health:update',
 	HEALTH_DELETE = 'health:delete',
+
+	// Service Management Permissions
+	SERVICE_CREATE = 'service:create',
+	SERVICE_READ = 'service:read',
+	SERVICE_UPDATE = 'service:update',
+	SERVICE_DELETE = 'service:delete',
+	SERVICE_ABORT = 'service:abort',
 }

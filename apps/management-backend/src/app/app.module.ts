@@ -18,6 +18,7 @@ import { ExceptionsInterceptor, RequestLoggingInterceptor } from './logging';
 import { CrawlerRunMetricsModule } from './metrics/crawler-run-metrics/crawler-run-metrics.module';
 import { OrchestratorSyncModule } from './orchestrator-sync/orchestrator-sync.module';
 import { SchedulesModule } from './schedules/schedules.module';
+import { ServicesModule } from './services/services.module';
 import { UsersModule } from './users/users.module';
 
 @Module({
@@ -41,6 +42,7 @@ import { UsersModule } from './users/users.module';
 		KubernetesClientModule,
 		OrchestratorSyncModule,
 		CrawlerRunMetricsModule,
+		ServicesModule,
 	],
 	controllers: [AppController],
 	providers: [

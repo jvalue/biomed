@@ -17,9 +17,9 @@ export class KubernetesAuthService {
 	}
 
 	/**
-	 * Gets Kubernetes API Client
+	 * Gets loaded KubeConfig
 	 */
-	getApiClient(): CoreV1Api {
+	getKubeConfig(): KubeConfig {
 		const kubeConfig = this.isRunningInCluster()
 			? this.getKubeconfigFromCluster()
 			: this.getKubeconfigFromFile();
@@ -30,7 +30,22 @@ export class KubernetesAuthService {
 			this.logger.error('Loaded Kubernetes configuration is invalid (missing server URL).');
 			throw new Error('Loaded Kubernetes configuration is invalid (missing server URL).');
 		}
-		return kubeConfig.makeApiClient(CoreV1Api);
+		return kubeConfig;
+	}
+
+	/**
+	 * Gets Kubernetes CoreV1 API Client
+	 */
+	getApiClient(): CoreV1Api {
+		return this.getKubeConfig().makeApiClient(CoreV1Api);
+	}
+
+	/**
+	 * Gets Kubernetes AppsV1 API Client
+	 */
+	getAppsApiClient(): import('@kubernetes/client-node').AppsV1Api {
+		const { AppsV1Api } = require('@kubernetes/client-node');
+		return this.getKubeConfig().makeApiClient(AppsV1Api);
 	}
 
 	/**
