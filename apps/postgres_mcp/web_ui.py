@@ -8,7 +8,13 @@ from http.server import BaseHTTPRequestHandler, HTTPServer
 from pathlib import Path
 from urllib.request import Request, urlopen
 
-sys.path.insert(0, str(Path(__file__).resolve().parent))
+from dotenv import load_dotenv
+
+APP_DIR = Path(__file__).resolve().parent
+load_dotenv(APP_DIR / ".env")
+load_dotenv(APP_DIR.parent.parent / ".env")
+
+sys.path.insert(0, str(APP_DIR))
 
 from postgres_mcp.server import service  # noqa: E402
 
@@ -84,6 +90,59 @@ TOOLS_SCHEMA = [
             },
         },
     },
+    {
+        "type": "function",
+        "function": {
+            "name": "list_views",
+            "description": "List all PostgreSQL views (e.g. v_uniprot_entry_summary, v_uniprot_entry_organism, v_uniprot_entry_xrefs, v_uniprot_entry_publications).",
+            "parameters": {
+                "type": "object",
+                "properties": {
+                    "schema_name": {
+                        "type": "string",
+                        "description": "Database schema name (default: public)",
+                    }
+                },
+            },
+        },
+    },
+    {
+        "type": "function",
+        "function": {
+            "name": "query_view",
+            "description": "Query rows from any database view (e.g. v_uniprot_entry_summary, v_uniprot_entry_organism, v_uniprot_entry_xrefs, v_uniprot_entry_publications).",
+            "parameters": {
+                "type": "object",
+                "properties": {
+                    "view_name": {
+                        "type": "string",
+                        "description": "View name to query",
+                    },
+                    "schema_name": {"type": "string", "description": "Schema name"},
+                    "limit": {"type": "integer", "description": "Max rows to return"},
+                    "offset": {"type": "integer", "description": "Row offset"},
+                },
+                "required": ["view_name"],
+            },
+        },
+    },
+    {
+        "type": "function",
+        "function": {
+            "name": "get_uniprot_summary",
+            "description": "Search or list UniProt protein entry summaries from v_uniprot_entry_summary by accession, gene name, organism, or keyword.",
+            "parameters": {
+                "type": "object",
+                "properties": {
+                    "query": {
+                        "type": "string",
+                        "description": "Search keyword (e.g. 'kinase', 'P12345', 'Human', 'TP53')",
+                    },
+                    "limit": {"type": "integer", "description": "Max entries limit"},
+                },
+            },
+        },
+    },
 ]
 
 
@@ -91,6 +150,8 @@ def handle_tool_call(name: str, args: dict) -> dict:
     try:
         if name == "list_tables":
             return service.list_tables(schema_name=args.get("schema_name"))
+        if name == "list_views":
+            return service.list_views(schema_name=args.get("schema_name"))
         if name == "describe_table":
             table_name = args.get("table_name")
             if not table_name:
@@ -112,6 +173,23 @@ def handle_tool_call(name: str, args: dict) -> dict:
                 limit=args.get("limit", 100),
                 offset=args.get("offset", 0),
             )
+        if name == "query_view":
+            view_name = args.get("view_name")
+            if not view_name:
+                return {
+                    "error": "Missing required parameter 'view_name' for query_view."
+                }
+            return service.query_view(
+                view_name=view_name,
+                schema_name=args.get("schema_name"),
+                limit=args.get("limit", 100),
+                offset=args.get("offset", 0),
+            )
+        if name == "get_uniprot_summary":
+            return service.get_uniprot_summary(
+                query=args.get("query"),
+                limit=args.get("limit", 50),
+            )
         if name == "execute_query":
             sql = args.get("sql")
             if not sql:
@@ -122,8 +200,13 @@ def handle_tool_call(name: str, args: dict) -> dict:
         return {"error": str(exc)}
 
 
-def process_chat(llm_url: str, model_name: str, messages: list[dict]) -> dict:
-    print(f"\n💬 Processing request with LLM ({llm_url}, model={model_name})...")
+def process_chat(
+    llm_url: str, model_name: str, api_key: str, messages: list[dict]
+) -> dict:
+    key_status = "[PROVIDED]" if api_key else "[NOT SET]"
+    print(
+        f"\n💬 Processing request with LLM ({llm_url}, model={model_name}, key={key_status})..."
+    )
     system_msg = {
         "role": "system",
         "content": (
@@ -140,19 +223,36 @@ def process_chat(llm_url: str, model_name: str, messages: list[dict]) -> dict:
         "tools": TOOLS_SCHEMA,
     }
 
+    auth_header = f"Bearer {api_key}" if api_key else "Bearer dummy"
+    headers = {
+        "Content-Type": "application/json",
+        "Authorization": auth_header,
+        "User-Agent": (
+            "Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 "
+            "(KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36"
+        ),
+    }
+
     api_endpoint = f"{llm_url.rstrip('/')}/chat/completions"
     req = Request(
         api_endpoint,
         data=json.dumps(payload).encode("utf-8"),
-        headers={"Content-Type": "application/json", "Authorization": "Bearer dummy"},
+        headers=headers,
     )
 
     try:
         with urlopen(req, timeout=180) as resp:
             res_data = json.loads(resp.read().decode("utf-8"))
     except Exception as exc:
-        print(f"❌ Error connecting to LLM at {api_endpoint}: {exc}")
-        return {"error": f"Error connecting to LLM at {api_endpoint}: {exc}"}
+        err_msg = str(exc)
+        if hasattr(exc, "read"):
+            try:
+                err_body = exc.read().decode("utf-8")
+                err_msg = f"{exc} - Body: {err_body}"
+            except Exception:
+                pass
+        print(f"❌ Error connecting to LLM at {api_endpoint}: {err_msg}")
+        return {"error": f"Error connecting to LLM at {api_endpoint}: {err_msg}"}
 
     choices = res_data.get("choices", [])
     if not choices:
@@ -192,7 +292,7 @@ def process_chat(llm_url: str, model_name: str, messages: list[dict]) -> dict:
     req2 = Request(
         api_endpoint,
         data=json.dumps(payload).encode("utf-8"),
-        headers={"Content-Type": "application/json", "Authorization": "Bearer dummy"},
+        headers=headers,
     )
 
     try:
@@ -204,21 +304,29 @@ def process_chat(llm_url: str, model_name: str, messages: list[dict]) -> dict:
             print("✅ Received final response from LLM after tool execution.")
             return {"reply": final_msg, "tool_execution": executed_tools}
     except Exception as exc:
-        print(f"⚠️ Error in follow-up request to LLM: {exc}")
+        err_msg = str(exc)
+        if hasattr(exc, "read"):
+            try:
+                err_body = exc.read().decode("utf-8")
+                err_msg = f"{exc} - Body: {err_body}"
+            except Exception:
+                pass
+        print(f"⚠️ Error in follow-up request to LLM: {err_msg}")
         return {
             "reply": "Executed tool successfully.",
             "tool_execution": executed_tools,
-            "error": str(exc),
+            "error": err_msg,
         }
 
 
-HTML_PAGE = """<!DOCTYPE html>  # noqa: E501
+HTML_PAGE = r"""<!DOCTYPE html>  # noqa: E501
 
 <html lang="en">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>PostgreSQL MCP Web Inspector & Chat</title>
+    <script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
     <style>
         :root {
             --bg: #0f172a;
@@ -253,6 +361,8 @@ HTML_PAGE = """<!DOCTYPE html>  # noqa: E501
         .message { max-width: 80%; padding: 0.85rem 1.1rem; border-radius: 10px; line-height: 1.5; font-size: 0.95rem; }
         .message.user { align-self: flex-end; background: var(--user-msg); border-bottom-right-radius: 2px; }
         .message.assistant { align-self: flex-start; background: var(--ai-msg); border-bottom-left-radius: 2px; }
+        .message.assistant p { margin-bottom: 0.5rem; }
+        .message.assistant ul, .message.assistant ol { margin-left: 1.2rem; margin-bottom: 0.5rem; }
 
         .tool-box { background: var(--code-bg); border: 1px solid #0284c7; border-radius: 6px; padding: 0.75rem; margin-top: 0.5rem; font-family: monospace; font-size: 0.85rem; }
         .tool-title { color: var(--accent); font-weight: bold; margin-bottom: 0.25rem; }
@@ -272,16 +382,22 @@ HTML_PAGE = """<!DOCTYPE html>  # noqa: E501
         <h1>🐘 PostgreSQL MCP Inspector & Local LLM Chat</h1>
         <div class="settings-bar">
             <label>LLM API URL:</label>
-            <input type="text" id="llmUrl" value="http://localhost:52625/v1" style="width: 240px;">
+            <input type="text" id="llmUrl" value="https://api.mammouth.ai/v1/" style="width: 220px;">
             <label>Model:</label>
-            <input type="text" id="modelName" value="qwen3.5:9b" style="width: 120px;">
+            <input type="text" id="modelName" value="gpt-5.4-nano" style="width: 110px;">
+            <label>API Key:</label>
+            <input type="password" id="apiKey" placeholder="Optional" style="width: 120px;">
         </div>
     </header>
     <main>
         <div class="sidebar">
+            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 0.75rem;">
+                <h2 style="margin:0;">Database Views</h2>
+                <button class="btn-sm" onclick="fetchSchema()" style="margin:0;">🔄 Refresh</button>
+            </div>
+            <div id="viewsList" style="margin-bottom: 1.5rem;">Loading views...</div>
             <h2>Database Tables</h2>
-            <button class="btn-sm" onclick="fetchTables()" style="width: 100%; margin-bottom: 1rem;">🔄 Refresh Tables</button>
-            <div id="tablesList">Loading...</div>
+            <div id="tablesList">Loading tables...</div>
         </div>
         <div class="chat-container">
             <div class="messages" id="messages">
@@ -290,9 +406,10 @@ HTML_PAGE = """<!DOCTYPE html>  # noqa: E501
                     <br><br>
                     Ask me anything! For example:
                     <ul style="margin-left: 1.2rem; margin-top: 0.4rem;">
-                        <li>"What tables are in my database?"</li>
-                        <li>"Describe the schema of table X"</li>
-                        <li>"Search for proteins related to kinase"</li>
+                        <li>"Search entries in v_uniprot_entry_summary for kinase"</li>
+                        <li>"Show me publication details from v_uniprot_entry_publications"</li>
+                        <li>"Query organisms from v_uniprot_entry_organism"</li>
+                        <li>"What external database IDs exist in v_uniprot_entry_xrefs?"</li>
                     </ul>
                 </div>
             </div>
@@ -305,6 +422,47 @@ HTML_PAGE = """<!DOCTYPE html>  # noqa: E501
 
     <script>
         const conversation = [];
+
+        function formatMarkdown(text) {
+            if (!text) return "";
+            if (typeof marked !== "undefined" && typeof marked.parse === "function") {
+                return marked.parse(text);
+            }
+            return text
+                .replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;")
+                .replace(/```([\s\S]*?)```/g, '<pre style="background:#090d16; padding:0.6rem; border-radius:6px; margin:0.4rem 0;"><code>$1</code></pre>')
+                .replace(/`([^`]+)`/g, '<code style="background:#090d16; padding:0.2rem 0.4rem; border-radius:4px; font-family:monospace; color:#38bdf8;">$1</code>')
+                .replace(/\*\*([^*]+)\*\*/g, '<strong>$1</strong>')
+                .replace(/\*([^*]+)\*/g, '<em>$1</em>')
+                .replace(/^\s*[-*]\s+(.*)$/gm, '<li style="margin-left: 1.2rem;">$1</li>')
+                .replace(/\n/g, '<br>');
+        }
+
+        async function fetchSchema() {
+            fetchViews();
+            fetchTables();
+        }
+
+        async function fetchViews() {
+            const listEl = document.getElementById("viewsList");
+            listEl.innerHTML = "Fetching...";
+            try {
+                const res = await fetch("/api/views");
+                const data = await res.json();
+                if (data.views && data.views.length > 0) {
+                    listEl.innerHTML = data.views.map(v => 
+                        `<div style="margin-bottom: 0.6rem; padding: 0.4rem; background: var(--bg); border: 1px solid var(--accent); border-radius: 4px;">
+                            <b style="color: var(--accent);">${v.view_name}</b><br>
+                            <span style="color: var(--muted); font-size: 0.8rem;">Columns: ${v.column_count}</span>
+                        </div>`
+                    ).join("");
+                } else {
+                    listEl.innerHTML = "No views found.";
+                }
+            } catch (err) {
+                listEl.innerHTML = "<span style='color: #ef4444;'>Error fetching views</span>";
+            }
+        }
 
         async function fetchTables() {
             const listEl = document.getElementById("tablesList");
@@ -339,6 +497,7 @@ HTML_PAGE = """<!DOCTYPE html>  # noqa: E501
 
             const llmUrl = document.getElementById("llmUrl").value;
             const modelName = document.getElementById("modelName").value;
+            const apiKey = document.getElementById("apiKey").value;
 
             const loadingId = appendMessage("assistant", "Thinking & querying database...");
 
@@ -346,11 +505,12 @@ HTML_PAGE = """<!DOCTYPE html>  # noqa: E501
                 const res = await fetch("/api/chat", {
                     method: "POST",
                     headers: { "Content-Type": "application/json" },
-                    body: JSON.stringify({ llm_url: llmUrl, model: modelName, messages: conversation })
+                    body: JSON.stringify({ llm_url: llmUrl, model: modelName, api_key: apiKey, messages: conversation })
                 });
 
                 const data = await res.json();
-                document.getElementById(loadingId).remove();
+                const loadingEl = document.getElementById(loadingId);
+                if (loadingEl) loadingEl.remove();
 
                 if (data.error) {
                     appendMessage("assistant", "⚠️ " + data.error);
@@ -369,12 +529,13 @@ HTML_PAGE = """<!DOCTYPE html>  # noqa: E501
                     });
                 }
 
-                html += data.reply;
+                html += formatMarkdown(data.reply);
                 appendMessage("assistant", html);
                 conversation.push({ role: "assistant", content: data.reply });
 
             } catch (err) {
-                document.getElementById(loadingId).remove();
+                const loadingEl = document.getElementById(loadingId);
+                if (loadingEl) loadingEl.remove();
                 appendMessage("assistant", "⚠️ Error: " + err.message);
             }
         }
@@ -390,7 +551,7 @@ HTML_PAGE = """<!DOCTYPE html>  # noqa: E501
             return div.id;
         }
 
-        fetchTables();
+        fetchSchema();
     </script>
 </body>
 </html>
@@ -408,8 +569,20 @@ class WebUIHandler(BaseHTTPRequestHandler):
             self.send_response(200)
             self.send_header("Content-Type", "application/json")
             self.end_headers()
-            tables = service.list_tables()
+            try:
+                tables = service.list_tables()
+            except Exception as exc:
+                tables = {"error": str(exc), "tables": []}
             self.wfile.write(json.dumps(tables).encode("utf-8"))
+        elif self.path == "/api/views":
+            self.send_response(200)
+            self.send_header("Content-Type", "application/json")
+            self.end_headers()
+            try:
+                views = service.list_views()
+            except Exception as exc:
+                views = {"error": str(exc), "views": []}
+            self.wfile.write(json.dumps(views).encode("utf-8"))
         else:
             self.send_response(404)
             self.end_headers()
@@ -422,9 +595,17 @@ class WebUIHandler(BaseHTTPRequestHandler):
 
             llm_url = req_json.get("llm_url", "http://localhost:8000/v1")
             model_name = req_json.get("model", "default")
+            raw_key = (req_json.get("api_key") or "").strip()
+            env_key = (
+                os.getenv("LLM_API_KEY")
+                or os.getenv("MAMMOUTH_API_KEY")
+                or os.getenv("OPENAI_API_KEY")
+                or ""
+            ).strip()
+            api_key = raw_key if raw_key else env_key
             messages = req_json.get("messages", [])
 
-            result = process_chat(llm_url, model_name, messages)
+            result = process_chat(llm_url, model_name, api_key, messages)
 
             self.send_response(200)
             self.send_header("Content-Type", "application/json")
