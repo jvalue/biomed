@@ -1,4 +1,4 @@
-import { Module } from '@nestjs/common';
+import { Global, Module } from '@nestjs/common';
 import { ConfigModule, ConfigService } from '@nestjs/config';
 import { JwtModule } from '@nestjs/jwt';
 import { PassportModule } from '@nestjs/passport';
@@ -8,9 +8,11 @@ import { AbilityFactory } from './ability-factory';
 import { AuthController } from './auth.controller';
 import { AuthService } from './auth.service';
 import { ApiKeyEntity } from './entity/api-key.entity';
+import { PermissionsGuard } from './guards/permissions.guard';
 import { ApiKeyStrategy } from './strategies/api-key.strategy';
 import { JwtStrategy } from './strategies/jwt.strategy';
 
+@Global()
 @Module({
 	imports: [
 		TypeOrmModule.forFeature([ApiKeyEntity]),
@@ -28,7 +30,7 @@ import { JwtStrategy } from './strategies/jwt.strategy';
 		}),
 	],
 	controllers: [AuthController],
-	providers: [AuthService, JwtStrategy, ApiKeyStrategy, AbilityFactory],
-	exports: [AbilityFactory, JwtModule],
+	providers: [AuthService, JwtStrategy, ApiKeyStrategy, AbilityFactory, PermissionsGuard],
+	exports: [AbilityFactory, JwtModule, PermissionsGuard],
 })
 export class AuthModule {}
