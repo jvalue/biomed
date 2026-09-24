@@ -75,6 +75,7 @@ export class ServicesService {
 			const appsV1 = this.kubernetesClientService.getAppsV1();
 			const coreV1 = this.kubernetesClientService.getCoreV1();
 
+			const namespace = filter?.namespace;
 			const depRes = namespace
 				? await appsV1.listNamespacedDeployment({ namespace })
 				: await appsV1.listDeploymentForAllNamespaces();
