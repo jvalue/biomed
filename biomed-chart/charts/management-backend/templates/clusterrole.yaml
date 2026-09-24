@@ -7,7 +7,10 @@ metadata:
     {{- include "management-backend.labels" . | nindent 4 }}
 rules:
   - apiGroups: [""]
-    resources: ["nodes"]
+    resources: ["nodes", "pods", "pods/log", "pods/status", "events"]
     verbs: ["get", "list", "watch"]
+  - apiGroups: ["apps"]
+    resources: ["deployments", "deployments/scale"]
+    verbs: ["get", "list", "watch", "patch", "delete"]
 {{- end }}
 

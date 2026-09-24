@@ -1,9 +1,15 @@
 // Define the possible actions that can be performed in the system
 import { PureAbility } from '@casl/ability';
 
-export type Actions = 'create' | 'read' | 'update' | 'delete' | 'approve' | 'block';
+export type Actions = 'create' | 'read' | 'update' | 'delete' | 'approve' | 'block' | 'abort';
 
 // Define the possible subjects (resources) in the system
-export type Subjects = 'crawler-run' | 'crawler-template' | 'user' | 'schedule' | 'health';
+export type Subjects =
+	| 'crawler-run'
+	| 'crawler-template'
+	| 'user'
+	| 'schedule'
+	| 'health'
+	| 'service';
 
 export type AppAbility = PureAbility<[Actions, Subjects]>;

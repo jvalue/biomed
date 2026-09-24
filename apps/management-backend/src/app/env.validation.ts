@@ -1,9 +1,10 @@
 import { plainToClass } from 'class-transformer';
-import { IsBoolean, IsNumber, IsString, validateSync } from 'class-validator';
+import { IsBoolean, IsNumber, IsOptional, IsString, validateSync } from 'class-validator';
 
 export class EnvironmentVariables {
+	@IsOptional()
 	@IsNumber({ maxDecimalPlaces: 0, allowInfinity: false, allowNaN: false })
-	PORT!: number;
+	PORT?: number = 3002;
 
 	@IsString()
 	STAGE!: string;

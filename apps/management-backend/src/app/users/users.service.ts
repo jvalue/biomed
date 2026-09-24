@@ -51,10 +51,11 @@ export class UsersService {
 	async approveUser(userId: string, requestingUser: UserEntity): Promise<void> {
 		await this.findUserByIdOrFail(userId);
 
-		// Give user basic default permissions upon approval (read crawler runs)
+		// Give user basic default permissions upon approval (read crawler runs, health, services)
 		const permissions: UserPermission[] = [
 			UserPermission.CRAWLER_RUN_READ,
 			UserPermission.HEALTH_READ,
+			UserPermission.SERVICE_READ,
 		];
 		await this.usersRepository.update(userId, {
 			status: UserStatus.ACTIVE,

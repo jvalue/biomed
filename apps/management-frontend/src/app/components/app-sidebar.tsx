@@ -100,6 +100,19 @@ export function AppSidebar() {
 										</SidebarMenuButton>
 									</SidebarMenuItem>
 								</Can>
+								<Can ability={ability} I="read" a="service">
+									<SidebarMenuItem key="services">
+										<SidebarMenuButton asChild>
+											<Link
+												to="/services"
+												activeProps={{ style: { fontWeight: 'bold' } }}
+												activeOptions={{ exact: true }}
+											>
+												Services / Apps
+											</Link>
+										</SidebarMenuButton>
+									</SidebarMenuItem>
+								</Can>
 							</SidebarMenu>
 						</SidebarGroupContent>
 					</SidebarGroup>

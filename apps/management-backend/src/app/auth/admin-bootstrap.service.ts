@@ -19,27 +19,26 @@ export class AdminBootstrapService implements OnModuleInit {
 
 	async onModuleInit(): Promise<void> {
 		const userCount = await this.usersService.count();
-		if (userCount > 0) {
-			this.logger.debug('Users exist — skipping admin bootstrap.');
+		if (userCount === 0) {
+			const username = this.configService.get('ADMIN_USERNAME');
+			const password = this.configService.get('ADMIN_PASSWORD');
+
+			if (!username || !password) {
+				this.logger.warn('ADMIN_USERNAME or ADMIN_PASSWORD not set. Skipping admin creation.');
+				return;
+			}
+
+			const passwordHash = await bcrypt.hash(password, 10);
+
+			await this.usersService.create({
+				username,
+				passwordHash,
+				status: UserStatus.ACTIVE,
+				permissions: Object.values(UserPermission),
+			});
+
+			this.logger.log(`Initial Admin user "${username}" created from environment variables.`);
 			return;
 		}
-
-		const username = this.configService.get('ADMIN_USERNAME');
-		const password = this.configService.get('ADMIN_PASSWORD');
-		if (!username || !password) {
-			this.logger.warn('ADMIN_USERNAME or ADMIN_PASSWORD not set. Skipping admin creation.');
-			return;
-		}
-
-		const passwordHash = await bcrypt.hash(password, 10);
-
-		await this.usersService.create({
-			username,
-			passwordHash,
-			status: UserStatus.ACTIVE,
-			permissions: Object.values(UserPermission),
-		});
-
-		this.logger.log(`Initial Admin user "${username}" created from environment variables.`);
 	}
 }
