@@ -46,14 +46,14 @@ describe('sanitizePayload', () => {
 
 		it('is case-insensitive for key matching', () => {
 			const result = sanitizePayload({ PASSWORD: 'pw', Token: 'tok' }) as Record<string, unknown>;
-			expect(result['PASSWORD']).toBe('***');
-			expect(result['Token']).toBe('***');
+			expect(result.PASSWORD).toBe('***');
+			expect(result.Token).toBe('***');
 		});
 
 		it('preserves the original key name while masking the value', () => {
 			const result = sanitizePayload({ passwordHash: 'hash' }) as Record<string, unknown>;
 			expect(Object.keys(result)).toContain('passwordHash');
-			expect(result['passwordHash']).toBe('***');
+			expect(result.passwordHash).toBe('***');
 		});
 	});
 
@@ -63,14 +63,14 @@ describe('sanitizePayload', () => {
 				string,
 				unknown
 			>;
-			expect(result['username']).toBe('alice');
-			expect(result['status']).toBe('active');
+			expect(result.username).toBe('alice');
+			expect(result.status).toBe('active');
 		});
 
 		it('keeps numeric and boolean values unchanged', () => {
 			const result = sanitizePayload({ count: 5, enabled: false }) as Record<string, unknown>;
-			expect(result['count']).toBe(5);
-			expect(result['enabled']).toBe(false);
+			expect(result.count).toBe(5);
+			expect(result.enabled).toBe(false);
 		});
 	});
 
@@ -83,10 +83,10 @@ describe('sanitizePayload', () => {
 				status: 'pending',
 			}) as Record<string, unknown>;
 
-			expect(result['id']).toBe('uuid-1');
-			expect(result['username']).toBe('bob');
-			expect(result['passwordHash']).toBe('***');
-			expect(result['status']).toBe('pending');
+			expect(result.id).toBe('uuid-1');
+			expect(result.username).toBe('bob');
+			expect(result.passwordHash).toBe('***');
+			expect(result.status).toBe('pending');
 		});
 
 		it('does not mutate the original object', () => {
@@ -103,10 +103,10 @@ describe('sanitizePayload', () => {
 				{ username: 'b', password: 'pw2' },
 			]) as Array<Record<string, unknown>>;
 
-			expect(result[0]['username']).toBe('a');
-			expect(result[0]['password']).toBe('***');
-			expect(result[1]['username']).toBe('b');
-			expect(result[1]['password']).toBe('***');
+			expect(result[0].username).toBe('a');
+			expect(result[0].password).toBe('***');
+			expect(result[1].username).toBe('b');
+			expect(result[1].password).toBe('***');
 		});
 
 		it('passes through arrays of primitives unchanged', () => {
@@ -129,8 +129,8 @@ describe('sanitizePayload', () => {
 				},
 			}) as Record<string, Record<string, Record<string, unknown>>>;
 
-			expect(result['user']['profile']['credentials']).toBe('***');
-			expect(result['user']['profile']['displayName']).toBe('Charlie');
+			expect(result.user.profile.credentials).toBe('***');
+			expect(result.user.profile.displayName).toBe('Charlie');
 		});
 
 		it('masks sensitive keys inside arrays inside objects', () => {
@@ -141,9 +141,9 @@ describe('sanitizePayload', () => {
 				],
 			}) as Record<string, Array<Record<string, unknown>>>;
 
-			expect(result['users'][0]['token']).toBe('***');
-			expect(result['users'][1]['token']).toBe('***');
-			expect(result['users'][0]['username']).toBe('x');
+			expect(result.users[0].token).toBe('***');
+			expect(result.users[1].token).toBe('***');
+			expect(result.users[0].username).toBe('x');
 		});
 	});
 
@@ -151,7 +151,7 @@ describe('sanitizePayload', () => {
 		it('returns "[max depth reached]" when depth is exhausted', () => {
 			// depth=1: the top-level object is processed, but its children get depth=0
 			const result = sanitizePayload({ nested: { deep: 'value' } }, 1) as Record<string, unknown>;
-			expect(result['nested']).toBe('[max depth reached]');
+			expect(result.nested).toBe('[max depth reached]');
 		});
 
 		it('does not truncate when depth is sufficient', () => {
