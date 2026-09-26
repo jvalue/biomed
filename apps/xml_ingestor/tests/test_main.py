@@ -10,13 +10,12 @@ def test_run_ingest_wires_parser_and_database(monkeypatch):
         calls.append(("parse_xsd_schema", xsd_path, kwargs))
         return "schema-plan"
 
-
     def fake_init_database(database_url: str, echo: bool = False):
         calls.append(("init_database", database_url, echo))
         return "engine"
 
-    def fake_create_sqlalchemy_schema(engine: object, schema_plan: object):
-        calls.append(("create_sqlalchemy_schema", engine, schema_plan))
+    def fake_create_sqlalchemy_schema(engine: object, schema_plan: object, **kwargs: object):
+        calls.append(("create_sqlalchemy_schema", engine, schema_plan, kwargs))
         return "metadata"
 
     class FakeSession:
@@ -58,7 +57,7 @@ def test_run_ingest_wires_parser_and_database(monkeypatch):
     assert counts == {"root": 1}
     assert calls[0][0] == "parse_xsd_schema"
     assert calls[1] == ("init_database", "postgresql://user:pass@localhost/db", False)
-    assert calls[2] == ("create_sqlalchemy_schema", "engine", "schema-plan")
+    assert calls[2][0] == "create_sqlalchemy_schema"
     assert calls[3] == ("get_session", "engine")
     assert calls[4][0] == "stream_xml_to_database"
     assert calls[-2] == ("commit",)
@@ -76,6 +75,8 @@ def test_build_parser_accepts_optional_inputs():
     assert namespace.database_url is None
     assert namespace.commit_every == 5000
     assert namespace.table_prefix == "pm"
+    assert namespace.deduplicate_by_hash is True
+    assert namespace.auto_migrate is True
 
 
 def test_main_resolves_values_from_env(monkeypatch):
@@ -85,16 +86,28 @@ def test_main_resolves_values_from_env(monkeypatch):
     monkeypatch.setenv("XML_INGESTOR_ECHO_SQL", "true")
     monkeypatch.setenv("XML_INGESTOR_COMMIT_EVERY", "2500")
     monkeypatch.setenv("XML_INGESTOR_TABLE_PREFIX", "medline")
+    monkeypatch.setenv("XML_INGESTOR_DEDUPLICATE_BY_HASH", "true")
+    monkeypatch.setenv("XML_INGESTOR_AUTO_MIGRATE", "true")
 
     resolved = {}
 
-    def fake_run_ingest(xsd_path, xml_path, database_url, echo_sql=False, commit_every=1000, table_prefix=None):
+    def fake_run_ingest(
+        xsd_path,
+        xml_path,
+        database_url,
+        echo_sql=False,
+        commit_every=1000,
+        table_prefix=None,
+        **kwargs,
+    ):
         resolved["xsd_path"] = xsd_path
         resolved["xml_path"] = xml_path
         resolved["database_url"] = database_url
         resolved["echo_sql"] = echo_sql
         resolved["commit_every"] = commit_every
         resolved["table_prefix"] = table_prefix
+        resolved["deduplicate_by_hash"] = kwargs.get("deduplicate_by_hash")
+        resolved["auto_migrate"] = kwargs.get("auto_migrate")
         return {"root": 1}
 
     monkeypatch.setattr(app_main, "run_ingest", fake_run_ingest)
@@ -108,3 +121,5 @@ def test_main_resolves_values_from_env(monkeypatch):
     assert resolved["echo_sql"] is True
     assert resolved["commit_every"] == 2500
     assert resolved["table_prefix"] == "medline"
+    assert resolved["deduplicate_by_hash"] is True
+    assert resolved["auto_migrate"] is True

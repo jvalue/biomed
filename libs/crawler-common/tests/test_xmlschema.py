@@ -541,3 +541,118 @@ def test_parse_xsd_schema_applies_table_prefix() -> None:
         assert "pm_library_book_id" in first_author
     finally:
         session.close()
+
+
+def test_stream_xml_to_database_deduplicates_by_hash() -> None:
+    schema_plan = parse_xsd_schema(XSD_SOURCE)
+    engine = init_database("sqlite+pysqlite:///:memory:")
+    metadata = create_sqlalchemy_schema(engine, schema_plan)
+    session = get_session(engine)
+
+    try:
+        # First ingest
+        counts_1 = stream_xml_to_database(
+            session, XML_SOURCE, schema_plan, metadata, deduplicate_by_hash=True
+        )
+        session.commit()
+        assert counts_1["library_book"] == 2
+
+        # Second ingest with identical XML
+        counts_2 = stream_xml_to_database(
+            session, XML_SOURCE, schema_plan, metadata, deduplicate_by_hash=True
+        )
+        session.commit()
+        # Unchanged books should be skipped
+        assert counts_2["library_book"] == 0
+
+        # Total rows in DB should still be 2
+        book_rows = session.execute(select(metadata.tables["library_book"])).all()
+        assert len(book_rows) == 2
+    finally:
+        session.close()
+
+
+def test_create_sqlalchemy_schema_auto_migrates_new_columns() -> None:
+    initial_xsd = """<?xml version="1.0" encoding="UTF-8"?>
+<xs:schema xmlns:xs="http://www.w3.org/2001/XMLSchema">
+  <xs:element name="item">
+    <xs:complexType>
+      <xs:sequence>
+        <xs:element name="title" type="xs:string"/>
+      </xs:sequence>
+    </xs:complexType>
+  </xs:element>
+</xs:schema>
+"""
+    updated_xsd = """<?xml version="1.0" encoding="UTF-8"?>
+<xs:schema xmlns:xs="http://www.w3.org/2001/XMLSchema">
+  <xs:element name="item">
+    <xs:complexType>
+      <xs:sequence>
+        <xs:element name="title" type="xs:string"/>
+        <xs:element name="publisher" type="xs:string"/>
+      </xs:sequence>
+    </xs:complexType>
+  </xs:element>
+</xs:schema>
+"""
+    engine = init_database("sqlite+pysqlite:///:memory:")
+
+    # Initial schema creation
+    plan_1 = parse_xsd_schema(initial_xsd)
+    create_sqlalchemy_schema(engine, plan_1)
+
+    # Updated schema creation with auto_migrate
+    plan_2 = parse_xsd_schema(updated_xsd)
+    metadata_2 = create_sqlalchemy_schema(engine, plan_2, auto_migrate=True)
+
+    session = get_session(engine)
+    try:
+        stream_xml_to_database(
+            session,
+            """<item><title>Book 1</title><publisher>Acme Press</publisher></item>""",
+            plan_2,
+            metadata_2,
+        )
+        session.commit()
+
+        rows = session.execute(select(metadata_2.tables["item"])).all()
+        assert len(rows) == 1
+        assert rows[0]._mapping["publisher"] == "Acme Press"
+    finally:
+        session.close()
+
+
+def test_stream_xml_to_database_from_s3_uri(monkeypatch, tmp_path: Path) -> None:
+    schema_plan = parse_xsd_schema(XSD_SOURCE)
+    engine = init_database("sqlite+pysqlite:///:memory:")
+    metadata = create_sqlalchemy_schema(engine, schema_plan)
+    session = get_session(engine)
+
+    class FakeS3Client:
+        def download_file(self, bucket: str, key: str, filename: str) -> None:
+            assert bucket == "biomed-data"
+            assert key == "downloader-files/data.xml"
+            Path(filename).write_text(XML_SOURCE, encoding="utf-8")
+
+    def fake_create_s3_client(endpoint_url: str, timeout_seconds: int):
+        return FakeS3Client()
+
+    monkeypatch.setattr("crawler_common.s3.client.create_s3_client", fake_create_s3_client)
+
+    try:
+        counts = stream_xml_to_database(
+            session,
+            "s3://biomed-data/downloader-files/data.xml",
+            schema_plan,
+            metadata,
+        )
+        session.commit()
+
+        assert counts == {
+            "library": 1,
+            "library_book": 2,
+            "library_book_author": 3,
+        }
+    finally:
+        session.close()

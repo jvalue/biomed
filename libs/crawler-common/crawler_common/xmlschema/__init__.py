@@ -2,18 +2,19 @@
 
 from __future__ import annotations
 
+import datetime
+import logging
+import os
+import re
+import time
+import xml.etree.ElementTree as ET
+from collections.abc import Iterator
 from contextlib import contextmanager
 from dataclasses import dataclass, field
 from hashlib import sha1
 from io import StringIO
 from pathlib import Path
-from typing import Any, Iterator, TextIO
-import datetime
-import re
-import logging
-import time
-import xml.etree.ElementTree as ET
-
+from typing import Any, TextIO
 
 from sqlalchemy import (
     BigInteger,
@@ -29,6 +30,8 @@ from sqlalchemy import (
     Table,
     Text,
     insert,
+    select,
+    text,
     update,
 )
 from sqlalchemy.engine import Engine
@@ -72,7 +75,7 @@ class TableSpec:
     repeatable: bool = False
     columns: list[ColumnSpec] = field(default_factory=list)
     simple_children: dict[str, ColumnSpec] = field(default_factory=dict)
-    child_tables: dict[str, "TableSpec"] = field(default_factory=dict)
+    child_tables: dict[str, TableSpec] = field(default_factory=dict)
     text_column: ColumnSpec | None = None
 
 
@@ -95,11 +98,13 @@ class _SchemaCatalog:
 @dataclass(slots=True)
 class _Frame:
     definition: TableSpec | None
-    parent: "_Frame | None"
+    parent: _Frame | None
     row_id: int | None = None
     pending_values: dict[str, Any] = field(default_factory=dict)
     text_value: str | None = None
     simple_column_name: str | None = None
+    element: ET.Element | None = None
+    skipped: bool = False
 
 
 _BUILTIN_TYPE_MAP: dict[str, Any] = {
@@ -266,6 +271,28 @@ def _read_schema_document(source: str | Path | TextIO) -> tuple[ET.Element, Path
         return ET.parse(resolved_path).getroot(), resolved_path.parent, resolved_path
 
     if isinstance(source, str):
+        if source.startswith("s3://"):
+            import tempfile
+            from urllib.parse import urlparse
+            from crawler_common.s3.client import create_s3_client
+
+            parsed_s3 = urlparse(source)
+            bucket_name = parsed_s3.netloc
+            object_key = parsed_s3.path.lstrip("/")
+
+            endpoint_url = os.getenv("S3_ENDPOINT_URL") or "http://minio:9000"
+            s3_client = create_s3_client(endpoint_url=endpoint_url, timeout_seconds=60)
+
+            with tempfile.NamedTemporaryFile(suffix=".xsd", delete=False) as tmp_file:
+                tmp_path = Path(tmp_file.name)
+
+            try:
+                s3_client.download_file(bucket_name, object_key, str(tmp_path))
+                return ET.parse(tmp_path).getroot(), tmp_path.parent, tmp_path
+            finally:
+                if tmp_path.exists():
+                    tmp_path.unlink()
+
         source_path = Path(source)
         if source_path.exists():
             resolved_path = source_path.resolve()
@@ -542,7 +569,10 @@ def build_sqlalchemy_metadata(schema_plan: SchemaPlan) -> MetaData:
         if table_spec.table_name in metadata.tables:
             return metadata.tables[table_spec.table_name]
 
-        columns = [Column("id", Integer, primary_key=True, autoincrement=True)]
+        columns = [
+            Column("id", Integer, primary_key=True, autoincrement=True),
+            Column("_xml_hash", Text, index=True, nullable=True),
+        ]
         if table_spec.parent_table_name:
             parent_column_name = _shorten_identifier(
                 f"{_sanitize_identifier(table_spec.parent_table_name)}_id"
@@ -557,8 +587,7 @@ def build_sqlalchemy_metadata(schema_plan: SchemaPlan) -> MetaData:
                 )
             )
 
-
-        seen_columns: set[str] = {"id"}
+        seen_columns: set[str] = {"id", "_xml_hash"}
         for column_spec in table_spec.columns:
             if column_spec.column_name in seen_columns:
                 continue
@@ -584,12 +613,49 @@ def build_sqlalchemy_metadata(schema_plan: SchemaPlan) -> MetaData:
     return metadata
 
 
-def create_sqlalchemy_schema(engine: Engine, schema_plan: SchemaPlan) -> MetaData:
-    """Create the translated schema in the target database."""
+def create_sqlalchemy_schema(
+    engine: Engine,
+    schema_plan: SchemaPlan,
+    auto_migrate: bool = True,
+) -> MetaData:
+    """Create the translated schema in the target database and optionally migrate missing columns."""
 
     metadata = build_sqlalchemy_metadata(schema_plan)
     metadata.create_all(engine)
+
+    if auto_migrate:
+        _auto_migrate_schema(engine, metadata)
+
     return metadata
+
+
+def _auto_migrate_schema(engine: Engine, metadata: MetaData) -> None:
+    """Add missing columns to existing database tables dynamically."""
+    from sqlalchemy import inspect
+
+    try:
+        inspector = inspect(engine)
+        existing_tables = set(inspector.get_table_names())
+
+        with engine.begin() as conn:
+            for table_name, table in metadata.tables.items():
+                if table_name not in existing_tables:
+                    continue
+
+                existing_cols = {col["name"] for col in inspector.get_columns(table_name)}
+                for column in table.columns:
+                    if column.name not in existing_cols:
+                        col_type_sql = str(column.type.compile(engine.dialect))
+                        alter_query = f"ALTER TABLE {table_name} ADD COLUMN {column.name} {col_type_sql}"
+                        logger.info(
+                            "Migrating table '%s': adding missing column '%s' (%s)",
+                            table_name,
+                            column.name,
+                            col_type_sql,
+                        )
+                        conn.execute(text(alter_query))
+    except Exception as exc:
+        logger.warning("Auto-migration check skipped or failed: %s", exc)
 
 
 def _clean_text(value: str | None) -> str | None:
@@ -655,6 +721,37 @@ def _iterable_xml_source(source: str | Path | TextIO) -> Iterator[TextIO]:
         yield StringIO(source)
         return
 
+    source_str = str(source)
+    if source_str.startswith("s3://"):
+        import tempfile
+        from urllib.parse import urlparse
+        from crawler_common.s3.client import create_s3_client
+
+        parsed_s3 = urlparse(source_str)
+        bucket_name = parsed_s3.netloc
+        object_key = parsed_s3.path.lstrip("/")
+
+        endpoint_url = os.getenv("S3_ENDPOINT_URL") or "http://minio:9000"
+        s3_client = create_s3_client(endpoint_url=endpoint_url, timeout_seconds=60)
+
+        suffix = Path(object_key).suffix or ".xml"
+        if object_key.lower().endswith(".tar.gz") or object_key.lower().endswith(".xml.gz"):
+            suffix = ".gz"
+        elif object_key.lower().endswith(".zip"):
+            suffix = ".zip"
+
+        with tempfile.NamedTemporaryFile(suffix=suffix, delete=False) as tmp_file:
+            tmp_path = Path(tmp_file.name)
+
+        try:
+            s3_client.download_file(bucket_name, object_key, str(tmp_path))
+            with _iterable_xml_source(tmp_path) as xml_file:
+                yield xml_file
+        finally:
+            if tmp_path.exists():
+                tmp_path.unlink()
+        return
+
     path = Path(source)
     path_str = str(path).lower()
 
@@ -688,6 +785,7 @@ def stream_xml_to_database(
     progress_log_every: int = DEFAULT_PROGRESS_LOG_EVERY,
     progress_log_seconds: float = DEFAULT_PROGRESS_LOG_SECONDS,
     commit_every: int = DEFAULT_COMMIT_EVERY,
+    deduplicate_by_hash: bool = False,
 ) -> dict[str, int]:
     """Stream XML records into the generated SQLAlchemy schema."""
 
@@ -701,20 +799,56 @@ def stream_xml_to_database(
     started_at = time.monotonic()
     last_progress_log_at = started_at
 
+    seen_hashes: set[str] = set()
+    if deduplicate_by_hash:
+        for table_name, table in tables.items():
+            if "_xml_hash" in table.c:
+                try:
+                    stmt = select(table.c._xml_hash).where(table.c._xml_hash.isnot(None))
+                    rows = session.execute(stmt).all()
+                    for r in rows:
+                        if r[0]:
+                            seen_hashes.add(r[0])
+                except Exception as exc:
+                    logger.debug("Could not pre-load hash cache for table %s: %s", table_name, exc)
+
     logger.info("Starting XML stream ingest")
 
     def get_table(frame: TableSpec) -> Table:
         return tables[frame.table_name]
 
     def ensure_inserted(frame: _Frame) -> int | None:
-        if frame.definition is None:
+        if frame.definition is None or frame.skipped:
             return None
         if frame.row_id is not None:
             return frame.row_id
 
+        if frame.parent is not None and frame.parent.skipped:
+            frame.skipped = True
+            return None
+
         parent_id: int | None = None
         if frame.parent is not None and frame.parent.definition is not None:
             parent_id = ensure_inserted(frame.parent)
+            if frame.parent.skipped:
+                frame.skipped = True
+                return None
+
+        if (
+            deduplicate_by_hash
+            and frame.parent is not None
+            and (frame.parent.definition is None or frame.parent.parent is None)
+        ):
+            if frame.element is not None:
+                try:
+                    raw_xml = ET.tostring(frame.element, encoding="utf-8")
+                    node_hash = sha1(raw_xml).hexdigest()
+                    if node_hash in seen_hashes:
+                        frame.skipped = True
+                        return None
+                    frame.pending_values["_xml_hash"] = node_hash
+                except Exception as exc:
+                    logger.debug("Failed computing node hash: %s", exc)
 
         table = get_table(frame.definition)
         values: dict[str, Any] = {}
@@ -736,10 +870,15 @@ def stream_xml_to_database(
                     frame.pending_values[column_spec.column_name], column_spec.sql_type
                 )
 
+        if "_xml_hash" in frame.pending_values:
+            values["_xml_hash"] = frame.pending_values["_xml_hash"]
+
         result = session.execute(insert(table).values(**values))
         row_id = result.inserted_primary_key[0]
         frame.row_id = int(row_id)
         inserted_counts[frame.definition.table_name] += 1
+        if values.get("_xml_hash"):
+            seen_hashes.add(values["_xml_hash"])
         return int(row_id)
 
     def populate_attributes(frame: _Frame, attributes: dict[str, str]) -> None:
@@ -809,22 +948,22 @@ def stream_xml_to_database(
                 if not frame_stack:
                     root_spec = schema_plan.root_tables.get(local_name)
                     if root_spec is None:
-                        frame_stack.append(_Frame(definition=None, parent=None))
+                        frame_stack.append(_Frame(definition=None, parent=None, element=element))
                         continue
 
-                    root_frame = _Frame(definition=root_spec, parent=None)
+                    root_frame = _Frame(definition=root_spec, parent=None, element=element)
                     populate_attributes(root_frame, element.attrib)
                     frame_stack.append(root_frame)
                     continue
 
                 parent_frame = current_parent()
                 if parent_frame is None or parent_frame.definition is None:
-                    frame_stack.append(_Frame(definition=None, parent=parent_frame))
+                    frame_stack.append(_Frame(definition=None, parent=parent_frame, element=element))
                     continue
 
                 child_spec = parent_frame.definition.child_tables.get(local_name)
                 if child_spec is not None:
-                    child_frame = _Frame(definition=child_spec, parent=parent_frame)
+                    child_frame = _Frame(definition=child_spec, parent=parent_frame, element=element)
                     populate_attributes(child_frame, element.attrib)
                     frame_stack.append(child_frame)
                     continue
@@ -836,18 +975,19 @@ def stream_xml_to_database(
                             definition=None,
                             parent=parent_frame,
                             simple_column_name=simple_column.column_name,
+                            element=element,
                         )
                     )
                     continue
 
-                frame_stack.append(_Frame(definition=None, parent=parent_frame))
+                frame_stack.append(_Frame(definition=None, parent=parent_frame, element=element))
                 continue
 
             frame = frame_stack.pop()
             text_value = _clean_text(element.text)
 
-            if frame.definition is None:
-                if frame.simple_column_name is not None and frame.parent is not None:
+            if frame.definition is None or frame.skipped:
+                if frame.simple_column_name is not None and frame.parent is not None and not frame.parent.skipped:
                     if text_value is not None:
                         frame.parent.pending_values[frame.simple_column_name] = text_value
                     commit_completed_top_level_frame(frame)
