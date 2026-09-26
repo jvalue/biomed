@@ -97,12 +97,12 @@ class PostgresService:
         schema = schema_name or self._settings.default_schema
         inspector = inspect(self._engine)
 
-        table_names = inspector.get_table_names(schema=schema)
+        table_names = [t for t in inspector.get_table_names(schema=schema) if not t.startswith("_")]
         tables_info = []
 
         with self._engine.connect() as conn:
             for table_name in table_names:
-                columns = inspector.get_columns(table_name, schema=schema)
+                columns = [c for c in inspector.get_columns(table_name, schema=schema) if not c["name"].startswith("_")]
                 pk = inspector.get_pk_constraint(table_name, schema=schema)
 
                 # Attempt row count estimation or exact count
@@ -138,7 +138,7 @@ class PostgresService:
         schema = schema_name or self._settings.default_schema
         inspector = inspect(self._engine)
 
-        if not inspector.has_table(table_name, schema=schema):
+        if not inspector.has_table(table_name, schema=schema) or table_name.startswith("_"):
             raise ValueError(f"Table '{schema}.{table_name}' does not exist.")
 
         columns_raw = inspector.get_columns(table_name, schema=schema)
@@ -157,6 +157,7 @@ class PostgresService:
                 "autoincrement": col.get("autoincrement", False),
             }
             for col in columns_raw
+            if not col["name"].startswith("_")
         ]
 
         foreign_keys = [

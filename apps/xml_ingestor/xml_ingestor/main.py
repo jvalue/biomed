@@ -9,6 +9,7 @@ from crawler_common.database import get_session, init_database
 from crawler_common.xmlschema import (
     create_sqlalchemy_schema,
     parse_xsd_schema,
+    process_s3_prefix_ingestion,
     stream_xml_to_database,
 )
 from dotenv import load_dotenv
@@ -129,16 +130,30 @@ def run_ingest(
     engine = init_database(database_url, echo=echo_sql)
     metadata = create_sqlalchemy_schema(engine, schema_plan, auto_migrate=auto_migrate)
 
+    xml_str = str(xml_path)
     session = get_session(engine)
     try:
-        counts = stream_xml_to_database(
-            session,
-            xml_path,
-            schema_plan,
-            metadata,
-            commit_every=commit_every,
-            deduplicate_by_hash=deduplicate_by_hash,
-        )
+        if xml_str.startswith("s3://") and (
+            xml_str.endswith("/")
+            or not any(xml_str.lower().endswith(ext) for ext in (".xml", ".gz", ".zip"))
+        ):
+            counts = process_s3_prefix_ingestion(
+                session,
+                xml_str,
+                schema_plan,
+                metadata,
+                commit_every=commit_every,
+                deduplicate_by_hash=deduplicate_by_hash,
+            )
+        else:
+            counts = stream_xml_to_database(
+                session,
+                xml_path,
+                schema_plan,
+                metadata,
+                commit_every=commit_every,
+                deduplicate_by_hash=deduplicate_by_hash,
+            )
         session.commit()
         return counts
     except Exception:

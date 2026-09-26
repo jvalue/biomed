@@ -8,6 +8,7 @@ import os
 import re
 import time
 import xml.etree.ElementTree as ET
+from collections import defaultdict
 from collections.abc import Iterator
 from contextlib import contextmanager
 from dataclasses import dataclass, field
@@ -42,6 +43,7 @@ POSTGRES_IDENTIFIER_LIMIT = 63
 DEFAULT_PROGRESS_LOG_EVERY = 500
 DEFAULT_PROGRESS_LOG_SECONDS = 5.0
 DEFAULT_COMMIT_EVERY = 500
+INGEST_METADATA_SCHEMA = "_ingest_metadata"
 
 _IDENTIFIER_PATTERN = re.compile(r"[^0-9A-Za-z_]+")
 _COLLAPSE_PATTERN = re.compile(r"_+")
@@ -610,6 +612,18 @@ def build_sqlalchemy_metadata(schema_plan: SchemaPlan) -> MetaData:
     for root_spec in schema_plan.root_tables.values():
         build_table(root_spec)
 
+    ingested_key = f"{INGEST_METADATA_SCHEMA}._ingested_files"
+    if ingested_key not in metadata.tables and "_ingested_files" not in metadata.tables:
+        Table(
+            "_ingested_files",
+            metadata,
+            Column("file_key", Text, primary_key=True),
+            Column("file_etag", Text, nullable=True),
+            Column("file_size", BigInteger, nullable=True),
+            Column("ingested_at", DateTime(timezone=True), nullable=True),
+            schema=INGEST_METADATA_SCHEMA,
+        )
+
     return metadata
 
 
@@ -619,6 +633,24 @@ def create_sqlalchemy_schema(
     auto_migrate: bool = True,
 ) -> MetaData:
     """Create the translated schema in the target database and optionally migrate missing columns."""
+
+    if engine.dialect.name == "postgresql":
+        with engine.begin() as conn:
+            conn.execute(text(f"CREATE SCHEMA IF NOT EXISTS {INGEST_METADATA_SCHEMA}"))
+    elif engine.dialect.name == "sqlite":
+        try:
+            from sqlalchemy import event
+
+            @event.listens_for(engine, "connect")
+            def _attach_ingest_schema(dbapi_connection, connection_record):
+                cursor = dbapi_connection.cursor()
+                cursor.execute(f"ATTACH DATABASE ':memory:' AS {INGEST_METADATA_SCHEMA}")
+                cursor.close()
+
+            with engine.begin() as conn:
+                conn.execute(text(f"ATTACH DATABASE ':memory:' AS {INGEST_METADATA_SCHEMA}"))
+        except Exception as exc:
+            logger.debug("Failed attaching SQLite schema %s: %s", INGEST_METADATA_SCHEMA, exc)
 
     metadata = build_sqlalchemy_metadata(schema_plan)
     metadata.create_all(engine)
@@ -793,7 +825,9 @@ def stream_xml_to_database(
         metadata = build_sqlalchemy_metadata(schema_plan)
 
     tables = metadata.tables
-    inserted_counts: dict[str, int] = {table_name: 0 for table_name in tables}
+    inserted_counts: dict[str, int] = {
+        table_name: 0 for table_name in tables if not table_name.startswith("_")
+    }
     frame_stack: list[_Frame] = []
     completed_top_level_frames = 0
     started_at = time.monotonic()
@@ -1012,3 +1046,108 @@ def stream_xml_to_database(
         elapsed_seconds,
     )
     return inserted_counts
+
+
+def process_s3_prefix_ingestion(
+    session: Session,
+    s3_uri: str,
+    schema_plan: SchemaPlan,
+    metadata: MetaData,
+    commit_every: int = DEFAULT_COMMIT_EVERY,
+    deduplicate_by_hash: bool = True,
+) -> dict[str, int]:
+    """Scan S3 prefix for new/unprocessed XML files and ingest them."""
+    from urllib.parse import urlparse
+    from crawler_common.s3.client import create_s3_client
+
+    parsed_s3 = urlparse(s3_uri)
+    bucket_name = parsed_s3.netloc
+    prefix = parsed_s3.path.lstrip("/")
+
+    endpoint_url = os.getenv("S3_ENDPOINT_URL") or "http://minio:9000"
+    s3_client = create_s3_client(endpoint_url=endpoint_url, timeout_seconds=60)
+
+    try:
+        response = s3_client.list_objects_v2(Bucket=bucket_name, Prefix=prefix)
+    except Exception as exc:
+        logger.warning("Failed listing S3 prefix %s: %s", s3_uri, exc)
+        return {}
+
+    contents = response.get("Contents", [])
+    if not contents:
+        logger.info("No S3 objects found in %s", s3_uri)
+        return {}
+
+    valid_extensions = (".xml", ".xml.gz", ".gz", ".zip")
+    s3_objects = [
+        obj
+        for obj in contents
+        if obj.get("Key") and any(obj["Key"].lower().endswith(ext) for ext in valid_extensions)
+    ]
+
+    if not s3_objects:
+        logger.info("No XML/compressed objects found in S3 prefix %s", s3_uri)
+        return {}
+
+    ingested_files_table = metadata.tables.get(f"{INGEST_METADATA_SCHEMA}._ingested_files")
+    if ingested_files_table is None:
+        ingested_files_table = metadata.tables.get("_ingested_files")
+    already_processed: set[str] = set()
+    if ingested_files_table is not None:
+        try:
+            stmt = select(ingested_files_table.c.file_key, ingested_files_table.c.file_etag)
+            rows = session.execute(stmt).all()
+            for r in rows:
+                if r[0]:
+                    already_processed.add(f"{r[0]}::{r[1] or ''}")
+        except Exception as exc:
+            logger.debug("Could not read _ingested_files table: %s", exc)
+
+    total_counts: dict[str, int] = defaultdict(int)
+    new_files_count = 0
+
+    for obj in s3_objects:
+        key = obj["Key"]
+        etag = str(obj.get("ETag", "")).strip('"')
+        file_size = obj.get("Size", 0)
+
+        lookup_key = f"{key}::{etag}"
+        if lookup_key in already_processed:
+            logger.debug("Skipping already processed S3 file: %s (etag=%s)", key, etag)
+            continue
+
+        new_files_count += 1
+        file_uri = f"s3://{bucket_name}/{key}"
+        logger.info("Ingesting new S3 file (%d/%d): %s", new_files_count, len(s3_objects), file_uri)
+
+        file_counts = stream_xml_to_database(
+            session,
+            file_uri,
+            schema_plan,
+            metadata,
+            commit_every=commit_every,
+            deduplicate_by_hash=deduplicate_by_hash,
+        )
+
+        for tbl, count in file_counts.items():
+            total_counts[tbl] += count
+
+        if ingested_files_table is not None:
+            try:
+                session.execute(
+                    insert(ingested_files_table).values(
+                        file_key=key,
+                        file_etag=etag,
+                        file_size=file_size,
+                        ingested_at=datetime.datetime.now(datetime.timezone.utc),
+                    )
+                )
+                session.commit()
+                already_processed.add(lookup_key)
+            except Exception as exc:
+                logger.warning("Failed recording file %s in _ingested_files: %s", key, exc)
+
+    if new_files_count == 0:
+        logger.info("No new XML files found to process in S3 prefix %s", s3_uri)
+
+    return dict(total_counts)

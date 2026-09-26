@@ -656,3 +656,58 @@ def test_stream_xml_to_database_from_s3_uri(monkeypatch, tmp_path: Path) -> None
         }
     finally:
         session.close()
+
+
+def test_process_s3_prefix_ingestion_skips_processed_files(monkeypatch) -> None:
+    from crawler_common.xmlschema import process_s3_prefix_ingestion
+
+    schema_plan = parse_xsd_schema(XSD_SOURCE)
+    engine = init_database("sqlite+pysqlite:///:memory:")
+    metadata = create_sqlalchemy_schema(engine, schema_plan)
+    session = get_session(engine)
+
+    class FakeS3Client:
+        def list_objects_v2(self, Bucket: str, Prefix: str):
+            return {
+                "Contents": [
+                    {"Key": "downloader-files/batch1.xml", "ETag": '"etag1"', "Size": 100},
+                ]
+            }
+
+        def download_file(self, bucket: str, key: str, filename: str) -> None:
+            Path(filename).write_text(XML_SOURCE, encoding="utf-8")
+
+    monkeypatch.setattr(
+        "crawler_common.s3.client.create_s3_client",
+        lambda endpoint_url, timeout_seconds: FakeS3Client(),
+    )
+
+    try:
+        # First run processes new file
+        counts_1 = process_s3_prefix_ingestion(
+            session,
+            "s3://biomed-data/downloader-files/",
+            schema_plan,
+            metadata,
+        )
+        assert counts_1["library_book"] == 2
+
+        # Second run sees no new unprocessed files and does nothing
+        counts_2 = process_s3_prefix_ingestion(
+            session,
+            "s3://biomed-data/downloader-files/",
+            schema_plan,
+            metadata,
+        )
+        assert counts_2 == {}
+    finally:
+        session.close()
+
+
+def test_ingested_files_isolated_in_metadata_schema() -> None:
+    schema_plan = parse_xsd_schema(XSD_SOURCE)
+    metadata = build_sqlalchemy_metadata(schema_plan)
+
+    ingested_table = metadata.tables.get("_ingest_metadata._ingested_files")
+    assert ingested_table is not None
+    assert ingested_table.schema == "_ingest_metadata"
