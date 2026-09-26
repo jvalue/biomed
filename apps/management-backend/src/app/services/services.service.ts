@@ -44,7 +44,23 @@ export class ServicesService {
 	private localServiceState: Map<string, ServiceDto> = new Map();
 
 	constructor(private readonly kubernetesClientService: KubernetesClientService) {
-		this.initLocalFallbackServices();
+		for (const svc of _KNOWN_SERVICES) {
+			const service: ServiceDto = {
+				name: svc.name,
+				namespace: svc.namespace,
+				serviceType: svc.serviceType ?? this.detectServiceType(svc.name, svc.labels),
+				status: ServiceStatusEnum.STOPPED,
+				replicas: 0,
+				availableReplicas: 0,
+				creationTimestamp: new Date().toISOString(),
+				containerImage: svc.containerImage,
+				description: svc.description,
+				pods: [],
+				labels: svc.labels,
+			};
+
+			this.localServiceState.set(`${service.namespace}/${service.name}`, service);
+		}
 	}
 
 	/**
