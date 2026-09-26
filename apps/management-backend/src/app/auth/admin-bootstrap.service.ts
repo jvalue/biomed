@@ -41,7 +41,7 @@ export class AdminBootstrapService implements OnModuleInit {
 			return;
 		}
 
-		// Sync permissions for existing admin user if new UserPermission values were added
+		// Sync missing permissions for configured bootstrap admin user if new UserPermission enum values were introduced
 		const username = this.configService.get('ADMIN_USERNAME');
 		if (username) {
 			const adminUser = await this.usersService.findByUsername(username);
@@ -53,11 +53,16 @@ export class AdminBootstrapService implements OnModuleInit {
 						? (adminUser.permissions as string).split(',')
 						: [];
 
-				const missing = allPermissions.some((p) => !existingPermissions.includes(p));
-				if (missing) {
-					adminUser.permissions = allPermissions;
+				const missingPermissions = allPermissions.filter((p) => !existingPermissions.includes(p));
+				if (missingPermissions.length > 0) {
+					const updatedPermissions = Array.from(
+						new Set([...existingPermissions, ...missingPermissions]),
+					) as UserPermission[];
+					adminUser.permissions = updatedPermissions;
 					await this.usersService.create(adminUser);
-					this.logger.log(`Synced missing permissions for admin user "${username}".`);
+					this.logger.log(
+						`Synced ${missingPermissions.length} new permission(s) for admin user "${username}".`,
+					);
 				}
 			}
 		}
