@@ -1,3 +1,4 @@
+import type { V1Deployment, V1Pod, V1StatefulSet } from '@kubernetes/client-node';
 import { Injectable, Logger, NotFoundException } from '@nestjs/common';
 import { KubernetesClientService } from '../kubernetes-client/kubernetes-client.service';
 import { ServiceDto, ServiceStatusEnum, ServiceTypeEnum } from './dto/service.dto';
@@ -44,18 +45,14 @@ export class ServicesService {
 	private localServiceState: Map<string, ServiceDto> = new Map();
 
 	constructor(private readonly kubernetesClientService: KubernetesClientService) {
-		this.initLocalFallbackServices();
-	}
-
-	private initLocalFallbackServices(): void {
 		for (const svc of _KNOWN_SERVICES) {
 			const service: ServiceDto = {
 				name: svc.name,
 				namespace: svc.namespace,
 				serviceType: svc.serviceType ?? this.detectServiceType(svc.name, svc.labels),
-				status: ServiceStatusEnum.RUNNING,
-				replicas: 1,
-				availableReplicas: 1,
+				status: ServiceStatusEnum.STOPPED,
+				replicas: 0,
+				availableReplicas: 0,
 				creationTimestamp: new Date().toISOString(),
 				containerImage: svc.containerImage,
 				description: svc.description,
@@ -90,77 +87,141 @@ export class ServicesService {
 	async listServices(filter?: ServiceFilterDto): Promise<ServiceDto[]> {
 		let services: ServiceDto[] = [];
 
+		const namespace = filter?.namespace;
+		let deployments: V1Deployment[] = [];
+		let statefulSets: V1StatefulSet[] = [];
+		let pods: V1Pod[] = [];
+
 		try {
-			// Query Kubernetes Deployments
 			const appsV1 = this.kubernetesClientService.getAppsV1();
-			const coreV1 = this.kubernetesClientService.getCoreV1();
 
-			const namespace = filter?.namespace;
-			const depRes = namespace
-				? await appsV1.listNamespacedDeployment({ namespace })
-				: await appsV1.listDeploymentForAllNamespaces();
+			try {
+				const depRes = namespace
+					? await appsV1.listNamespacedDeployment({ namespace })
+					: await appsV1.listDeploymentForAllNamespaces();
+				deployments = depRes.items ?? [];
+			} catch (err) {
+				this.logger.warn(`Could not fetch deployments from Kubernetes API: ${err?.message}`);
+			}
 
-			const podRes = namespace
-				? await coreV1.listNamespacedPod({ namespace })
-				: await coreV1.listPodForAllNamespaces();
-
-			const deployments = depRes.items ?? [];
-			const pods = podRes.items ?? [];
-
-			if (deployments.length > 0) {
-				services = deployments.map((dep) => {
-					const depName = dep.metadata?.name ?? 'unknown';
-					const depNs = dep.metadata?.namespace ?? 'default';
-					const replicas = dep.spec?.replicas ?? 1;
-					const availableReplicas = dep.status?.availableReplicas ?? 0;
-					const creationTimestamp = dep.metadata?.creationTimestamp
-						? new Date(dep.metadata.creationTimestamp).toISOString()
-						: undefined;
-
-					const containerImage = dep.spec?.template.spec?.containers?.[0]?.image || 'unknown';
-
-					let status = ServiceStatusEnum.RUNNING;
-					if (replicas === 0) {
-						status = ServiceStatusEnum.STOPPED;
-					} else if (availableReplicas === 0) {
-						status = ServiceStatusEnum.PENDING;
-					} else if (availableReplicas < replicas) {
-						status = ServiceStatusEnum.PENDING;
-					}
-
-					// Find pods belonging to this deployment
-					const depPods: ServicePodDto[] = pods
-						.filter((p) => p.metadata?.namespace === depNs && p.metadata?.name?.startsWith(depName))
-						.map((p) => ({
-							name: p.metadata?.name ?? 'unknown',
-							status: p.status?.phase ?? 'Unknown',
-							nodeName: p.spec?.nodeName ?? 'N/A',
-							restartCount: p.status?.containerStatuses?.[0]?.restartCount ?? 0,
-							startedAt: p.status?.startTime
-								? new Date(p.status.startTime).toISOString()
-								: undefined,
-						}));
-
-					return {
-						name: depName,
-						namespace: depNs,
-						serviceType: this.detectServiceType(depName, dep.metadata?.labels),
-						status,
-						replicas,
-						availableReplicas,
-						creationTimestamp,
-						containerImage,
-						description: `${depName} long-running application`,
-						pods: depPods,
-						labels: dep.metadata?.labels as Record<string, string> | undefined,
-					};
-				});
+			try {
+				const stsRes = namespace
+					? await appsV1.listNamespacedStatefulSet({ namespace })
+					: await appsV1.listStatefulSetForAllNamespaces();
+				statefulSets = stsRes.items ?? [];
+			} catch (err) {
+				this.logger.warn(`Could not fetch statefulsets from Kubernetes API: ${err?.message}`);
 			}
 		} catch (err) {
-			this.logger.warn(
-				`Could not fetch services from Kubernetes API: ${err?.message}. Using local registered services.`,
-			);
+			this.logger.warn(`Kubernetes appsV1 client unavailable: ${err?.message}`);
 		}
+
+		try {
+			const coreV1 = this.kubernetesClientService.getCoreV1();
+			try {
+				const podRes = namespace
+					? await coreV1.listNamespacedPod({ namespace })
+					: await coreV1.listPodForAllNamespaces();
+				pods = podRes.items ?? [];
+			} catch (err) {
+				this.logger.warn(`Could not fetch pods from Kubernetes API: ${err?.message}`);
+			}
+		} catch (err) {
+			this.logger.warn(`Kubernetes coreV1 client unavailable: ${err?.message}`);
+		}
+
+		const mappedDeployments: ServiceDto[] = deployments.map((dep) => {
+			const depName = dep.metadata?.name ?? 'unknown';
+			const depNs = dep.metadata?.namespace ?? 'default';
+			const replicas = dep.spec?.replicas ?? 1;
+			const availableReplicas = dep.status?.availableReplicas ?? 0;
+			const creationTimestamp = dep.metadata?.creationTimestamp
+				? new Date(dep.metadata.creationTimestamp).toISOString()
+				: undefined;
+
+			const containerImage = dep.spec?.template.spec?.containers?.[0]?.image || 'unknown';
+
+			let status = ServiceStatusEnum.RUNNING;
+			if (replicas === 0) {
+				status = ServiceStatusEnum.STOPPED;
+			} else if (availableReplicas === 0) {
+				status = ServiceStatusEnum.PENDING;
+			} else if (availableReplicas < replicas) {
+				status = ServiceStatusEnum.PENDING;
+			}
+
+			// Find pods belonging to this deployment
+			const depPods: ServicePodDto[] = pods
+				.filter((p) => p.metadata?.namespace === depNs && p.metadata?.name?.startsWith(depName))
+				.map((p) => ({
+					name: p.metadata?.name ?? 'unknown',
+					status: p.status?.phase ?? 'Unknown',
+					nodeName: p.spec?.nodeName ?? 'N/A',
+					restartCount: p.status?.containerStatuses?.[0]?.restartCount ?? 0,
+					startedAt: p.status?.startTime ? new Date(p.status.startTime).toISOString() : undefined,
+				}));
+
+			return {
+				name: depName,
+				namespace: depNs,
+				serviceType: this.detectServiceType(depName, dep.metadata?.labels),
+				status,
+				replicas,
+				availableReplicas,
+				creationTimestamp,
+				containerImage,
+				description: `${depName} long-running application`,
+				pods: depPods,
+				labels: dep.metadata?.labels as Record<string, string> | undefined,
+			};
+		});
+
+		const mappedStatefulSets: ServiceDto[] = statefulSets.map((sts) => {
+			const stsName = sts.metadata?.name ?? 'unknown';
+			const stsNs = sts.metadata?.namespace ?? 'default';
+			const replicas = sts.spec?.replicas ?? 1;
+			const availableReplicas = sts.status?.readyReplicas ?? 0;
+			const creationTimestamp = sts.metadata?.creationTimestamp
+				? new Date(sts.metadata.creationTimestamp).toISOString()
+				: undefined;
+
+			const containerImage = sts.spec?.template.spec?.containers?.[0]?.image || 'unknown';
+
+			let status = ServiceStatusEnum.RUNNING;
+			if (replicas === 0) {
+				status = ServiceStatusEnum.STOPPED;
+			} else if (availableReplicas === 0) {
+				status = ServiceStatusEnum.PENDING;
+			} else if (availableReplicas < replicas) {
+				status = ServiceStatusEnum.PENDING;
+			}
+
+			const stsPods: ServicePodDto[] = pods
+				.filter((p) => p.metadata?.namespace === stsNs && p.metadata?.name?.startsWith(stsName))
+				.map((p) => ({
+					name: p.metadata?.name ?? 'unknown',
+					status: p.status?.phase ?? 'Unknown',
+					nodeName: p.spec?.nodeName ?? 'N/A',
+					restartCount: p.status?.containerStatuses?.[0]?.restartCount ?? 0,
+					startedAt: p.status?.startTime ? new Date(p.status.startTime).toISOString() : undefined,
+				}));
+
+			return {
+				name: stsName,
+				namespace: stsNs,
+				serviceType: this.detectServiceType(stsName, sts.metadata?.labels),
+				status,
+				replicas,
+				availableReplicas,
+				creationTimestamp,
+				containerImage,
+				description: `${stsName} long-running stateful workload`,
+				pods: stsPods,
+				labels: sts.metadata?.labels as Record<string, string> | undefined,
+			};
+		});
+
+		services = [...mappedDeployments, ...mappedStatefulSets];
 
 		// Merge live K8s deployments with known local registered services
 		const liveServiceMap = new Map<string, ServiceDto>();

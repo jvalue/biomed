@@ -40,5 +40,31 @@ export class AdminBootstrapService implements OnModuleInit {
 			this.logger.log(`Initial Admin user "${username}" created from environment variables.`);
 			return;
 		}
+
+		// Sync missing permissions for configured bootstrap admin user if new UserPermission enum values were introduced
+		const username = this.configService.get('ADMIN_USERNAME');
+		if (username) {
+			const adminUser = await this.usersService.findByUsername(username);
+			if (adminUser) {
+				const allPermissions = Object.values(UserPermission);
+				const existingPermissions = Array.isArray(adminUser.permissions)
+					? adminUser.permissions
+					: typeof adminUser.permissions === 'string'
+						? (adminUser.permissions as string).split(',')
+						: [];
+
+				const missingPermissions = allPermissions.filter((p) => !existingPermissions.includes(p));
+				if (missingPermissions.length > 0) {
+					const updatedPermissions = Array.from(
+						new Set([...existingPermissions, ...missingPermissions]),
+					) as UserPermission[];
+					adminUser.permissions = updatedPermissions;
+					await this.usersService.create(adminUser);
+					this.logger.log(
+						`Synced ${missingPermissions.length} new permission(s) for admin user "${username}".`,
+					);
+				}
+			}
+		}
 	}
 }

@@ -43,7 +43,7 @@ describe('ServicesService', () => {
 		const xmlSvc = services.find((s) => s.name === 'xml-ingestor');
 		expect(xmlSvc).toBeDefined();
 		expect(xmlSvc?.serviceType).toBe(ServiceTypeEnum.XML_INGESTOR);
-		expect(xmlSvc?.status).toBe(ServiceStatusEnum.RUNNING);
+		expect(xmlSvc?.status).toBe(ServiceStatusEnum.STOPPED);
 
 		const mcpSvc = services.find((s) => s.name === 'postgres-mcp');
 		expect(mcpSvc).toBeDefined();
@@ -75,6 +75,7 @@ describe('ServicesService', () => {
 	});
 
 	it('should abort (stop) a running service', async () => {
+		await service.restartService('crawler-management', 'xml-ingestor');
 		const aborted = await service.abortService('crawler-management', 'xml-ingestor');
 		expect(aborted.status).toBe(ServiceStatusEnum.STOPPED);
 		expect(aborted.replicas).toBe(0);
@@ -82,11 +83,9 @@ describe('ServicesService', () => {
 	});
 
 	it('should restart a stopped service', async () => {
-		await service.abortService('crawler-management', 'xml-ingestor');
 		const restarted = await service.restartService('crawler-management', 'xml-ingestor');
 		expect(restarted.status).toBe(ServiceStatusEnum.RUNNING);
 		expect(restarted.replicas).toBe(1);
-		expect(restarted.pods.length).toBeGreaterThan(0);
 	});
 
 	it('should delete a service', async () => {
