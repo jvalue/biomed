@@ -1,12 +1,12 @@
 """Tests for the CrawlerRunner using a dummy adapter."""
 
+from collections.abc import Iterator
+
+from crawler_common.database import get_session, init_database
 from crawler_common.ftp.ftp_node import FTPNode
-from crawler_common.source_adapter import SourceAdapter
-from crawler_common.runner import CrawlerRunner
-from crawler_common.database import init_database, get_session
 from crawler_common.models.db import Base, FTPDiscoveryEntry
+from crawler_common.runner import CrawlerRunner
 from sqlalchemy import select
-from typing import Iterator, Tuple
 
 
 class DummyAdapter:
@@ -16,7 +16,9 @@ class DummyAdapter:
     def list_roots(self):
         return [self.tree_root.path]
 
-    def iter_nodes(self, root=None, max_depth: int = 3) -> Iterator[Tuple[FTPNode, int]]:
+    def iter_nodes(
+        self, root=None, max_depth: int = 3
+    ) -> Iterator[tuple[FTPNode, int]]:
         # yield nodes in pre-order
         def walk(node: FTPNode, depth: int):
             yield node, depth

@@ -31,7 +31,7 @@ class FTPDiscoveryRun(Base):
     ftp_url: Mapped[str] = mapped_column(String(255), nullable=False)
     db_name: Mapped[str | None] = mapped_column(String(255), nullable=True)
     max_depth: Mapped[int] = mapped_column(Integer, default=3)
-    entries: Mapped[list["FTPDiscoveryEntry"]] = relationship(
+    entries: Mapped[list[FTPDiscoveryEntry]] = relationship(
         "FTPDiscoveryEntry", back_populates="run", cascade="all, delete-orphan"
     )
 
@@ -59,14 +59,12 @@ class FTPDiscoveryEntry(Base):
         DateTime(timezone=True), default=lambda: datetime.now(timezone.utc)
     )
     downloaded: Mapped[bool] = mapped_column(Boolean, nullable=False, default=False)
-    run: Mapped["FTPDiscoveryRun"] = relationship(
+    run: Mapped[FTPDiscoveryRun] = relationship(
         "FTPDiscoveryRun", back_populates="entries"
     )
 
     @classmethod
-    def from_ftp_node(
-        cls, node: "FTPNode", run_id: int, depth: int
-    ) -> "FTPDiscoveryEntry":
+    def from_ftp_node(cls, node: FTPNode, run_id: int, depth: int) -> FTPDiscoveryEntry:
         """Create a FTPDiscoveryEntry from a FTPNode.
 
         Args:

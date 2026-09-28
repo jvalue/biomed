@@ -14,7 +14,9 @@ def test_run_ingest_wires_parser_and_database(monkeypatch):
         calls.append(("init_database", database_url, echo))
         return "engine"
 
-    def fake_create_sqlalchemy_schema(engine: object, schema_plan: object, **kwargs: object):
+    def fake_create_sqlalchemy_schema(
+        engine: object, schema_plan: object, **kwargs: object
+    ):
         calls.append(("create_sqlalchemy_schema", engine, schema_plan, kwargs))
         return "metadata"
 
@@ -39,12 +41,16 @@ def test_run_ingest_wires_parser_and_database(monkeypatch):
         metadata: object,
         **kwargs: object,
     ):
-        calls.append(("stream_xml_to_database", session, xml_path, schema_plan, metadata, kwargs))
+        calls.append(
+            ("stream_xml_to_database", session, xml_path, schema_plan, metadata, kwargs)
+        )
         return {"root": 1}
 
     monkeypatch.setattr(app_main, "parse_xsd_schema", fake_parse_xsd_schema)
     monkeypatch.setattr(app_main, "init_database", fake_init_database)
-    monkeypatch.setattr(app_main, "create_sqlalchemy_schema", fake_create_sqlalchemy_schema)
+    monkeypatch.setattr(
+        app_main, "create_sqlalchemy_schema", fake_create_sqlalchemy_schema
+    )
     monkeypatch.setattr(app_main, "get_session", fake_get_session)
     monkeypatch.setattr(app_main, "stream_xml_to_database", fake_stream_xml_to_database)
 
@@ -66,9 +72,7 @@ def test_run_ingest_wires_parser_and_database(monkeypatch):
 
 def test_build_parser_accepts_optional_inputs():
     parser = app_main.build_parser()
-    namespace = parser.parse_args(
-        ["--commit-every", "5000", "--table-prefix", "pm"]
-    )
+    namespace = parser.parse_args(["--commit-every", "5000", "--table-prefix", "pm"])
 
     assert namespace.xsd is None
     assert namespace.xml is None
@@ -82,7 +86,9 @@ def test_build_parser_accepts_optional_inputs():
 def test_main_resolves_values_from_env(monkeypatch):
     monkeypatch.setenv("XML_INGESTOR_XSD", "schema.xsd")
     monkeypatch.setenv("XML_INGESTOR_XML", "data.xml")
-    monkeypatch.setenv("XML_INGESTOR_DATABASE_URL", "postgresql://user:pass@localhost/db")
+    monkeypatch.setenv(
+        "XML_INGESTOR_DATABASE_URL", "postgresql://user:pass@localhost/db"
+    )
     monkeypatch.setenv("XML_INGESTOR_ECHO_SQL", "true")
     monkeypatch.setenv("XML_INGESTOR_COMMIT_EVERY", "2500")
     monkeypatch.setenv("XML_INGESTOR_TABLE_PREFIX", "medline")
@@ -131,3 +137,10 @@ def test_resolve_path_resolves_s3_prefix_without_appending_data_xml(monkeypatch)
 
     res = app_main._resolve_path(None, "XML_INGESTOR_XML")
     assert res == "s3://biomed-data/downloader-files/"
+
+
+def test_build_parser_preserves_s3_uri_for_xsd_argument():
+    parser = app_main.build_parser()
+    args = parser.parse_args(["--xsd", "s3://biomed-data/schemas/test.xsd"])
+    res = app_main._resolve_path(args.xsd, "XML_INGESTOR_XSD")
+    assert res == "s3://biomed-data/schemas/test.xsd"

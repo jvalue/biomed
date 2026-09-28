@@ -4,11 +4,12 @@ Adapters translate source-specific listings (FTP, S3, REST API) into a
 common node shape (`FTPNode`) and provide iteration and optional download
 capabilities used by the runner.
 """
+
 from __future__ import annotations
 
-from pathlib import Path
 from collections.abc import Iterator
-from typing import Protocol, Tuple
+from pathlib import Path
+from typing import Protocol
 
 from crawler_common.ftp.ftp_node import SourceNode
 
@@ -23,7 +24,9 @@ class SourceAdapter(Protocol):
     def list_roots(self) -> list[str]:
         """Return a list of available root identifiers (e.g. buckets, root folders)."""
 
-    def iter_nodes(self, root: str | None = None, max_depth: int = 3) -> Iterator[Tuple[SourceNode, int]]:
+    def iter_nodes(
+        self, root: str | None = None, max_depth: int = 3
+    ) -> Iterator[tuple[SourceNode, int]]:
         """Yield `(node, depth)` pairs for the given root.
 
         Depth is 0 for the root itself, 1 for immediate children, etc.

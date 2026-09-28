@@ -110,13 +110,19 @@ def create_sqlalchemy_schema(
             @event.listens_for(engine, "connect")
             def _attach_ingest_schema(dbapi_connection, connection_record):
                 cursor = dbapi_connection.cursor()
-                cursor.execute(f"ATTACH DATABASE ':memory:' AS {INGEST_METADATA_SCHEMA}")
+                cursor.execute(
+                    f"ATTACH DATABASE ':memory:' AS {INGEST_METADATA_SCHEMA}"
+                )
                 cursor.close()
 
             with engine.begin() as conn:
-                conn.execute(text(f"ATTACH DATABASE ':memory:' AS {INGEST_METADATA_SCHEMA}"))
+                conn.execute(
+                    text(f"ATTACH DATABASE ':memory:' AS {INGEST_METADATA_SCHEMA}")
+                )
         except Exception as exc:
-            logger.debug("Failed attaching SQLite schema %s: %s", INGEST_METADATA_SCHEMA, exc)
+            logger.debug(
+                "Failed attaching SQLite schema %s: %s", INGEST_METADATA_SCHEMA, exc
+            )
 
     metadata = build_sqlalchemy_metadata(schema_plan)
     metadata.create_all(engine)
@@ -134,17 +140,27 @@ def _auto_migrate_schema(engine: Engine, metadata: MetaData) -> None:
     try:
         inspector = inspect(engine)
         existing_tables = set(inspector.get_table_names())
+        preparer = engine.dialect.identifier_preparer
 
         with engine.begin() as conn:
             for table_name, table in metadata.tables.items():
-                if table_name not in existing_tables:
+                short_name = table.name
+                if (
+                    short_name not in existing_tables
+                    and table_name not in existing_tables
+                ):
                     continue
 
-                existing_cols = {col["name"] for col in inspector.get_columns(table_name)}
+                existing_cols = {
+                    col["name"]
+                    for col in inspector.get_columns(short_name, schema=table.schema)
+                }
                 for column in table.columns:
                     if column.name not in existing_cols:
                         col_type_sql = str(column.type.compile(engine.dialect))
-                        alter_query = f"ALTER TABLE {table_name} ADD COLUMN {column.name} {col_type_sql}"
+                        quoted_table = preparer.format_table(table)
+                        quoted_column = preparer.quote(column.name)
+                        alter_query = f"ALTER TABLE {quoted_table} ADD COLUMN {quoted_column} {col_type_sql}"
                         logger.info(
                             "Migrating table '%s': adding missing column '%s' (%s)",
                             table_name,

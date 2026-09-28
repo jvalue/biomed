@@ -46,11 +46,15 @@ def _complex_type_attributes(complex_type: ET.Element) -> list[ET.Element]:
 
 
 def _extract_table_alias(element: ET.Element) -> str | None:
-    annotation = next((child for child in element if _local_name(child.tag) == "annotation"), None)
+    annotation = next(
+        (child for child in element if _local_name(child.tag) == "annotation"), None
+    )
     if annotation is None:
         return None
 
-    appinfo = next((child for child in annotation if _local_name(child.tag) == "appinfo"), None)
+    appinfo = next(
+        (child for child in annotation if _local_name(child.tag) == "appinfo"), None
+    )
     if appinfo is None:
         return None
 
@@ -71,7 +75,9 @@ def _extract_table_alias(element: ET.Element) -> str | None:
     return None
 
 
-def _read_schema_document(source: str | Path | TextIO) -> tuple[ET.Element, Path | None, Path | None]:
+def _read_schema_document(
+    source: str | Path | TextIO,
+) -> tuple[ET.Element, Path | None, Path | None]:
     if isinstance(source, Path):
         resolved_path = source.resolve()
         return ET.parse(resolved_path).getroot(), resolved_path.parent, resolved_path
@@ -103,7 +109,11 @@ def _read_schema_document(source: str | Path | TextIO) -> tuple[ET.Element, Path
         source_path = Path(source)
         if source_path.exists():
             resolved_path = source_path.resolve()
-            return ET.parse(resolved_path).getroot(), resolved_path.parent, resolved_path
+            return (
+                ET.parse(resolved_path).getroot(),
+                resolved_path.parent,
+                resolved_path,
+            )
         if source.lstrip().startswith("<"):
             return ET.fromstring(source), None, None
 
@@ -113,7 +123,9 @@ def _read_schema_document(source: str | Path | TextIO) -> tuple[ET.Element, Path
     return ET.fromstring(str(source)), None, None
 
 
-def _resolve_schema_location(base_dir: Path | None, schema_location: str) -> Path | None:
+def _resolve_schema_location(
+    base_dir: Path | None, schema_location: str
+) -> Path | None:
     candidate = Path(schema_location)
     if candidate.is_absolute() and candidate.exists():
         return candidate.resolve()
@@ -148,7 +160,9 @@ def _load_schema_catalog(xsd_source: str | Path | TextIO) -> _SchemaCatalog:
             if child_name in {"include", "import"}:
                 schema_location = child.get("schemaLocation")
                 if schema_location:
-                    resolved_location = _resolve_schema_location(base_dir, schema_location)
+                    resolved_location = _resolve_schema_location(
+                        base_dir, schema_location
+                    )
                     if resolved_location is not None:
                         load_document(resolved_location)
                 continue
@@ -192,18 +206,27 @@ def _collect_inline_simple_type(element: ET.Element) -> ET.Element | None:
 
 
 def _extract_builtin_simple_type(simple_type: ET.Element) -> str | None:
-    restriction = next((child for child in simple_type if _local_name(child.tag) == "restriction"), None)
+    restriction = next(
+        (child for child in simple_type if _local_name(child.tag) == "restriction"),
+        None,
+    )
     if restriction is not None and restriction.get("base"):
         return restriction.get("base")
     return None
 
 
 def _extract_simple_content_type(complex_type: ET.Element) -> str | None:
-    simple_content = next((child for child in complex_type if _local_name(child.tag) == "simpleContent"), None)
+    simple_content = next(
+        (child for child in complex_type if _local_name(child.tag) == "simpleContent"),
+        None,
+    )
     if simple_content is None:
         return None
 
-    extension = next((child for child in simple_content if _local_name(child.tag) == "extension"), None)
+    extension = next(
+        (child for child in simple_content if _local_name(child.tag) == "extension"),
+        None,
+    )
     if extension is None:
         return None
 

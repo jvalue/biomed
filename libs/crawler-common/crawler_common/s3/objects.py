@@ -1,6 +1,7 @@
 """S3 object operations."""
 
 from pathlib import Path
+
 from botocore.exceptions import BotoCoreError, ClientError, EndpointConnectionError
 
 from crawler_common.s3.client import create_s3_client
@@ -14,7 +15,9 @@ def upload_and_verify_test_object(
     timeout_seconds: int,
 ) -> bool:
     """Upload a test object and verify it can be read back."""
-    client = create_s3_client(endpoint_url=endpoint_url, timeout_seconds=timeout_seconds)
+    client = create_s3_client(
+        endpoint_url=endpoint_url, timeout_seconds=timeout_seconds
+    )
 
     try:
         client.put_object(
@@ -42,7 +45,9 @@ def download_test_object(
     timeout_seconds: int,
 ) -> bool:
     """Download an object from S3 and store it on disk."""
-    client = create_s3_client(endpoint_url=endpoint_url, timeout_seconds=timeout_seconds)
+    client = create_s3_client(
+        endpoint_url=endpoint_url, timeout_seconds=timeout_seconds
+    )
 
     try:
         get_response = client.get_object(Bucket=bucket_name, Key=object_key)

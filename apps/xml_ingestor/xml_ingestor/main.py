@@ -81,7 +81,7 @@ def build_parser() -> argparse.ArgumentParser:
         description="Parse an XSD schema, create the matching tables, and stream XML data into PostgreSQL."
     )
     parser.add_argument("--env-file", type=Path, help="Optional path to a .env file")
-    parser.add_argument("--xsd", type=Path, help="Path to the XSD file")
+    parser.add_argument("--xsd", help="Path to local XSD file or s3:// URI")
     parser.add_argument("--xml", help="Path to local XML file or s3:// URI")
     parser.add_argument(
         "--database-url",
@@ -171,13 +171,17 @@ def main(argv: list[str] | None = None) -> int:
         xsd_path = _resolve_path(args.xsd, "XML_INGESTOR_XSD")
         xml_path = _resolve_path(args.xml, "XML_INGESTOR_XML")
         database_url = _resolve_string(args.database_url, "XML_INGESTOR_DATABASE_URL")
-        echo_sql = args.echo_sql or os.getenv("XML_INGESTOR_ECHO_SQL", "false").strip().lower() in {
+        echo_sql = args.echo_sql or os.getenv(
+            "XML_INGESTOR_ECHO_SQL", "false"
+        ).strip().lower() in {
             "1",
             "true",
             "yes",
             "on",
         }
-        raw_commit_every = args.commit_every or os.getenv("XML_INGESTOR_COMMIT_EVERY", "1000")
+        raw_commit_every = args.commit_every or os.getenv(
+            "XML_INGESTOR_COMMIT_EVERY", "1000"
+        )
         try:
             commit_every = int(raw_commit_every)
         except ValueError:

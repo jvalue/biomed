@@ -1,7 +1,5 @@
 from pathlib import Path
 
-from sqlalchemy import select
-
 from crawler_common.database import get_session, init_database
 from crawler_common.xmlschema import (
     build_sqlalchemy_metadata,
@@ -9,7 +7,7 @@ from crawler_common.xmlschema import (
     parse_xsd_schema,
     stream_xml_to_database,
 )
-
+from sqlalchemy import select
 
 XSD_SOURCE = """<?xml version="1.0" encoding="UTF-8"?>
 <xs:schema xmlns:xs="http://www.w3.org/2001/XMLSchema" elementFormDefault="qualified">
@@ -83,7 +81,9 @@ def test_stream_xml_to_database_materializes_rows() -> None:
 
         library_rows = session.execute(select(metadata.tables["library"])).all()
         book_rows = session.execute(select(metadata.tables["library_book"])).all()
-        author_rows = session.execute(select(metadata.tables["library_book_author"])).all()
+        author_rows = session.execute(
+            select(metadata.tables["library_book_author"])
+        ).all()
 
         assert len(library_rows) == 1
         assert len(book_rows) == 2
@@ -178,9 +178,18 @@ def test_parse_xsd_schema_resolves_include_and_import(tmp_path: Path) -> None:
         "person_contact",
         "person_address",
     }
-    assert "email" in {column.column_name for column in schema_plan.tables_by_name["person_contact"].columns}
-    assert "street" in {column.column_name for column in schema_plan.tables_by_name["person_address"].columns}
-    assert "city" in {column.column_name for column in schema_plan.tables_by_name["person_address"].columns}
+    assert "email" in {
+        column.column_name
+        for column in schema_plan.tables_by_name["person_contact"].columns
+    }
+    assert "street" in {
+        column.column_name
+        for column in schema_plan.tables_by_name["person_address"].columns
+    }
+    assert "city" in {
+        column.column_name
+        for column in schema_plan.tables_by_name["person_address"].columns
+    }
 
 
 def test_parse_xsd_schema_uses_table_aliases() -> None:
@@ -261,11 +270,11 @@ def test_parse_xsd_schema_uses_table_aliases() -> None:
 
     assert set(schema_plan.tables_by_name) == {
         "project",
-      "project_descr",
-      "project_descr_pub",
-      "project_descr_pub_citation",
-      "project_descr_pub_citation_authors",
-      "project_descr_pub_citation_authors_author",
+        "project_descr",
+        "project_descr_pub",
+        "project_descr_pub_citation",
+        "project_descr_pub_citation_authors",
+        "project_descr_pub_citation_authors_author",
     }
 
 
@@ -290,8 +299,16 @@ def test_parse_xsd_schema_shortens_long_identifiers() -> None:
 """
     )
 
-    table_name = schema_plan.tables_by_name["project_projectdescr_publication_structuredcitation_authorset"].table_name
-    child_table_name = schema_plan.tables_by_name[next(name for name in schema_plan.tables_by_name if name != "project_projectdescr_publication_structuredcitation_authorset")].table_name
+    table_name = schema_plan.tables_by_name[
+        "project_projectdescr_publication_structuredcitation_authorset"
+    ].table_name
+    child_table_name = schema_plan.tables_by_name[
+        next(
+            name
+            for name in schema_plan.tables_by_name
+            if name != "project_projectdescr_publication_structuredcitation_authorset"
+        )
+    ].table_name
 
     assert len(table_name) <= 63
     assert len(child_table_name) <= 63
@@ -530,7 +547,9 @@ def test_parse_xsd_schema_applies_table_prefix() -> None:
 
         library_rows = session.execute(select(metadata.tables["pm_library"])).all()
         book_rows = session.execute(select(metadata.tables["pm_library_book"])).all()
-        author_rows = session.execute(select(metadata.tables["pm_library_book_author"])).all()
+        author_rows = session.execute(
+            select(metadata.tables["pm_library_book_author"])
+        ).all()
 
         assert len(library_rows) == 1
         assert len(book_rows) == 2
@@ -638,7 +657,9 @@ def test_stream_xml_to_database_from_s3_uri(monkeypatch, tmp_path: Path) -> None
     def fake_create_s3_client(endpoint_url: str, timeout_seconds: int):
         return FakeS3Client()
 
-    monkeypatch.setattr("crawler_common.s3.client.create_s3_client", fake_create_s3_client)
+    monkeypatch.setattr(
+        "crawler_common.s3.client.create_s3_client", fake_create_s3_client
+    )
 
     try:
         counts = stream_xml_to_database(
@@ -670,7 +691,11 @@ def test_process_s3_prefix_ingestion_skips_processed_files(monkeypatch) -> None:
         def list_objects_v2(self, Bucket: str, Prefix: str):
             return {
                 "Contents": [
-                    {"Key": "downloader-files/batch1.xml", "ETag": '"etag1"', "Size": 100},
+                    {
+                        "Key": "downloader-files/batch1.xml",
+                        "ETag": '"etag1"',
+                        "Size": 100,
+                    },
                 ]
             }
 
@@ -736,12 +761,75 @@ def test_stream_xml_deduplication_differentiates_distinct_text_contents() -> Non
 </library>"""
 
     try:
-        counts_1 = stream_xml_to_database(session, xml_1, schema_plan, metadata, deduplicate_by_hash=True)
+        counts_1 = stream_xml_to_database(
+            session, xml_1, schema_plan, metadata, deduplicate_by_hash=True
+        )
         session.commit()
         assert counts_1["library_book"] == 1
 
-        counts_2 = stream_xml_to_database(session, xml_2, schema_plan, metadata, deduplicate_by_hash=True)
+        counts_2 = stream_xml_to_database(
+            session, xml_2, schema_plan, metadata, deduplicate_by_hash=True
+        )
         session.commit()
         assert counts_2["library_book"] == 1
     finally:
         session.close()
+
+
+def test_stream_xml_to_database_extracts_tar_gz_archives(tmp_path: Path) -> None:
+    import io
+    import tarfile
+
+    schema_plan = parse_xsd_schema(XSD_SOURCE)
+    engine = init_database("sqlite+pysqlite:///:memory:")
+    metadata = create_sqlalchemy_schema(engine, schema_plan)
+    session = get_session(engine)
+
+    tar_path = tmp_path / "data.tar.gz"
+    xml_data = XML_SOURCE.encode("utf-8")
+
+    with tarfile.open(tar_path, "w:gz") as tar:
+        tarinfo = tarfile.TarInfo(name="sample.xml")
+        tarinfo.size = len(xml_data)
+        tar.addfile(tarinfo, io.BytesIO(xml_data))
+
+    try:
+        counts = stream_xml_to_database(session, tar_path, schema_plan, metadata)
+        session.commit()
+
+        assert counts == {
+            "library": 1,
+            "library_book": 2,
+            "library_book_author": 3,
+        }
+    finally:
+        session.close()
+
+
+def test_auto_migrate_schema_quotes_reserved_identifiers() -> None:
+    from sqlalchemy import Column, Integer, MetaData, Table, Text
+    from crawler_common.xmlschema.schema import _auto_migrate_schema
+
+    engine = init_database("sqlite+pysqlite:///:memory:")
+
+    # Initial table with a reserved name like "order"
+    meta_initial = MetaData()
+    Table("order", meta_initial, Column("id", Integer, primary_key=True))
+    meta_initial.create_all(engine)
+
+    # Updated metadata adding a column named "user" (reserved keyword)
+    meta_updated = MetaData()
+    tbl = Table(
+        "order",
+        meta_updated,
+        Column("id", Integer, primary_key=True),
+        Column("user", Text, nullable=True),
+    )
+
+    _auto_migrate_schema(engine, meta_updated)
+
+    from sqlalchemy import inspect
+
+    inspector = inspect(engine)
+    cols = {c["name"] for c in inspector.get_columns("order")}
+    assert "user" in cols

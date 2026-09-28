@@ -2,13 +2,12 @@ import asyncio
 import logging
 import os
 import random
-from datetime import datetime, timezone
+from datetime import UTC, datetime
 from pathlib import Path
 
 import httpx
 from crawler_common.http_client import HttpClient
 from dotenv import load_dotenv
-
 
 logging.basicConfig(
     level=logging.INFO,
@@ -24,7 +23,9 @@ def _resolve_metrics_interval() -> int:
     try:
         return max(1, int(raw_value))
     except ValueError:
-        logger.warning(f"Invalid CRAWLER_DUMMY_METRICS_EVERY '{raw_value}', defaulting to 10")
+        logger.warning(
+            f"Invalid CRAWLER_DUMMY_METRICS_EVERY '{raw_value}', defaulting to 10"
+        )
         return 10
 
 
@@ -62,7 +63,7 @@ async def _send_event(client: HttpClient, endpoint: str, message: str) -> None:
     payload = {
         "type": "INFO",
         "message": message,
-        "timestamp": datetime.now(timezone.utc).isoformat(),
+        "timestamp": datetime.now(UTC).isoformat(),
     }
     print(f"[crawler] POST event -> {endpoint} payload={payload}")
     response = await client.call_management_endpoint_from_env(
@@ -105,7 +106,9 @@ async def _send_metrics(
         method="POST",
         json_body=payload,
     )
-    print(f"[crawler] Metrics reported: {response.status_code} ({endpoint}) progress={progress}")
+    print(
+        f"[crawler] Metrics reported: {response.status_code} ({endpoint}) progress={progress}"
+    )
     logger.info(f"Metrics reported successfully ({endpoint}): {response.status_code}")
 
 
@@ -142,8 +145,12 @@ async def _send_download_metrics(
         method="POST",
         json_body=payload,
     )
-    print(f"[crawler] Download metrics reported: {response.status_code} ({endpoint}) downloaded={downloaded_datasets}/{total_datasets_to_download}")
-    logger.info(f"Download metrics reported successfully ({endpoint}): {response.status_code}")
+    print(
+        f"[crawler] Download metrics reported: {response.status_code} ({endpoint}) downloaded={downloaded_datasets}/{total_datasets_to_download}"
+    )
+    logger.info(
+        f"Download metrics reported successfully ({endpoint}): {response.status_code}"
+    )
 
 
 def _load_local_env() -> None:
@@ -171,7 +178,9 @@ def _build_organic_snapshot(
     cache_hits = min(crawled_data_sets, int(round(crawled_data_sets * cache_ratio)))
 
     discovered_data_sets = max(0, crawled_data_sets - cache_hits)
-    total_datasets_to_download = max(previous_total_datasets_to_download, discovered_data_sets)
+    total_datasets_to_download = max(
+        previous_total_datasets_to_download, discovered_data_sets
+    )
 
     lag = random.randint(1, 4)
     downloaded_target = max(0, total_datasets_to_download - lag + random.randint(-1, 1))
@@ -218,21 +227,17 @@ async def _notify_management_backend() -> None:
     )
     metrics_every = _resolve_metrics_interval()
 
-    events_url = (
-        f"{base_url.rstrip('/')}{events_endpoint if events_endpoint.startswith('/') else f'/{events_endpoint}'}"
-    )
-    metrics_url = (
-        f"{base_url.rstrip('/')}{metrics_endpoint if metrics_endpoint.startswith('/') else f'/{metrics_endpoint}'}"
-    )
-    download_metrics_url = (
-        f"{base_url.rstrip('/')}{download_metrics_endpoint if download_metrics_endpoint.startswith('/') else f'/{download_metrics_endpoint}'}"
-    )
+    events_url = f"{base_url.rstrip('/')}{events_endpoint if events_endpoint.startswith('/') else f'/{events_endpoint}'}"
+    metrics_url = f"{base_url.rstrip('/')}{metrics_endpoint if metrics_endpoint.startswith('/') else f'/{metrics_endpoint}'}"
+    download_metrics_url = f"{base_url.rstrip('/')}{download_metrics_endpoint if download_metrics_endpoint.startswith('/') else f'/{download_metrics_endpoint}'}"
     logger.info(f"Using management backend events endpoint: POST {events_url}")
     logger.info(f"Using management backend metrics endpoint: POST {metrics_url}")
-    logger.info(f"Using management backend download metrics endpoint: POST {download_metrics_url}")
+    logger.info(
+        f"Using management backend download metrics endpoint: POST {download_metrics_url}"
+    )
 
     client = HttpClient(timeout=10)
-    run_started_at = datetime.now(timezone.utc).isoformat()
+    run_started_at = datetime.now(UTC).isoformat()
 
     await _send_event(client, events_endpoint, "crawler_dummy startup ping")
 
@@ -254,13 +259,11 @@ async def _notify_management_backend() -> None:
                     downloaded_datasets,
                     total_gb_to_download,
                     downloaded_gb,
-                ) = (
-                    _build_organic_snapshot(
-                        progress=i,
-                        previous_crawled_data_sets=previous_crawled_data_sets,
-                        previous_total_datasets_to_download=previous_total_datasets_to_download,
-                        previous_downloaded_datasets=previous_downloaded_datasets,
-                    )
+                ) = _build_organic_snapshot(
+                    progress=i,
+                    previous_crawled_data_sets=previous_crawled_data_sets,
+                    previous_total_datasets_to_download=previous_total_datasets_to_download,
+                    previous_downloaded_datasets=previous_downloaded_datasets,
                 )
                 previous_crawled_data_sets = crawled_data_sets
                 previous_total_datasets_to_download = total_datasets_to_download
@@ -298,7 +301,9 @@ def main():
     try:
         asyncio.run(_notify_management_backend())
     except ValueError as error:
-        logger.warning(f"Skipping management backend call due to missing env config: {error}")
+        logger.warning(
+            f"Skipping management backend call due to missing env config: {error}"
+        )
     except httpx.HTTPError as error:
         logger.error(f"Management backend call failed: {error}")
 

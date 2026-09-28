@@ -128,7 +128,13 @@ def _iterable_xml_source(source: str | Path | TextIO) -> Iterator[TextIO]:
         s3_client = create_s3_client(endpoint_url=endpoint_url, timeout_seconds=60)
 
         suffix = Path(object_key).suffix or ".xml"
-        if object_key.lower().endswith(".tar.gz") or object_key.lower().endswith(".xml.gz"):
+        if object_key.lower().endswith(".tar.gz") or object_key.lower().endswith(
+            ".tgz"
+        ):
+            suffix = ".tar.gz"
+        elif object_key.lower().endswith(".xml.gz") or object_key.lower().endswith(
+            ".gz"
+        ):
             suffix = ".gz"
         elif object_key.lower().endswith(".zip"):
             suffix = ".zip"
@@ -147,6 +153,33 @@ def _iterable_xml_source(source: str | Path | TextIO) -> Iterator[TextIO]:
 
     path = Path(source)
     path_str = str(path).lower()
+
+    if path_str.endswith((".tar.gz", ".tgz", ".tar")):
+        import io
+        import tarfile
+
+        mode = "r:gz" if path_str.endswith((".tar.gz", ".tgz")) else "r"
+        with tarfile.open(path, mode) as tar:
+            xml_members = [
+                m
+                for m in tar.getmembers()
+                if m.isfile() and m.name.lower().endswith(".xml")
+            ]
+            target_member = (
+                xml_members[0]
+                if xml_members
+                else next((m for m in tar.getmembers() if m.isfile()), None)
+            )
+            if target_member is None:
+                raise ValueError(f"No valid XML files found in tar archive: {path}")
+
+            extracted = tar.extractfile(target_member)
+            if extracted is None:
+                raise ValueError(f"Failed extracting {target_member.name} from {path}")
+
+            with io.TextIOWrapper(extracted, encoding="utf-8") as xml_file:
+                yield xml_file
+        return
 
     if path_str.endswith(".gz"):
         import gzip
@@ -213,7 +246,11 @@ def stream_xml_to_database(
             table = get_table(frame.definition)
             if "_xml_hash" in table.c:
                 try:
-                    stmt = select(table.c._xml_hash).where(table.c._xml_hash == node_hash).limit(1)
+                    stmt = (
+                        select(table.c._xml_hash)
+                        .where(table.c._xml_hash == node_hash)
+                        .limit(1)
+                    )
                     if session.execute(stmt).first() is not None:
                         seen_hashes.add(node_hash)
                         if len(seen_hashes) > 100000:
@@ -303,7 +340,9 @@ def stream_xml_to_database(
             if column_spec.source != "attribute":
                 continue
             if column_spec.xml_name in attributes:
-                frame.pending_values[column_spec.column_name] = attributes[column_spec.xml_name]
+                frame.pending_values[column_spec.column_name] = attributes[
+                    column_spec.xml_name
+                ]
 
     def update_row(frame: _Frame) -> None:
         if frame.definition is None or frame.row_id is None:
@@ -324,7 +363,9 @@ def stream_xml_to_database(
                 )
 
         if values:
-            session.execute(update(table).where(table.c.id == frame.row_id).values(**values))
+            session.execute(
+                update(table).where(table.c.id == frame.row_id).values(**values)
+            )
 
     def commit_completed_top_level_frame(frame: _Frame) -> None:
         nonlocal completed_top_level_frames, last_progress_log_at
@@ -366,7 +407,9 @@ def stream_xml_to_database(
                         frame_stack.append(f)
                         continue
 
-                    root_frame = _Frame(definition=root_spec, parent=None, element=element)
+                    root_frame = _Frame(
+                        definition=root_spec, parent=None, element=element
+                    )
                     _init_frame_hash(root_frame, element, local_name)
                     populate_attributes(root_frame, element.attrib)
                     frame_stack.append(root_frame)
@@ -381,7 +424,9 @@ def stream_xml_to_database(
 
                 child_spec = parent_frame.definition.child_tables.get(local_name)
                 if child_spec is not None:
-                    child_frame = _Frame(definition=child_spec, parent=parent_frame, element=element)
+                    child_frame = _Frame(
+                        definition=child_spec, parent=parent_frame, element=element
+                    )
                     _init_frame_hash(child_frame, element, local_name)
                     populate_attributes(child_frame, element.attrib)
                     frame_stack.append(child_frame)
@@ -415,9 +460,15 @@ def stream_xml_to_database(
                 frame.parent.hash_tokens.extend(frame.hash_tokens)
 
             if frame.definition is None or frame.skipped:
-                if frame.simple_column_name is not None and frame.parent is not None and not frame.parent.skipped:
+                if (
+                    frame.simple_column_name is not None
+                    and frame.parent is not None
+                    and not frame.parent.skipped
+                ):
                     if text_value is not None:
-                        frame.parent.pending_values[frame.simple_column_name] = text_value
+                        frame.parent.pending_values[frame.simple_column_name] = (
+                            text_value
+                        )
                     commit_completed_top_level_frame(frame)
                 element.clear()
                 continue
@@ -473,24 +524,29 @@ def process_s3_prefix_ingestion(
         logger.info("No S3 objects found in %s", s3_uri)
         return {}
 
-    valid_extensions = (".xml", ".xml.gz", ".gz", ".zip")
+    valid_extensions = (".xml", ".xml.gz", ".gz", ".zip", ".tar.gz", ".tgz", ".tar")
     s3_objects = [
         obj
         for obj in contents
-        if obj.get("Key") and any(obj["Key"].lower().endswith(ext) for ext in valid_extensions)
+        if obj.get("Key")
+        and any(obj["Key"].lower().endswith(ext) for ext in valid_extensions)
     ]
 
     if not s3_objects:
         logger.info("No XML/compressed objects found in S3 prefix %s", s3_uri)
         return {}
 
-    ingested_files_table = metadata.tables.get(f"{INGEST_METADATA_SCHEMA}._ingested_files")
+    ingested_files_table = metadata.tables.get(
+        f"{INGEST_METADATA_SCHEMA}._ingested_files"
+    )
     if ingested_files_table is None:
         ingested_files_table = metadata.tables.get("_ingested_files")
     already_processed: set[str] = set()
     if ingested_files_table is not None:
         try:
-            stmt = select(ingested_files_table.c.file_key, ingested_files_table.c.file_etag)
+            stmt = select(
+                ingested_files_table.c.file_key, ingested_files_table.c.file_etag
+            )
             rows = session.execute(stmt).all()
             for r in rows:
                 if r[0]:
@@ -513,7 +569,12 @@ def process_s3_prefix_ingestion(
 
         new_files_count += 1
         file_uri = f"s3://{bucket_name}/{key}"
-        logger.info("Ingesting new S3 file (%d/%d): %s", new_files_count, len(s3_objects), file_uri)
+        logger.info(
+            "Ingesting new S3 file (%d/%d): %s",
+            new_files_count,
+            len(s3_objects),
+            file_uri,
+        )
 
         file_counts = stream_xml_to_database(
             session,
@@ -540,7 +601,9 @@ def process_s3_prefix_ingestion(
                 session.commit()
                 already_processed.add(lookup_key)
             except Exception as exc:
-                logger.warning("Failed recording file %s in _ingested_files: %s", key, exc)
+                logger.warning(
+                    "Failed recording file %s in _ingested_files: %s", key, exc
+                )
 
     if new_files_count == 0:
         logger.info("No new XML files found to process in S3 prefix %s", s3_uri)

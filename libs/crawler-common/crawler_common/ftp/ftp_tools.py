@@ -7,7 +7,6 @@ import logging
 import time
 from collections.abc import Iterator
 from datetime import datetime, timezone
-from pathlib import Path
 from urllib.parse import urlparse
 
 from crawler_common.ftp.ftp_node import FTPNode
@@ -174,7 +173,12 @@ def _open_ftp_connection(
     # Store reconnect information on the FTP object so callers can attempt
     # to recover from broken control connections (BrokenPipeError, resets).
     try:
-        ftp._reconnect_info = {"host": host, "port": port, "user": ftp_user, "passwd": ftp_password}
+        ftp._reconnect_info = {
+            "host": host,
+            "port": port,
+            "user": ftp_user,
+            "passwd": ftp_password,
+        }
     except Exception:
         # Non-fatal; best-effort only.
         pass
@@ -252,9 +256,7 @@ def _traverse_ftp(
     return truncated
 
 
-def _list_entries(
-    ftp: ftplib.FTP, current_path: str
-) -> list[tuple[str, dict]] | None:
+def _list_entries(ftp: ftplib.FTP, current_path: str) -> list[tuple[str, dict]] | None:
     """List entries in the current directory, handling FTP errors."""
     try:
         return _mlsd_listing(ftp, current_path)
@@ -273,7 +275,9 @@ def _list_entries(
             try:
                 return _mlsd_listing(ftp, current_path)
             except Exception as exc2:
-                logger.exception("Retry after reconnect failed for %s: %s", current_path, exc2)
+                logger.exception(
+                    "Retry after reconnect failed for %s: %s", current_path, exc2
+                )
     except ftplib.all_errors as exc:  # pragma: no cover - network dependent
         logger.exception(f"Error traversing {current_path}: {exc}")
 
@@ -287,17 +291,23 @@ def _list_entries(
     except Exception as fallback_exc:
         # If the fallback failed due to a broken pipe, try reconnecting once
         if isinstance(fallback_exc, BrokenPipeError):
-            logger.debug("Broken pipe during NLST fallback on %s: %s", current_path, fallback_exc)
+            logger.debug(
+                "Broken pipe during NLST fallback on %s: %s", current_path, fallback_exc
+            )
             if _reconnect_ftp(ftp):
                 try:
                     entries = _nlst_fallback(ftp, current_path)
                     logger.debug(
-                        "Found %d entries in %s using NLST fallback after reconnect", len(entries), current_path
+                        "Found %d entries in %s using NLST fallback after reconnect",
+                        len(entries),
+                        current_path,
                     )
                     return entries
                 except Exception as fallback_exc2:
                     logger.exception(
-                        "Fallback after reconnect failed for %s: %s", current_path, fallback_exc2
+                        "Fallback after reconnect failed for %s: %s",
+                        current_path,
+                        fallback_exc2,
                     )
 
         logger.exception(
@@ -398,7 +408,9 @@ def _maybe_descend(
 
 def _build_node(name: str, facts: dict, path: str) -> FTPNode:
     """Build a FTPNode from MLSD entry facts."""
-    node = FTPNode(name=name, is_dir=(facts.get("type") == "dir"), path=path, downloaded=False)
+    node = FTPNode(
+        name=name, is_dir=(facts.get("type") == "dir"), path=path, downloaded=False
+    )
     f_size, f_modified = _extract_metadata_from_facts(facts)
     node.size = f_size
     node.modified = f_modified
@@ -407,14 +419,14 @@ def _build_node(name: str, facts: dict, path: str) -> FTPNode:
 
 def _verify_is_dir(ftp: ftplib.FTP, node: FTPNode) -> None:
     """Attempt to verify if a node marked as file is actually a directory.
-    
+
     This is a best-effort check using CWD; if changing into the path succeeds,
     mark it as a directory.
     Modifies node.is_dir in-place.
     """
     if node.is_dir:
         return  # Already marked as directory
-    
+
     try:
         current_path = ftp.pwd()
         try:
@@ -440,7 +452,6 @@ def _ensure_file_metadata(ftp: ftplib.FTP, node: FTPNode, path: str) -> None:
             node.size = fetched_size
         if node.modified is None:
             node.modified = fetched_modified
-
 
 
 def _parse_modify_ts(value: str) -> datetime | None:
@@ -496,9 +507,7 @@ def _fetch_file_metadata(
         # SIZE not supported or permission denied; leave size as None
         logger.debug(f"SIZE not permitted for {path}")
     except Exception as exc:
-        logger.debug(
-            f"Unexpected error running SIZE for {path}: {exc}", exc_info=True
-        )
+        logger.debug(f"Unexpected error running SIZE for {path}: {exc}", exc_info=True)
 
     # MDTM: return last modification time (UTC)
     try:
@@ -514,9 +523,7 @@ def _fetch_file_metadata(
     except ftplib.error_perm:
         logger.debug(f"MDTM not permitted for {path}")
     except Exception as exc:
-        logger.debug(
-            f"Unexpected error running MDTM for {path}: {exc}", exc_info=True
-        )
+        logger.debug(f"Unexpected error running MDTM for {path}: {exc}", exc_info=True)
 
     if size is None and modified is None:
         logger.debug(f"No metadata available for {path} after SIZE/MDTM attempts")

@@ -16,7 +16,9 @@ def create_s3_client(endpoint_url: str, timeout_seconds: int) -> "S3Client":
     access_key_id = os.getenv("AWS_ACCESS_KEY_ID")
     secret_access_key = os.getenv("AWS_SECRET_ACCESS_KEY")
     session_token = os.getenv("AWS_SESSION_TOKEN")
-    region_name = os.getenv("AWS_REGION") or os.getenv("AWS_DEFAULT_REGION") or "eu-central-1"
+    region_name = (
+        os.getenv("AWS_REGION") or os.getenv("AWS_DEFAULT_REGION") or "eu-central-1"
+    )
 
     if not access_key_id and not secret_access_key:
         config = Config(
