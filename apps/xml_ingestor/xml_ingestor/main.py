@@ -27,15 +27,14 @@ APP_DIR = Path(__file__).resolve().parents[1]
 def _load_local_env(env_file: Path | None = None) -> None:
     """Load configuration from a local .env file if present."""
 
-    if env_file is None:
-        env_candidates = [APP_DIR / ".env", APP_DIR / ".env.example"]
-    else:
-        env_candidates = [env_file]
+    if env_file is not None:
+        if env_file.exists():
+            load_dotenv(dotenv_path=env_file)
+        return
 
-    for candidate in env_candidates:
-        if candidate.exists():
-            load_dotenv(dotenv_path=candidate)
-            return
+    local_env = APP_DIR / ".env"
+    if local_env.exists():
+        load_dotenv(dotenv_path=local_env)
 
 
 def _resolve_path(value: str | Path | None, env_var: str) -> Path | str:
@@ -222,3 +221,9 @@ def main(argv: list[str] | None = None) -> int:
             exc,
         )
         return 2
+
+
+if __name__ == "__main__":
+    import sys
+
+    sys.exit(main())
