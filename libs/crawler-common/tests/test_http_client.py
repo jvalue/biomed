@@ -1,11 +1,9 @@
 """Tests for HTTP client."""
 
-import pytest
-from unittest.mock import Mock
-from unittest.mock import AsyncMock, patch
+from unittest.mock import AsyncMock, Mock, patch
 
+import pytest
 from crawler_common.http_client import HttpClient
-from crawler_common.models.api import CrawlRequest
 
 
 @pytest.mark.asyncio

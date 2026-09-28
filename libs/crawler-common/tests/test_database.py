@@ -3,11 +3,9 @@
 from datetime import datetime, timezone
 
 import pytest
-from sqlalchemy import select
-
 from crawler_common.database import (
-    ensure_crawler_schema,
     create_postgres_url,
+    ensure_crawler_schema,
     get_database_url_from_env,
     get_engine,
     get_session,
@@ -19,6 +17,7 @@ from crawler_common.database import (
 from crawler_common.database import database as database_module
 from crawler_common.ftp.ftp_node import FTPNode
 from crawler_common.models.db import Base, FTPDiscoveryEntry
+from sqlalchemy import select
 
 
 def test_create_postgres_url_builds_expected_url() -> None:
@@ -77,7 +76,9 @@ def test_get_database_url_from_env(monkeypatch: pytest.MonkeyPatch) -> None:
     assert database_url.username == "crawler"
 
 
-def test_get_database_url_from_env_supports_sqlite(monkeypatch: pytest.MonkeyPatch) -> None:
+def test_get_database_url_from_env_supports_sqlite(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
     """Support a simple SQLite mode via DB_ENGINE=sqlite and DB_SQLITE_PATH."""
     monkeypatch.setenv("DB_ENGINE", "sqlite")
     monkeypatch.setenv("DB_SQLITE_PATH", ":memory:")
@@ -182,7 +183,9 @@ def test_ensure_crawler_schema_adds_missing_columns() -> None:
     Base.metadata.create_all(engine)
 
     with engine.begin() as connection:
-        connection.exec_driver_sql("ALTER TABLE ftp_discovery_entries RENAME TO ftp_discovery_entries_old")
+        connection.exec_driver_sql(
+            "ALTER TABLE ftp_discovery_entries RENAME TO ftp_discovery_entries_old"
+        )
         connection.exec_driver_sql(
             """
             CREATE TABLE ftp_discovery_entries (
@@ -211,7 +214,12 @@ def test_ensure_crawler_schema_adds_missing_columns() -> None:
     ensure_crawler_schema(engine)
 
     with engine.connect() as connection:
-        columns = {row[1] for row in connection.exec_driver_sql("PRAGMA table_info(ftp_discovery_entries)")}
+        columns = {
+            row[1]
+            for row in connection.exec_driver_sql(
+                "PRAGMA table_info(ftp_discovery_entries)"
+            )
+        }
 
     assert "downloaded" in columns
 
@@ -286,7 +294,9 @@ def test_insert_ftp_nodes_to_database_deduplicates_when_only_changed() -> None:
     )
     same_root.children = [same_file]
 
-    insert_ftp_nodes_to_database(same_root, run_id=1, session=session, only_changed=True)
+    insert_ftp_nodes_to_database(
+        same_root, run_id=1, session=session, only_changed=True
+    )
     session.commit()
     second_count = session.execute(select(FTPDiscoveryEntry)).scalars().all()
     assert len(second_count) == 2

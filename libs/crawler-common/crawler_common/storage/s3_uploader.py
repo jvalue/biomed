@@ -3,10 +3,11 @@
 This module provides a small file-like wrapper around an iterator of bytes
 so boto3's `upload_fileobj` can stream data without materializing it.
 """
+
 from __future__ import annotations
 
 import io
-from typing import Iterator
+from collections.abc import Iterator
 
 from botocore.client import BaseClient
 
@@ -42,7 +43,9 @@ class IteratorStream(io.RawIOBase):
         return n
 
 
-def upload_iterator_to_s3(client: BaseClient, bucket: str, key: str, iterator: Iterator[bytes]) -> None:
+def upload_iterator_to_s3(
+    client: BaseClient, bucket: str, key: str, iterator: Iterator[bytes]
+) -> None:
     """Upload bytes provided by `iterator` to S3 using streaming upload.
 
     This uses `upload_fileobj` and the `IteratorStream` wrapper to avoid

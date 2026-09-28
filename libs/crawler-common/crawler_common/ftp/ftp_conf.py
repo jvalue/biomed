@@ -2,15 +2,14 @@
 
 from __future__ import annotations
 
-import os
 import logging
+import os
+from collections.abc import Iterable
 from pathlib import Path
-from typing import Iterable
 
 from dotenv import load_dotenv
 
 logger = logging.getLogger(__name__)
-
 
 
 def _load_env(dotenv_path: Path | str | None) -> None:

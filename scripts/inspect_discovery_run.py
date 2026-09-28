@@ -1,13 +1,18 @@
 #!/usr/bin/env python3
 """Inspect FTP discovery entries for a given run and compare with latest entries."""
+
 from __future__ import annotations
+
 import sys
 from pathlib import Path
-from pprint import pprint
 
-from crawler_common.database import get_database_url_from_env, init_database, get_session
+from crawler_common.database import (
+    get_database_url_from_env,
+    get_session,
+    init_database,
+)
 from crawler_common.models.db import FTPDiscoveryEntry
-from sqlalchemy import select, func
+from sqlalchemy import func, select
 
 
 def main():
@@ -27,7 +32,9 @@ def main():
     rows = session.execute(stmt).scalars().all()
     print(f"Entries for run {run_id}: {len(rows)}")
     for e in rows:
-        print(f"id={e.id} run={e.run_id} path={e.path!r} is_dir={e.is_dir} size={e.size} modified={e.modified} downloaded={e.downloaded}")
+        print(
+            f"id={e.id} run={e.run_id} path={e.path!r} is_dir={e.is_dir} size={e.size} modified={e.modified} downloaded={e.downloaded}"
+        )
 
     paths = [e.path for e in rows]
     if not paths:
@@ -45,19 +52,25 @@ def main():
         .subquery()
     )
 
-    latest_rows = session.execute(
-        select(FTPDiscoveryEntry).join(
-            latest_ids,
-            FTPDiscoveryEntry.id == latest_ids.c.max_id,
+    latest_rows = (
+        session.execute(
+            select(FTPDiscoveryEntry).join(
+                latest_ids,
+                FTPDiscoveryEntry.id == latest_ids.c.max_id,
+            )
         )
-    ).scalars().all()
+        .scalars()
+        .all()
+    )
 
     print("\nLatest entries for those paths:")
     for e in latest_rows:
-        print(f"id={e.id} run={e.run_id} path={e.path!r} is_dir={e.is_dir} size={e.size} modified={e.modified} downloaded={e.downloaded}")
+        print(
+            f"id={e.id} run={e.run_id} path={e.path!r} is_dir={e.is_dir} size={e.size} modified={e.modified} downloaded={e.downloaded}"
+        )
 
     session.close()
 
 
-if __name__ == '__main__':
+if __name__ == "__main__":
     main()

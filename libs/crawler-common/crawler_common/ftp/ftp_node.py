@@ -25,7 +25,7 @@ class SourceNode:
     size: int | None = None
     modified: datetime | None = None
     downloaded: bool = False
-    children: list["SourceNode"] = field(default_factory=list)
+    children: list[SourceNode] = field(default_factory=list)
 
     def __repr__(self) -> str:  # pragma: no cover - for debugging only
         node_type = "folder" if self.is_dir else "file"

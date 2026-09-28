@@ -1,7 +1,6 @@
 """Tests for crawler main entrypoint."""
 
 import importlib
-from pathlib import Path
 
 from crawler_common.ftp.ftp_node import FTPNode
 
@@ -246,4 +245,3 @@ def test_main_builds_download_urls_relative_to_ftp_root(monkeypatch):
             "ftp_run_id": 101,
         }
     ]
-

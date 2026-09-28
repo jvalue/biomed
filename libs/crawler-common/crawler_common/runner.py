@@ -1,16 +1,15 @@
 """Crawler runner that uses SourceAdapter implementations to discover and persist nodes."""
+
 from __future__ import annotations
 
 from collections.abc import Iterator
 from pathlib import Path
-from typing import Dict
 
-from sqlalchemy import Engine
 from sqlalchemy.orm import Session
 
-from crawler_common.source_adapter import SourceAdapter
-from crawler_common.ftp.ftp_node import SourceNode
 from crawler_common.database.database import insert_ftp_nodes_to_database
+from crawler_common.ftp.ftp_node import SourceNode
+from crawler_common.source_adapter import SourceAdapter
 
 
 class CrawlerRunner:
@@ -25,14 +24,16 @@ class CrawlerRunner:
         self.session = session
         self.run_id = run_id
 
-    def _build_tree_from_nodes(self, nodes: Iterator[tuple[SourceNode, int]]) -> SourceNode:
+    def _build_tree_from_nodes(
+        self, nodes: Iterator[tuple[SourceNode, int]]
+    ) -> SourceNode:
         """Build a hierarchical tree of `FTPNode` instances from flat `(node, depth)` pairs.
 
         This uses path-based parent detection: the parent of `/a/b/c` is `/a/b`.
         For non-slash paths (e.g. S3 keys) a leading slash is inserted for
         consistent parent lookup.
         """
-        node_map: Dict[str, SourceNode] = {}
+        node_map: dict[str, SourceNode] = {}
 
         def normalize_path(p: str) -> str:
             return p if p.startswith("/") else f"/{p}"
@@ -53,7 +54,13 @@ class CrawlerRunner:
                 continue
 
             # clone node but ensure no children (we'll attach via map)
-            cloned = SourceNode(name=node.name, is_dir=node.is_dir, path=path, size=node.size, modified=node.modified)
+            cloned = SourceNode(
+                name=node.name,
+                is_dir=node.is_dir,
+                path=path,
+                size=node.size,
+                modified=node.modified,
+            )
             node_map[path] = cloned
 
             # determine parent
@@ -65,7 +72,9 @@ class CrawlerRunner:
             parent = node_map.get(parent_path)
             if parent is None:
                 # create missing intermediate nodes as directories
-                parent = SourceNode(name=Path(parent_path).name or "/", is_dir=True, path=parent_path)
+                parent = SourceNode(
+                    name=Path(parent_path).name or "/", is_dir=True, path=parent_path
+                )
                 node_map[parent_path] = parent
 
             if parent is not cloned:
@@ -73,7 +82,13 @@ class CrawlerRunner:
 
         return root
 
-    def run(self, root: str | None = None, max_depth: int = 3, batch_size: int = 500, only_changed: bool = True) -> None:
+    def run(
+        self,
+        root: str | None = None,
+        max_depth: int = 3,
+        batch_size: int = 500,
+        only_changed: bool = True,
+    ) -> None:
         """Run discovery and persist results.
 
         Args:

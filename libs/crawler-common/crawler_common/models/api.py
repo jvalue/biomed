@@ -2,7 +2,7 @@
 
 from datetime import datetime, timezone
 
-from pydantic import BaseModel, Field, field_serializer, HttpUrl
+from pydantic import BaseModel, Field, HttpUrl, field_serializer
 
 
 class CrawlRequest(BaseModel):

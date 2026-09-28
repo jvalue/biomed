@@ -1,27 +1,26 @@
 import logging
 import os
+import socket
 import sys
 from collections import defaultdict
 from pathlib import Path
+from urllib.error import HTTPError, URLError
 from urllib.parse import urlparse
 from urllib.request import urlopen
-from urllib.error import HTTPError, URLError
-import socket
 
-from dotenv import load_dotenv
-from crawler_common.queue import consume_download_urls
-from crawler_common.s3.client import create_s3_client
+from botocore.exceptions import ClientError
 from crawler_common.database import (
     ensure_crawler_schema,
     get_database_url_from_env,
-    init_database,
     get_session,
+    init_database,
 )
 from crawler_common.models.db import FTPDiscoveryEntry
+from crawler_common.queue import consume_download_urls
+from crawler_common.s3.client import create_s3_client
+from dotenv import load_dotenv
 from sqlalchemy import select
 from sqlalchemy.exc import SQLAlchemyError
-from botocore.exceptions import ClientError
-
 
 logging.basicConfig(
     level=logging.INFO, format="%(asctime)s - %(name)s - %(levelname)s - %(message)s"
@@ -111,8 +110,7 @@ def main() -> None:
             return int(val)
         except Exception:
             return None
-    
-    
+
     def _get_db_name_from_run_id(run_id: int) -> str:
         # Use cached value if available
         try:
@@ -139,10 +137,16 @@ def main() -> None:
                         first_key = next(iter(db_name_cache))
                         db_name_cache.pop(first_key, None)
                 except Exception:
-                    logger.debug("Failed to update db_name cache for run_id=%s", run_id, exc_info=True)
+                    logger.debug(
+                        "Failed to update db_name cache for run_id=%s",
+                        run_id,
+                        exc_info=True,
+                    )
                 return db_name
         except Exception:
-            logger.debug("Failed to lookup db_name for run_id=%s", run_id, exc_info=True)
+            logger.debug(
+                "Failed to lookup db_name for run_id=%s", run_id, exc_info=True
+            )
 
         # Default crawl database name from environment
         return os.getenv("CRAWL_DB_NAME", "")
@@ -151,24 +155,34 @@ def main() -> None:
         logger.debug(f"Attempting mark by run: run_id={run_id}, path_key='{path_key}'")
         try:
             # Try exact match first, then try with a leading slash if not found
-            stmt = select(FTPDiscoveryEntry).where(
-                FTPDiscoveryEntry.run_id == run_id,
-                FTPDiscoveryEntry.path == path_key,
-            ).order_by(FTPDiscoveryEntry.id.desc())
+            stmt = (
+                select(FTPDiscoveryEntry)
+                .where(
+                    FTPDiscoveryEntry.run_id == run_id,
+                    FTPDiscoveryEntry.path == path_key,
+                )
+                .order_by(FTPDiscoveryEntry.id.desc())
+            )
             entry = session.execute(stmt).scalars().first()
             if not entry and path_key:
                 alt = "/" + path_key.lstrip("/")
                 logger.debug(f"No entry found, trying alternate path '{alt}'")
-                stmt2 = select(FTPDiscoveryEntry).where(
-                    FTPDiscoveryEntry.run_id == run_id,
-                    FTPDiscoveryEntry.path == alt,
-                ).order_by(FTPDiscoveryEntry.id.desc())
+                stmt2 = (
+                    select(FTPDiscoveryEntry)
+                    .where(
+                        FTPDiscoveryEntry.run_id == run_id,
+                        FTPDiscoveryEntry.path == alt,
+                    )
+                    .order_by(FTPDiscoveryEntry.id.desc())
+                )
                 entry = session.execute(stmt2).scalars().first()
             if not entry:
                 return False
             entry.downloaded = True
             session.commit()
-            logger.info(f"Marked FTPDiscoveryEntry id={entry.id} as downloaded (run {run_id})")
+            logger.info(
+                f"Marked FTPDiscoveryEntry id={entry.id} as downloaded (run {run_id})"
+            )
             return True
         except SQLAlchemyError:
             session.rollback()
@@ -196,19 +210,27 @@ def main() -> None:
                 return False
             entry.downloaded = True
             session.commit()
-            logger.info(f"Marked FTPDiscoveryEntry id={entry.id} as downloaded (fallback)")
+            logger.info(
+                f"Marked FTPDiscoveryEntry id={entry.id} as downloaded (fallback)"
+            )
             return True
         except SQLAlchemyError:
             session.rollback()
             raise
 
-    def upload_file_to_s3(download_url: str, source_file: Path, ftp_run_id: object | None = None) -> None:
+    def upload_file_to_s3(
+        download_url: str, source_file: Path, ftp_run_id: object | None = None
+    ) -> None:
         try:
             parsed = urlparse(download_url)
             source_path = parsed.path.lstrip("/") or "unknown-file"
             # Determine db prefix (run-specific or env default)
             run_id_int = _to_int_or_none(ftp_run_id)
-            db_prefix = _get_db_name_from_run_id(run_id_int) if run_id_int is not None else os.getenv("CRAWL_DB_NAME", "")
+            db_prefix = (
+                _get_db_name_from_run_id(run_id_int)
+                if run_id_int is not None
+                else os.getenv("CRAWL_DB_NAME", "")
+            )
             # If the source_path already starts with the db_prefix, avoid duplicating it
             normalized_source = source_path
             if db_prefix and normalized_source.startswith(f"{db_prefix}/"):
@@ -243,7 +265,9 @@ def main() -> None:
                 source_file.unlink(missing_ok=True)
                 logger.debug(f"Removed local file {source_file} after upload")
             except Exception:
-                logger.exception(f"Failed to remove local file {source_file} after upload")
+                logger.exception(
+                    f"Failed to remove local file {source_file} after upload"
+                )
         except Exception as e:
             # Special-case: if S3/MinIO reports no space left on device, upload a debug marker
             # and clean up the local file to avoid repeated failures and disk exhaustion.
@@ -252,28 +276,46 @@ def main() -> None:
             except Exception:
                 msg = ""
 
-            if isinstance(e, ClientError) and ("no space left on device" in msg.lower() or "no space" in msg.lower()):
-                logger.error(f"S3 reported no space left: {e}. Uploading debug marker and cleaning up local file")
+            if isinstance(e, ClientError) and (
+                "no space left on device" in msg.lower() or "no space" in msg.lower()
+            ):
+                logger.error(
+                    f"S3 reported no space left: {e}. Uploading debug marker and cleaning up local file"
+                )
                 try:
-                    upload_dummy_marker(download_url, source_file.stat().st_size if source_file.exists() else 0, ftp_run_id=ftp_run_id)
+                    upload_dummy_marker(
+                        download_url,
+                        source_file.stat().st_size if source_file.exists() else 0,
+                        ftp_run_id=ftp_run_id,
+                    )
                 except Exception:
-                    logger.exception("Failed to upload dummy marker after no-space error")
+                    logger.exception(
+                        "Failed to upload dummy marker after no-space error"
+                    )
                 try:
                     source_file.unlink(missing_ok=True)
                 except Exception:
-                    logger.exception(f"Failed to remove local file {source_file} after no-space error")
+                    logger.exception(
+                        f"Failed to remove local file {source_file} after no-space error"
+                    )
                 return
 
             logger.error(f"Failed to upload {source_file} to S3: {e}")
             raise
 
-    def upload_dummy_marker(download_url: str, file_size_bytes: int, ftp_run_id: object | None = None) -> None:
+    def upload_dummy_marker(
+        download_url: str, file_size_bytes: int, ftp_run_id: object | None = None
+    ) -> None:
         try:
             parsed = urlparse(download_url)
             source_path = parsed.path.lstrip("/") or "unknown-file"
             # Determine db prefix (run-specific or env default)
             run_id_int = _to_int_or_none(ftp_run_id)
-            db_prefix = _get_db_name_from_run_id(run_id_int) if run_id_int is not None else os.getenv("CRAWL_DB_NAME", "")
+            db_prefix = (
+                _get_db_name_from_run_id(run_id_int)
+                if run_id_int is not None
+                else os.getenv("CRAWL_DB_NAME", "")
+            )
             # If the source_path already starts with the db_prefix, avoid duplicating it
             normalized_source = source_path
             if db_prefix and normalized_source.startswith(f"{db_prefix}/"):
@@ -290,7 +332,7 @@ def main() -> None:
                 "debug large file mode: original file skipped\n"
                 f"url={download_url}\n"
                 f"size_bytes={file_size_bytes}\n"
-            ).encode("utf-8")
+            ).encode()
             logger.debug(f"Uploading debug marker to S3: {object_key}")
             s3_client.put_object(
                 Bucket=s3_bucket,
@@ -341,7 +383,9 @@ def main() -> None:
 
                     if file_size_bytes:
                         file_size_mb = file_size_bytes / (1024 * 1024)
-                        logger.debug(f"File size: {file_size_mb:.2f} MB ({file_size_bytes} bytes)")
+                        logger.debug(
+                            f"File size: {file_size_mb:.2f} MB ({file_size_bytes} bytes)"
+                        )
 
                     if (
                         debug_large_file_mode
@@ -352,7 +396,9 @@ def main() -> None:
                             f"File exceeds debug threshold ({file_size_bytes / (1024 * 1024):.2f} MB), "
                             f"uploading dummy marker instead"
                         )
-                        upload_dummy_marker(download_url, file_size_bytes, ftp_run_id=ftp_run_id)
+                        upload_dummy_marker(
+                            download_url, file_size_bytes, ftp_run_id=ftp_run_id
+                        )
                         return
 
                     downloaded_bytes = 0
@@ -374,7 +420,11 @@ def main() -> None:
                                     f"Download exceeded debug threshold during streaming "
                                     f"({downloaded_bytes / (1024 * 1024):.2f} MB), uploading dummy marker instead"
                                 )
-                                upload_dummy_marker(download_url, downloaded_bytes, ftp_run_id=ftp_run_id)
+                                upload_dummy_marker(
+                                    download_url,
+                                    downloaded_bytes,
+                                    ftp_run_id=ftp_run_id,
+                                )
                                 return
 
                             destination_file.write(chunk)
@@ -405,11 +455,15 @@ def main() -> None:
                             else:
                                 _mark_entry_fallback(path_key)
                     except Exception:
-                        logger.exception("Failed to mark FTP discovery entry after HTTP error")
+                        logger.exception(
+                            "Failed to mark FTP discovery entry after HTTP error"
+                        )
 
                     # Count towards per-folder cap as we uploaded a marker
                     if debug_max_files_per_folder > 0:
-                        folder_download_counts[folder_key] = folder_download_counts.get(folder_key, 0) + 1
+                        folder_download_counts[folder_key] = (
+                            folder_download_counts.get(folder_key, 0) + 1
+                        )
                         logger.debug(
                             "Per-folder increment (marker): folder='%s' new_count=%s",
                             folder_key,
@@ -426,11 +480,15 @@ def main() -> None:
                 logger.error("DNS resolution error for %s: %s", download_url, se)
                 raise
 
-            logger.info(f"Download completed: {downloaded_bytes} bytes saved to {destination}")
+            logger.info(
+                f"Download completed: {downloaded_bytes} bytes saved to {destination}"
+            )
             upload_file_to_s3(download_url, destination, ftp_run_id=ftp_run_id)
             # Only count successful uploads toward the per-folder debug cap
             if debug_max_files_per_folder > 0:
-                folder_download_counts[folder_key] = folder_download_counts.get(folder_key, 0) + 1
+                folder_download_counts[folder_key] = (
+                    folder_download_counts.get(folder_key, 0) + 1
+                )
                 logger.debug(
                     "Per-folder increment: folder='%s' new_count=%s",
                     folder_key,
@@ -455,7 +513,9 @@ def main() -> None:
 
     try:
         logger.info("Starting downloader service")
-        logger.info(f"RabbitMQ Configuration: URL={rabbitmq_url}, Queue={rabbitmq_queue}")
+        logger.info(
+            f"RabbitMQ Configuration: URL={rabbitmq_url}, Queue={rabbitmq_queue}"
+        )
         logger.info(
             f"Download Configuration: Destination={download_dir}, "
             f"Timeout={timeout_seconds}s, Chunk size={download_chunk_size_bytes} bytes"
@@ -469,14 +529,16 @@ def main() -> None:
                 "DEBUG MODE: downloading at most %s files per folder",
                 debug_max_files_per_folder,
             )
-        
+
         if debug_large_file_mode:
             logger.warning(
                 f"DEBUG MODE: Large files over {debug_large_file_threshold_mb}MB "
                 f"will be skipped and dummy markers uploaded instead"
             )
-        
-        logger.info(f"Consuming messages from queue '{rabbitmq_queue}' from {rabbitmq_url}")
+
+        logger.info(
+            f"Consuming messages from queue '{rabbitmq_queue}' from {rabbitmq_url}"
+        )
         # Local dry-run mode for testing without RabbitMQ. Set `DRY_RUN_URLS`
         # to a comma-separated list of URLs or set `DRY_RUN_FILE` to a file
         # path containing one URL per line. Useful for local runs.
@@ -488,7 +550,7 @@ def main() -> None:
                 urls.extend([u.strip() for u in dry_run_urls.split(",") if u.strip()])
             if dry_run_file:
                 try:
-                    with open(dry_run_file, "r", encoding="utf-8") as f:
+                    with open(dry_run_file, encoding="utf-8") as f:
                         for line in f:
                             v = line.strip()
                             if v:

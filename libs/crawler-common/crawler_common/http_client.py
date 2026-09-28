@@ -3,7 +3,7 @@
 import asyncio
 import os
 import time
-from typing import Any, Optional
+from typing import Any
 
 import httpx
 
@@ -17,7 +17,7 @@ class HttpClient:
         self,
         max_retries: int = 3,
         timeout: int = 30,
-        headers: Optional[dict[str, str]] = None,
+        headers: dict[str, str] | None = None,
     ):
         self.max_retries = max_retries
         self.timeout = timeout
@@ -60,13 +60,15 @@ class HttpClient:
                         duration_ms=duration_ms,
                     )
 
-                except httpx.HTTPError as e:
+                except httpx.HTTPError:
                     if attempt == self.max_retries - 1:
                         raise
                     # Exponential backoff
                     await asyncio.sleep(2**attempt)
 
-        raise httpx.HTTPError(f"Failed to fetch {request.url} after {self.max_retries} attempts")
+        raise httpx.HTTPError(
+            f"Failed to fetch {request.url} after {self.max_retries} attempts"
+        )
 
     async def call_api_endpoint(
         self,
@@ -74,8 +76,8 @@ class HttpClient:
         endpoint: str,
         api_key: str,
         method: str = "GET",
-        json_body: Optional[dict[str, Any]] = None,
-        params: Optional[dict[str, str]] = None,
+        json_body: dict[str, Any] | None = None,
+        params: dict[str, str] | None = None,
     ) -> httpx.Response:
         """
         Call a management API endpoint using API key authentication.
@@ -120,8 +122,8 @@ class HttpClient:
         self,
         endpoint: str,
         method: str = "GET",
-        json_body: Optional[dict[str, Any]] = None,
-        params: Optional[dict[str, str]] = None,
+        json_body: dict[str, Any] | None = None,
+        params: dict[str, str] | None = None,
         base_url_env_var: str = "MANAGEMENT_BACKEND_URL",
         api_key_env_var: str = "MANAGEMENT_API_KEY",
     ) -> httpx.Response:
@@ -146,11 +148,15 @@ class HttpClient:
         """
         base_url = os.getenv(base_url_env_var)
         if not base_url:
-            raise ValueError(f"Missing required environment variable: {base_url_env_var}")
+            raise ValueError(
+                f"Missing required environment variable: {base_url_env_var}"
+            )
 
         api_key = os.getenv(api_key_env_var)
         if not api_key:
-            raise ValueError(f"Missing required environment variable: {api_key_env_var}")
+            raise ValueError(
+                f"Missing required environment variable: {api_key_env_var}"
+            )
 
         return await self.call_api_endpoint(
             base_url=base_url,

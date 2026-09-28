@@ -19,7 +19,7 @@ class SourceNodeProtocol(Protocol):
     path: str
     size: int | None
     modified: datetime | None
-    children: list["SourceNodeProtocol"]
+    children: list[SourceNodeProtocol]
 
 
 # Backwards-compatibility alias

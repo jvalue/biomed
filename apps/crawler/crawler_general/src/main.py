@@ -1,29 +1,28 @@
 import logging
 import os
-from datetime import datetime, timezone
+from datetime import UTC, datetime
 from pathlib import Path
 from urllib.parse import urljoin, urlparse
 
-from sqlalchemy import func, select
-
 from crawler_common.database import (
+    ensure_crawler_schema,
     get_database_url_from_env,
     get_session,
     init_database,
-    ensure_crawler_schema,
 )
 from crawler_common.ftp import ftp_conf, ftp_tools
 from crawler_common.models.db import Base, FTPDiscoveryEntry, FTPDiscoveryRun
 from crawler_common.queue import publish_to_queue as publish_to_rabbitmq
-
+from sqlalchemy import func, select
 
 logging.basicConfig(
     # TODO: make this configurable via env
-    level=logging.INFO, format="%(asctime)s - %(name)s - %(levelname)s - %(message)s"
+    level=logging.INFO,
+    format="%(asctime)s - %(name)s - %(levelname)s - %(message)s",
 )
 logger = logging.getLogger(__name__)
 # Reduce SQLAlchemy engine logging verbosity by default
-logging.getLogger('sqlalchemy.engine').setLevel(logging.WARNING)
+logging.getLogger("sqlalchemy.engine").setLevel(logging.WARNING)
 
 
 ENTRY_BATCH_SIZE = 500
@@ -75,12 +74,16 @@ def _latest_entries_by_path(
         .subquery()
     )
 
-    rows = session.execute(
-        select(FTPDiscoveryEntry).join(
-            latest_ids,
-            FTPDiscoveryEntry.id == latest_ids.c.max_id,
+    rows = (
+        session.execute(
+            select(FTPDiscoveryEntry).join(
+                latest_ids,
+                FTPDiscoveryEntry.id == latest_ids.c.max_id,
+            )
         )
-    ).scalars().all()
+        .scalars()
+        .all()
+    )
     return {row.path: row for row in rows}
 
 
@@ -142,9 +145,7 @@ def main():
 
     # Initialize database connection
     database_url = get_database_url_from_env(env_path)
-    logger.info(
-        f"Database URL: {database_url.render_as_string(hide_password=True)}"
-    )
+    logger.info(f"Database URL: {database_url.render_as_string(hide_password=True)}")
 
     # Disable SQLAlchemy echo to reduce verbose SQL logging in production runs
     engine = init_database(database_url, echo=False)
@@ -153,7 +154,7 @@ def main():
     # Create tables if they don't exist
     Base.metadata.create_all(engine)
     logger.info("Database tables created/verified")
-    
+
     logger.info("Starting streaming FTP discovery...")
     session = get_session(engine)
 
@@ -182,7 +183,9 @@ def main():
             import re
 
             parsed = urlparse(ftp_url)
-            candidate = parsed.netloc or parsed.path.lstrip("/").split("/")[0] or "crawl"
+            candidate = (
+                parsed.netloc or parsed.path.lstrip("/").split("/")[0] or "crawl"
+            )
             # sanitize: keep alphanumerics and replace others with '-'
             crawl_db_name = re.sub(r"[^A-Za-z0-9]+", "-", candidate).strip("-")[:255]
             if not crawl_db_name:
@@ -194,14 +197,14 @@ def main():
         params = dict(
             ftp_url=ftp_url,
             max_depth=ftp_max_depth,
-            started_at=datetime.now(timezone.utc),
+            started_at=datetime.now(UTC),
         )
         try:
             ftp_run = FTPDiscoveryRun(**{**params, "db_name": crawl_db_name})
         except TypeError:
             ftp_run = FTPDiscoveryRun(**params)
             try:
-                setattr(ftp_run, "db_name", crawl_db_name)
+                ftp_run.db_name = crawl_db_name
             except Exception:
                 # Non-critical: continue without db_name if assignment fails
                 pass
@@ -247,7 +250,7 @@ def main():
         published_messages += published
         skipped_unchanged += skipped
 
-        ftp_run.completed_at = datetime.now(timezone.utc)
+        ftp_run.completed_at = datetime.now(UTC)
         session.commit()
         logger.info(
             f"FTP streaming discovery saved to database (Run ID: {ftp_run.id}, "
