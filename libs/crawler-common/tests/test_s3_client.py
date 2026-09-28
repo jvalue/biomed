@@ -2,7 +2,6 @@ from __future__ import annotations
 
 import boto3
 from botocore import UNSIGNED
-
 from crawler_common.s3.client import create_s3_client
 
 
@@ -19,7 +18,9 @@ def test_create_s3_client_defaults_region_and_signature(monkeypatch):
     monkeypatch.delenv("AWS_SECRET_ACCESS_KEY", raising=False)
     monkeypatch.setattr(boto3, "client", fake_client)
 
-    client = create_s3_client(endpoint_url="http://minio.local:9000", timeout_seconds=30)
+    client = create_s3_client(
+        endpoint_url="http://minio.local:9000", timeout_seconds=30
+    )
 
     assert client is not None
     assert captured["region_name"] == "eu-central-1"

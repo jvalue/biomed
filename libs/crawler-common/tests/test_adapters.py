@@ -1,4 +1,3 @@
-import io
 from pathlib import Path
 
 from crawler_common.adapters.s3_adapter import S3Adapter

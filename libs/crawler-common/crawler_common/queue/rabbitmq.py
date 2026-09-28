@@ -2,7 +2,7 @@
 
 import json
 import logging
-from typing import Callable
+from collections.abc import Callable
 from urllib.parse import urlparse
 
 import pika
@@ -36,11 +36,11 @@ def publish_to_queue(
         hostname = parsed_url.hostname or "localhost"
         port = parsed_url.port or 5672
         vhost = parsed_url.path.lstrip("/") or "/"
-        
+
         logger.info(
             f"Connecting to RabbitMQ at {hostname}:{port}/{vhost} to publish to queue '{queue_name}'"
         )
-        
+
         credentials = pika.PlainCredentials(
             parsed_url.username or "guest",
             parsed_url.password or "guest",
@@ -54,7 +54,7 @@ def publish_to_queue(
             )
         )
         logger.debug("Successfully connected to RabbitMQ")
-        
+
         channel = connection.channel()
         logger.debug(f"Declaring queue '{queue_name}' (durable=True)")
         channel.queue_declare(queue=queue_name, durable=True)
@@ -81,7 +81,9 @@ def publish_to_queue(
         return published_count
 
     except pika.exceptions.AMQPConnectionError as e:
-        logger.error(f"Failed to connect to RabbitMQ at {parsed_url.hostname}:{parsed_url.port}: {e}")
+        logger.error(
+            f"Failed to connect to RabbitMQ at {parsed_url.hostname}:{parsed_url.port}: {e}"
+        )
         return 0
     except Exception as e:
         logger.exception(f"Error publishing to RabbitMQ queue '{queue_name}': {e}")
@@ -110,11 +112,11 @@ def consume_download_urls(
         hostname = parsed_url.hostname or "localhost"
         port = parsed_url.port or 5672
         vhost = parsed_url.path.lstrip("/") or "/"
-        
+
         logger.info(
             f"Connecting to RabbitMQ at {hostname}:{port}/{vhost} to consume from queue '{queue_name}'"
         )
-        
+
         credentials = pika.PlainCredentials(
             parsed_url.username or "guest",
             parsed_url.password or "guest",
@@ -128,7 +130,7 @@ def consume_download_urls(
             )
         )
         logger.debug("Successfully connected to RabbitMQ")
-        
+
         channel = connection.channel()
         logger.debug(f"Declaring queue '{queue_name}' (durable=True)")
         channel.queue_declare(queue=queue_name, durable=True)
@@ -141,7 +143,7 @@ def consume_download_urls(
             """Process a message from the queue."""
             nonlocal message_count
             message_count += 1
-            
+
             try:
                 message = json.loads(body.decode("utf-8"))
                 download_url = message.get("url")
@@ -158,7 +160,9 @@ def consume_download_urls(
                     f"Message #{message_count}: Processing download URL from FTP run {ftp_run_id}: {download_url}"
                 )
                 on_download_url(download_url, ftp_run_id)
-                logger.debug(f"Message #{message_count}: Successfully processed: {download_url}")
+                logger.debug(
+                    f"Message #{message_count}: Successfully processed: {download_url}"
+                )
                 ch.basic_ack(delivery_tag=method.delivery_tag)
 
             except json.JSONDecodeError as e:
@@ -174,7 +178,9 @@ def consume_download_urls(
 
         channel.basic_consume(queue=queue_name, on_message_callback=callback)
 
-        logger.info(f"Starting consumer for queue '{queue_name}' (waiting for messages...)")
+        logger.info(
+            f"Starting consumer for queue '{queue_name}' (waiting for messages...)"
+        )
         channel.start_consuming()
 
     except pika.exceptions.AMQPConnectionError as e:

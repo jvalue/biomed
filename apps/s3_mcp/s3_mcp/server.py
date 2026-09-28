@@ -8,11 +8,9 @@ from typing import Any
 from urllib.parse import quote, unquote
 
 from botocore.exceptions import BotoCoreError, ClientError, EndpointConnectionError
+from crawler_common.s3.client import create_s3_client
 from dotenv import load_dotenv
 from mcp.server.fastmcp import FastMCP
-
-from crawler_common.s3.client import create_s3_client
-
 
 DEFAULT_ENDPOINT_URL = "http://localhost:9000"
 DEFAULT_BUCKET_NAME = "biomed-data"

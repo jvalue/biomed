@@ -3,9 +3,8 @@
 from datetime import datetime
 
 import pytest
-from pydantic import ValidationError
-
 from crawler_common.models.api import CrawlRequest, CrawlResponse
+from pydantic import ValidationError
 
 
 def test_crawl_request_valid(sample_url):

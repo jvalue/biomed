@@ -6,7 +6,7 @@ from crawler_common.ftp.ftp_tools import get_ftp_structure, get_root_folders
 
 __all__ = [
     "FTPNode",
-    "get_root_folders",
     "get_ftp_structure",
+    "get_root_folders",
     "load_env_vars",
 ]

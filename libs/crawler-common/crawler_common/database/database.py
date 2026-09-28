@@ -3,15 +3,14 @@
 from __future__ import annotations
 
 import logging
-from collections.abc import Iterator
-from typing import TYPE_CHECKING, Optional
-
 import os
-from dotenv import load_dotenv
+from collections.abc import Iterator
+from typing import TYPE_CHECKING
 
+from dotenv import load_dotenv
 from sqlalchemy import Engine, create_engine, inspect, select, text
 from sqlalchemy.engine import URL
-from sqlalchemy.orm import sessionmaker, Session
+from sqlalchemy.orm import Session, sessionmaker
 
 from crawler_common.database.db_conf import load_database_config
 from crawler_common.models.db import FTPDiscoveryEntry
@@ -33,10 +32,14 @@ def ensure_crawler_schema(engine: Engine) -> None:
 
     def add_column(table_name: str, column_sql: str) -> None:
         with engine.begin() as connection:
-            connection.execute(text(f"ALTER TABLE {table_name} ADD COLUMN {column_sql}"))
+            connection.execute(
+                text(f"ALTER TABLE {table_name} ADD COLUMN {column_sql}")
+            )
 
     if inspector.has_table("ftp_discovery_entries"):
-        entry_columns = {column["name"] for column in inspector.get_columns("ftp_discovery_entries")}
+        entry_columns = {
+            column["name"] for column in inspector.get_columns("ftp_discovery_entries")
+        }
         if "downloaded" not in entry_columns:
             add_column(
                 "ftp_discovery_entries",
@@ -44,7 +47,9 @@ def ensure_crawler_schema(engine: Engine) -> None:
             )
 
     if inspector.has_table("ftp_discovery_runs"):
-        run_columns = {column["name"] for column in inspector.get_columns("ftp_discovery_runs")}
+        run_columns = {
+            column["name"] for column in inspector.get_columns("ftp_discovery_runs")
+        }
         if "db_name" not in run_columns:
             add_column(
                 "ftp_discovery_runs",
@@ -150,9 +155,9 @@ def get_session(engine: Engine) -> Session:
     return _get_session_factory(engine)()
 
 
-_engine: Optional[Engine] = None
-_session_factory: Optional[sessionmaker] = None
-_session_factory_engine: Optional[Engine] = None
+_engine: Engine | None = None
+_session_factory: sessionmaker | None = None
+_session_factory_engine: Engine | None = None
 
 
 def _get_session_factory(engine: Engine) -> sessionmaker:
@@ -185,7 +190,7 @@ def set_engine(engine: Engine) -> None:
 
 
 def insert_ftp_nodes_to_database(
-    node: "SourceNode",
+    node: SourceNode,
     run_id: int,
     session: Session,
     current_depth: int = 0,
@@ -202,7 +207,10 @@ def insert_ftp_nodes_to_database(
         batch_size: Number of entries per batch flush.
         only_changed: If True, skip entries that already exist with same values.
     """
-    def iter_nodes(root: "SourceNode", start_depth: int) -> Iterator[tuple["SourceNode", int]]:
+
+    def iter_nodes(
+        root: SourceNode, start_depth: int
+    ) -> Iterator[tuple[SourceNode, int]]:
         stack: list[tuple[SourceNode, int]] = [(root, start_depth)]
 
         while stack:

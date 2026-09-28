@@ -5,9 +5,13 @@ from botocore.exceptions import BotoCoreError, ClientError, EndpointConnectionEr
 from crawler_common.s3.client import create_s3_client
 
 
-def can_connect_to_bucket(endpoint_url: str, bucket_name: str, timeout_seconds: int) -> bool:
+def can_connect_to_bucket(
+    endpoint_url: str, bucket_name: str, timeout_seconds: int
+) -> bool:
     """Check whether an S3 bucket endpoint is reachable via head_bucket."""
-    client = create_s3_client(endpoint_url=endpoint_url, timeout_seconds=timeout_seconds)
+    client = create_s3_client(
+        endpoint_url=endpoint_url, timeout_seconds=timeout_seconds
+    )
 
     try:
         client.head_bucket(Bucket=bucket_name)
