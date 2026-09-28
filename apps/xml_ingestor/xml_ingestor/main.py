@@ -57,9 +57,9 @@ def _resolve_path(value: str | Path | None, env_var: str) -> Path | str:
         s3_bucket = os.getenv("S3_BUCKET")
         s3_key = os.getenv("S3_KEY") or os.getenv("S3_UPLOAD_PREFIX")
         if s3_bucket and s3_key:
-            prefix = s3_key.rstrip("/")
-            if not prefix.endswith(".xml") and not prefix.endswith(".gz") and not prefix.endswith(".zip"):
-                prefix = f"{prefix}/data.xml"
+            prefix = s3_key.strip("/")
+            if not any(prefix.lower().endswith(ext) for ext in (".xml", ".gz", ".zip")):
+                return f"s3://{s3_bucket}/{prefix}/"
             return f"s3://{s3_bucket}/{prefix}"
 
     raise ValueError(f"Missing required configuration: {env_var}")

@@ -123,3 +123,11 @@ def test_main_resolves_values_from_env(monkeypatch):
     assert resolved["table_prefix"] == "medline"
     assert resolved["deduplicate_by_hash"] is True
     assert resolved["auto_migrate"] is True
+
+
+def test_resolve_path_resolves_s3_prefix_without_appending_data_xml(monkeypatch):
+    monkeypatch.setenv("S3_BUCKET", "biomed-data")
+    monkeypatch.setenv("S3_UPLOAD_PREFIX", "downloader-files")
+
+    res = app_main._resolve_path(None, "XML_INGESTOR_XML")
+    assert res == "s3://biomed-data/downloader-files/"

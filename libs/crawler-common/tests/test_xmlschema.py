@@ -711,3 +711,37 @@ def test_ingested_files_isolated_in_metadata_schema() -> None:
     ingested_table = metadata.tables.get("_ingest_metadata._ingested_files")
     assert ingested_table is not None
     assert ingested_table.schema == "_ingest_metadata"
+
+
+def test_stream_xml_deduplication_differentiates_distinct_text_contents() -> None:
+    schema_plan = parse_xsd_schema(XSD_SOURCE)
+    engine = init_database("sqlite+pysqlite:///:memory:")
+    metadata = create_sqlalchemy_schema(engine, schema_plan)
+    session = get_session(engine)
+
+    xml_1 = """<?xml version="1.0" encoding="UTF-8"?>
+<library>
+  <book isbn="978-1">
+    <title>First Book Title</title>
+    <year>2024</year>
+  </book>
+</library>"""
+
+    xml_2 = """<?xml version="1.0" encoding="UTF-8"?>
+<library>
+  <book isbn="978-1">
+    <title>Different Book Title</title>
+    <year>2024</year>
+  </book>
+</library>"""
+
+    try:
+        counts_1 = stream_xml_to_database(session, xml_1, schema_plan, metadata, deduplicate_by_hash=True)
+        session.commit()
+        assert counts_1["library_book"] == 1
+
+        counts_2 = stream_xml_to_database(session, xml_2, schema_plan, metadata, deduplicate_by_hash=True)
+        session.commit()
+        assert counts_2["library_book"] == 1
+    finally:
+        session.close()
