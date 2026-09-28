@@ -127,6 +127,8 @@ def consume_download_urls(
                 port=port,
                 credentials=credentials,
                 virtual_host=vhost,
+                heartbeat=0,
+                blocked_connection_timeout=300,
             )
         )
         logger.debug("Successfully connected to RabbitMQ")
