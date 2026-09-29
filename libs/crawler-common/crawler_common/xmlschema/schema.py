@@ -139,11 +139,21 @@ def _auto_migrate_schema(engine: Engine, metadata: MetaData) -> None:
 
     try:
         inspector = inspect(engine)
-        existing_tables = set(inspector.get_table_names())
+        tables_by_schema: dict[str | None, set[str]] = {}
         preparer = engine.dialect.identifier_preparer
 
         with engine.begin() as conn:
             for table_name, table in metadata.tables.items():
+                schema = table.schema
+                if schema not in tables_by_schema:
+                    try:
+                        tables_by_schema[schema] = set(
+                            inspector.get_table_names(schema=schema)
+                        )
+                    except Exception:
+                        tables_by_schema[schema] = set()
+
+                existing_tables = tables_by_schema[schema]
                 short_name = table.name
                 if (
                     short_name not in existing_tables
@@ -151,10 +161,17 @@ def _auto_migrate_schema(engine: Engine, metadata: MetaData) -> None:
                 ):
                     continue
 
-                existing_cols = {
-                    col["name"]
-                    for col in inspector.get_columns(short_name, schema=table.schema)
-                }
+                try:
+                    existing_cols = {
+                        col["name"]
+                        for col in inspector.get_columns(short_name, schema=schema)
+                    }
+                except Exception as exc:
+                    logger.debug(
+                        "Could not inspect columns for table %s: %s", short_name, exc
+                    )
+                    continue
+
                 for column in table.columns:
                     if column.name not in existing_cols:
                         col_type_sql = str(column.type.compile(engine.dialect))

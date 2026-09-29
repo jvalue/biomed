@@ -84,6 +84,7 @@ def _read_schema_document(
 
     if isinstance(source, str):
         if source.startswith("s3://"):
+            import shutil
             import tempfile
             from urllib.parse import urlparse
 
@@ -96,15 +97,34 @@ def _read_schema_document(
             endpoint_url = os.getenv("S3_ENDPOINT_URL") or "http://minio:9000"
             s3_client = create_s3_client(endpoint_url=endpoint_url, timeout_seconds=60)
 
-            with tempfile.NamedTemporaryFile(suffix=".xsd", delete=False) as tmp_file:
-                tmp_path = Path(tmp_file.name)
+            parent_prefix = str(Path(object_key).parent)
+            if parent_prefix == ".":
+                s3_prefix = ""
+            else:
+                s3_prefix = f"{parent_prefix}/"
 
+            tmp_dir = Path(tempfile.mkdtemp())
             try:
-                s3_client.download_file(bucket_name, object_key, str(tmp_path))
-                return ET.parse(tmp_path).getroot(), tmp_path.parent, tmp_path
-            finally:
-                if tmp_path.exists():
-                    tmp_path.unlink()
+                list_resp = s3_client.list_objects_v2(
+                    Bucket=bucket_name, Prefix=s3_prefix
+                )
+                for item in list_resp.get("Contents", []):
+                    item_key = item.get("Key", "")
+                    if item_key.lower().endswith(".xsd"):
+                        rel_name = Path(item_key).name
+                        s3_client.download_file(
+                            bucket_name, item_key, str(tmp_dir / rel_name)
+                        )
+
+                target_file = tmp_dir / Path(object_key).name
+                if not target_file.exists():
+                    s3_client.download_file(bucket_name, object_key, str(target_file))
+
+                tree = ET.parse(target_file)
+                return tree.getroot(), tmp_dir, target_file
+            except Exception:
+                shutil.rmtree(tmp_dir, ignore_errors=True)
+                raise
 
         source_path = Path(source)
         if source_path.exists():

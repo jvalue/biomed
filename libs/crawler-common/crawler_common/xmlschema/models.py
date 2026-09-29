@@ -87,6 +87,7 @@ class _Frame:
     element: ET.Element | None = None
     skipped: bool = False
     hash_tokens: list[str] = field(default_factory=list)
+    inserted_rows: list[tuple[str, int]] = field(default_factory=list)
 
 
 _BUILTIN_TYPE_MAP: dict[str, Any] = {

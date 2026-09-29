@@ -267,6 +267,17 @@ def stream_xml_to_database(
             for k in sorted(elem.attrib):
                 f.hash_tokens.append(f"attr:{k}={elem.attrib[k]}")
 
+    def _get_top_level_frame(frame: _Frame) -> _Frame:
+        curr = frame
+        while (
+            curr.parent is not None
+            and curr.parent.definition is not None
+            and curr.parent.parent is not None
+            and curr.parent.parent.definition is not None
+        ):
+            curr = curr.parent
+        return curr
+
     def ensure_inserted(frame: _Frame) -> int | None:
         if frame.definition is None or frame.skipped:
             return None
@@ -283,21 +294,6 @@ def stream_xml_to_database(
             if frame.parent.skipped:
                 frame.skipped = True
                 return None
-
-        if (
-            deduplicate_by_hash
-            and frame.parent is not None
-            and (frame.parent.definition is None or frame.parent.parent is None)
-        ):
-            try:
-                raw_bytes = "|".join(frame.hash_tokens).encode("utf-8")
-                node_hash = sha1(raw_bytes).hexdigest()
-                if _is_hash_duplicate(frame, node_hash):
-                    frame.skipped = True
-                    return None
-                frame.pending_values["_xml_hash"] = node_hash
-            except Exception as exc:
-                logger.debug("Failed computing node hash: %s", exc)
 
         table = get_table(frame.definition)
         values: dict[str, Any] = {}
@@ -323,14 +319,14 @@ def stream_xml_to_database(
             values["_xml_hash"] = frame.pending_values["_xml_hash"]
 
         result = session.execute(insert(table).values(**values))
-        row_id = result.inserted_primary_key[0]
-        frame.row_id = int(row_id)
+        row_id = int(result.inserted_primary_key[0])
+        frame.row_id = row_id
         inserted_counts[frame.definition.table_name] += 1
-        if values.get("_xml_hash"):
-            seen_hashes.add(values["_xml_hash"])
-            if len(seen_hashes) > 100000:
-                seen_hashes.clear()
-        return int(row_id)
+
+        top_frame = _get_top_level_frame(frame)
+        top_frame.inserted_rows.append((frame.definition.table_name, row_id))
+
+        return row_id
 
     def populate_attributes(frame: _Frame, attributes: dict[str, str]) -> None:
         if frame.definition is None:
@@ -361,6 +357,9 @@ def stream_xml_to_database(
                 values[column_spec.column_name] = _coerce_value(
                     frame.pending_values[column_spec.column_name], column_spec.sql_type
                 )
+
+        if "_xml_hash" in frame.pending_values:
+            values["_xml_hash"] = frame.pending_values["_xml_hash"]
 
         if values:
             session.execute(
@@ -474,6 +473,35 @@ def stream_xml_to_database(
                 continue
 
             frame.text_value = text_value
+
+            if (
+                deduplicate_by_hash
+                and frame.parent is not None
+                and (frame.parent.definition is None or frame.parent.parent is None)
+            ):
+                try:
+                    raw_bytes = "|".join(frame.hash_tokens).encode("utf-8")
+                    node_hash = sha1(raw_bytes).hexdigest()
+                    is_dup = _is_hash_duplicate(frame, node_hash)
+                    logger.debug("Top frame %s hash=%s is_dup=%s", frame.definition.table_name, node_hash, is_dup)
+                    if is_dup:
+                        frame.skipped = True
+                        if frame.inserted_rows:
+                            from sqlalchemy import delete
+
+                            for tbl_name, r_id in reversed(frame.inserted_rows):
+                                tbl = tables[tbl_name]
+                                session.execute(delete(tbl).where(tbl.c.id == r_id))
+                                inserted_counts[tbl_name] -= 1
+                        element.clear()
+                        continue
+                    frame.pending_values["_xml_hash"] = node_hash
+                    seen_hashes.add(node_hash)
+                    if len(seen_hashes) > 100000:
+                        seen_hashes.clear()
+                except Exception as exc:
+                    logger.debug("Failed computing node hash: %s", exc)
+
             if frame.row_id is None:
                 ensure_inserted(frame)
             else:
