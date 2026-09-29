@@ -137,6 +137,9 @@ def init_database(database_url: str | URL, echo: bool = False) -> Engine:
         >>> engine = init_database("sqlite+pysqlite:///:memory:")
     """
     logger.info("Initializing database connection")
+    if isinstance(database_url, str) and database_url.startswith("postgresql://"):
+        database_url = "postgresql+psycopg2://" + database_url[len("postgresql://") :]
+
     engine = create_engine(database_url, echo=echo)
     logger.info("Database engine created")
 

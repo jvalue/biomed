@@ -807,8 +807,8 @@ def test_stream_xml_to_database_extracts_tar_gz_archives(tmp_path: Path) -> None
 
 
 def test_auto_migrate_schema_quotes_reserved_identifiers() -> None:
-    from sqlalchemy import Column, Integer, MetaData, Table, Text
     from crawler_common.xmlschema.schema import _auto_migrate_schema
+    from sqlalchemy import Column, Integer, MetaData, Table, Text
 
     engine = init_database("sqlite+pysqlite:///:memory:")
 
