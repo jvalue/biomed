@@ -393,23 +393,30 @@ def stream_xml_to_database(
     def current_parent() -> _Frame | None:
         return frame_stack[-1] if frame_stack else None
 
+    root_element: Any = None
+
     with _iterable_xml_source(xml_source) as xml_file:
         for event, element in ET.iterparse(xml_file, events=("start", "end")):
             local_name = _local_name(element.tag)
 
             if event == "start":
+                if root_element is None:
+                    root_element = element
+
                 if not frame_stack:
                     root_spec = schema_plan.root_tables.get(local_name)
                     if root_spec is None:
                         f = _Frame(definition=None, parent=None, element=element)
-                        _init_frame_hash(f, element, local_name)
+                        if deduplicate_by_hash:
+                            _init_frame_hash(f, element, local_name)
                         frame_stack.append(f)
                         continue
 
                     root_frame = _Frame(
                         definition=root_spec, parent=None, element=element
                     )
-                    _init_frame_hash(root_frame, element, local_name)
+                    if deduplicate_by_hash:
+                        _init_frame_hash(root_frame, element, local_name)
                     populate_attributes(root_frame, element.attrib)
                     frame_stack.append(root_frame)
                     continue
@@ -417,7 +424,8 @@ def stream_xml_to_database(
                 parent_frame = current_parent()
                 if parent_frame is None or parent_frame.definition is None:
                     f = _Frame(definition=None, parent=parent_frame, element=element)
-                    _init_frame_hash(f, element, local_name)
+                    if deduplicate_by_hash:
+                        _init_frame_hash(f, element, local_name)
                     frame_stack.append(f)
                     continue
 
@@ -426,7 +434,8 @@ def stream_xml_to_database(
                     child_frame = _Frame(
                         definition=child_spec, parent=parent_frame, element=element
                     )
-                    _init_frame_hash(child_frame, element, local_name)
+                    if deduplicate_by_hash:
+                        _init_frame_hash(child_frame, element, local_name)
                     populate_attributes(child_frame, element.attrib)
                     frame_stack.append(child_frame)
                     continue
@@ -439,24 +448,27 @@ def stream_xml_to_database(
                         simple_column_name=simple_column.column_name,
                         element=element,
                     )
-                    _init_frame_hash(f, element, local_name)
+                    if deduplicate_by_hash:
+                        _init_frame_hash(f, element, local_name)
                     frame_stack.append(f)
                     continue
 
                 f = _Frame(definition=None, parent=parent_frame, element=element)
-                _init_frame_hash(f, element, local_name)
+                if deduplicate_by_hash:
+                    _init_frame_hash(f, element, local_name)
                 frame_stack.append(f)
                 continue
 
             frame = frame_stack.pop()
             text_value = _clean_text(element.text)
 
-            if text_value is not None:
-                frame.hash_tokens.append(f"text:{text_value}")
-            frame.hash_tokens.append(f"</{local_name}>")
+            if deduplicate_by_hash:
+                if text_value is not None:
+                    frame.hash_tokens.append(f"text:{text_value}")
+                frame.hash_tokens.append(f"</{local_name}>")
 
-            if frame.parent is not None:
-                frame.parent.hash_tokens.extend(frame.hash_tokens)
+                if frame.parent is not None and frame.parent.definition is not None:
+                    frame.parent.hash_tokens.extend(frame.hash_tokens)
 
             if frame.definition is None or frame.skipped:
                 if (
@@ -483,7 +495,12 @@ def stream_xml_to_database(
                     raw_bytes = "|".join(frame.hash_tokens).encode("utf-8")
                     node_hash = sha1(raw_bytes).hexdigest()
                     is_dup = _is_hash_duplicate(frame, node_hash)
-                    logger.debug("Top frame %s hash=%s is_dup=%s", frame.definition.table_name, node_hash, is_dup)
+                    logger.debug(
+                        "Top frame %s hash=%s is_dup=%s",
+                        frame.definition.table_name,
+                        node_hash,
+                        is_dup,
+                    )
                     if is_dup:
                         frame.skipped = True
                         if frame.inserted_rows:
@@ -507,6 +524,11 @@ def stream_xml_to_database(
             else:
                 update_row(frame)
             commit_completed_top_level_frame(frame)
+            if frame.parent is not None and len(frame_stack) == 1 and root_element is not None:
+                root_element.clear()
+            frame.inserted_rows.clear()
+            if deduplicate_by_hash:
+                frame.hash_tokens.clear()
             element.clear()
 
     session.flush()
