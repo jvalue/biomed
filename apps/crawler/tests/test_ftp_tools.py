@@ -243,5 +243,6 @@ def test_main_builds_download_urls_relative_to_ftp_root(monkeypatch):
         {
             "url": "https://ftp.example.com/bioproject/data/file.txt",
             "ftp_run_id": 101,
+            "db_name": "ftp-example-com",
         }
     ]

@@ -150,6 +150,7 @@ def consume_download_urls(
                 message = json.loads(body.decode("utf-8"))
                 download_url = message.get("url")
                 ftp_run_id = message.get("ftp_run_id", None)
+                db_name = message.get("db_name", None)
 
                 if not download_url:
                     logger.warning(
@@ -159,9 +160,12 @@ def consume_download_urls(
                     return
 
                 logger.info(
-                    f"Message #{message_count}: Processing download URL from FTP run {ftp_run_id}: {download_url}"
+                    f"Message #{message_count}: Processing download URL (run={ftp_run_id}, db_name={db_name}): {download_url}"
                 )
-                on_download_url(download_url, ftp_run_id)
+                try:
+                    on_download_url(download_url, ftp_run_id, db_name)
+                except TypeError:
+                    on_download_url(download_url, ftp_run_id)
                 logger.debug(
                     f"Message #{message_count}: Successfully processed: {download_url}"
                 )

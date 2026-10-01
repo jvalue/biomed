@@ -92,6 +92,7 @@ def _flush_discovery_batch(
     rabbitmq_url: str,
     rabbitmq_queue: str,
     batch: list[tuple[FTPDiscoveryEntry, str | None]],
+    crawl_db_name: str | None = None,
 ) -> tuple[int, int, int]:
     """Persist changed entries and publish changed files.
 
@@ -122,7 +123,11 @@ def _flush_discovery_batch(
     published = 0
     if rabbitmq_url:
         messages = [
-            {"url": file_url, "ftp_run_id": entry.run_id}
+            {
+                "url": file_url,
+                "ftp_run_id": entry.run_id,
+                **({"db_name": crawl_db_name} if crawl_db_name else {}),
+            }
             for entry, file_url in changed
             if file_url is not None
         ]
@@ -235,6 +240,7 @@ def main():
                     rabbitmq_url,
                     rabbitmq_queue,
                     discovery_batch,
+                    crawl_db_name=crawl_db_name,
                 )
                 inserted_entries += inserted
                 published_messages += published
@@ -245,6 +251,7 @@ def main():
             rabbitmq_url,
             rabbitmq_queue,
             discovery_batch,
+            crawl_db_name=crawl_db_name,
         )
         inserted_entries += inserted
         published_messages += published

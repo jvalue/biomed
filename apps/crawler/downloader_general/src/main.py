@@ -218,19 +218,27 @@ def main() -> None:
             session.rollback()
             raise
 
+    def _resolve_db_prefix(
+        ftp_run_id: object | None = None, db_name: str | None = None
+    ) -> str:
+        if db_name and isinstance(db_name, str) and db_name.strip():
+            return db_name.strip()
+        run_id_int = _to_int_or_none(ftp_run_id)
+        if run_id_int is not None:
+            return _get_db_name_from_run_id(run_id_int)
+        return os.getenv("CRAWL_DB_NAME", "")
+
     def upload_file_to_s3(
-        download_url: str, source_file: Path, ftp_run_id: object | None = None
+        download_url: str,
+        source_file: Path,
+        ftp_run_id: object | None = None,
+        db_name: str | None = None,
     ) -> None:
         try:
             parsed = urlparse(download_url)
             source_path = parsed.path.lstrip("/") or "unknown-file"
-            # Determine db prefix (run-specific or env default)
-            run_id_int = _to_int_or_none(ftp_run_id)
-            db_prefix = (
-                _get_db_name_from_run_id(run_id_int)
-                if run_id_int is not None
-                else os.getenv("CRAWL_DB_NAME", "")
-            )
+            # Determine db prefix (message db_name, run-specific lookup, or env default)
+            db_prefix = _resolve_db_prefix(ftp_run_id=ftp_run_id, db_name=db_name)
             # If the source_path already starts with the db_prefix, avoid duplicating it
             normalized_source = source_path
             if db_prefix and normalized_source.startswith(f"{db_prefix}/"):
@@ -287,6 +295,7 @@ def main() -> None:
                         download_url,
                         source_file.stat().st_size if source_file.exists() else 0,
                         ftp_run_id=ftp_run_id,
+                        db_name=db_name,
                     )
                 except Exception:
                     logger.exception(
@@ -304,18 +313,16 @@ def main() -> None:
             raise
 
     def upload_dummy_marker(
-        download_url: str, file_size_bytes: int, ftp_run_id: object | None = None
+        download_url: str,
+        file_size_bytes: int,
+        ftp_run_id: object | None = None,
+        db_name: str | None = None,
     ) -> None:
         try:
             parsed = urlparse(download_url)
             source_path = parsed.path.lstrip("/") or "unknown-file"
-            # Determine db prefix (run-specific or env default)
-            run_id_int = _to_int_or_none(ftp_run_id)
-            db_prefix = (
-                _get_db_name_from_run_id(run_id_int)
-                if run_id_int is not None
-                else os.getenv("CRAWL_DB_NAME", "")
-            )
+            # Determine db prefix (message db_name, run-specific lookup, or env default)
+            db_prefix = _resolve_db_prefix(ftp_run_id=ftp_run_id, db_name=db_name)
             # If the source_path already starts with the db_prefix, avoid duplicating it
             normalized_source = source_path
             if db_prefix and normalized_source.startswith(f"{db_prefix}/"):
@@ -348,7 +355,11 @@ def main() -> None:
             logger.error(f"Failed to upload debug marker for {download_url}: {e}")
             raise
 
-    def handle_download_url(download_url: str, ftp_run_id: object = None) -> None:
+    def handle_download_url(
+        download_url: str,
+        ftp_run_id: object = None,
+        db_name: str | None = None,
+    ) -> None:
         try:
             parsed = urlparse(download_url)
             folder_key = _folder_key_from_url(parsed)
@@ -397,7 +408,10 @@ def main() -> None:
                             f"uploading dummy marker instead"
                         )
                         upload_dummy_marker(
-                            download_url, file_size_bytes, ftp_run_id=ftp_run_id
+                            download_url,
+                            file_size_bytes,
+                            ftp_run_id=ftp_run_id,
+                            db_name=db_name,
                         )
                         return
 
@@ -424,6 +438,7 @@ def main() -> None:
                                     download_url,
                                     downloaded_bytes,
                                     ftp_run_id=ftp_run_id,
+                                    db_name=db_name,
                                 )
                                 return
 
@@ -440,7 +455,12 @@ def main() -> None:
                         download_url,
                     )
                     try:
-                        upload_dummy_marker(download_url, 0, ftp_run_id=ftp_run_id)
+                        upload_dummy_marker(
+                            download_url,
+                            0,
+                            ftp_run_id=ftp_run_id,
+                            db_name=db_name,
+                        )
                     except Exception:
                         logger.exception("Failed uploading debug marker for HTTP error")
 
@@ -483,7 +503,12 @@ def main() -> None:
             logger.info(
                 f"Download completed: {downloaded_bytes} bytes saved to {destination}"
             )
-            upload_file_to_s3(download_url, destination, ftp_run_id=ftp_run_id)
+            upload_file_to_s3(
+                download_url,
+                destination,
+                ftp_run_id=ftp_run_id,
+                db_name=db_name,
+            )
             # Only count successful uploads toward the per-folder debug cap
             if debug_max_files_per_folder > 0:
                 folder_download_counts[folder_key] = (
