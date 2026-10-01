@@ -206,6 +206,121 @@ def _iterable_xml_source(source: str | Path | TextIO) -> Iterator[TextIO]:
         yield xml_file
 
 
+class _BufferedRow:
+    __slots__ = ("table_name", "definition", "parent_row", "values", "row_id")
+
+    def __init__(
+        self,
+        definition: TableSpec,
+        parent_row: _BufferedRow | None,
+        values: dict[str, Any],
+    ) -> None:
+        self.table_name = definition.table_name
+        self.definition = definition
+        self.parent_row = parent_row
+        self.values = values
+        self.row_id: int | None = None
+
+
+def _compute_table_levels(schema_plan: SchemaPlan) -> list[list[str]]:
+    levels: list[list[str]] = []
+    assigned: set[str] = set()
+    current_level = [t.table_name for t in schema_plan.root_tables.values()]
+    while current_level:
+        levels.append(current_level)
+        assigned.update(current_level)
+        next_level = []
+        for t_spec in schema_plan.tables_by_name.values():
+            if (
+                t_spec.table_name not in assigned
+                and t_spec.parent_table_name in assigned
+            ):
+                next_level.append(t_spec.table_name)
+        current_level = next_level
+
+    remaining = [
+        t.table_name
+        for t in schema_plan.tables_by_name.values()
+        if t.table_name not in assigned
+    ]
+    if remaining:
+        levels.append(remaining)
+
+    return levels
+
+
+def _flush_batch(
+    session: Session,
+    tables: dict[str, Table],
+    table_levels: list[list[str]],
+    pending_rows: list[_BufferedRow],
+    inserted_counts: dict[str, int],
+    chunk_size: int = 5000,
+) -> None:
+    if not pending_rows:
+        return
+
+    # Ensure all ancestor rows with row_id=None are included
+    all_rows: list[_BufferedRow] = []
+    seen: set[_BufferedRow] = set()
+
+    def _add(r: _BufferedRow) -> None:
+        if r in seen or r.row_id is not None:
+            return
+        if r.parent_row is not None and r.parent_row.row_id is None:
+            _add(r.parent_row)
+        seen.add(r)
+        all_rows.append(r)
+
+    for r in pending_rows:
+        _add(r)
+
+    rows_by_table: dict[str, list[_BufferedRow]] = defaultdict(list)
+    for r in all_rows:
+        rows_by_table[r.table_name].append(r)
+
+    for level_tables in table_levels:
+        for table_name in level_tables:
+            table_rows = rows_by_table.get(table_name)
+            if not table_rows:
+                continue
+
+            table = tables[table_name]
+            parent_table_name = table_rows[0].definition.parent_table_name
+            parent_col_name: str | None = None
+            if parent_table_name:
+                parent_col_name = _shorten_identifier(
+                    f"{_sanitize_identifier(parent_table_name)}_id"
+                )
+
+            for i in range(0, len(table_rows), chunk_size):
+                chunk = table_rows[i : i + chunk_size]
+
+                # Union of all keys present across this chunk
+                chunk_keys: set[str] = set()
+                for r in chunk:
+                    chunk_keys.update(r.values.keys())
+                if parent_col_name is not None:
+                    chunk_keys.add(parent_col_name)
+
+                batch_values: list[dict[str, Any]] = []
+                for r in chunk:
+                    if parent_col_name is not None and r.parent_row is not None:
+                        r.values[parent_col_name] = r.parent_row.row_id
+                    row_dict = {k: r.values.get(k, None) for k in chunk_keys}
+                    batch_values.append(row_dict)
+
+                stmt = insert(table).returning(
+                    table.c.id, sort_by_parameter_order=True
+                )
+                returned_ids = session.scalars(stmt, batch_values).all()
+
+                for r, rid in zip(chunk, returned_ids):
+                    r.row_id = rid
+
+                inserted_counts[table_name] += len(chunk)
+
+
 def stream_xml_to_database(
     session: Session,
     xml_source: str | Path | TextIO,
@@ -223,10 +338,12 @@ def stream_xml_to_database(
         metadata = build_sqlalchemy_metadata(schema_plan)
 
     tables = metadata.tables
+    table_levels = _compute_table_levels(schema_plan)
     inserted_counts: dict[str, int] = {
         table_name: 0 for table_name in tables if not table_name.startswith("_")
     }
     frame_stack: list[_Frame] = []
+    pending_batch_rows: list[_BufferedRow] = []
     completed_top_level_frames = 0
     started_at = time.monotonic()
     last_progress_log_at = started_at
@@ -271,62 +388,47 @@ def stream_xml_to_database(
         curr = frame
         while (
             curr.parent is not None
-            and curr.parent.definition is not None
             and curr.parent.parent is not None
-            and curr.parent.parent.definition is not None
         ):
             curr = curr.parent
         return curr
 
-    def ensure_inserted(frame: _Frame) -> int | None:
-        if frame.definition is None or frame.skipped:
+    def _get_parent_buffered_row(f: _Frame) -> _BufferedRow | None:
+        curr = f.parent
+        while curr is not None:
+            if curr.buffered_row is not None:
+                return curr.buffered_row
+            curr = curr.parent
+        return None
+
+    def _ensure_buffered_row(frame: _Frame) -> _BufferedRow | None:
+        if frame.definition is None:
             return None
-        if frame.row_id is not None:
-            return frame.row_id
+        if frame.buffered_row is not None:
+            return frame.buffered_row
 
-        if frame.parent is not None and frame.parent.skipped:
-            frame.skipped = True
-            return None
+        parent_row = _get_parent_buffered_row(frame)
+        b_row = _BufferedRow(frame.definition, parent_row, dict(frame.pending_values))
+        frame.buffered_row = b_row
+        top_frame = _get_top_level_frame(frame)
+        top_frame.buffered_rows.append(b_row)
+        return b_row
 
-        parent_id: int | None = None
-        if frame.parent is not None and frame.parent.definition is not None:
-            parent_id = ensure_inserted(frame.parent)
-            if frame.parent.skipped:
-                frame.skipped = True
-                return None
-
-        table = get_table(frame.definition)
-        values: dict[str, Any] = {}
-        if parent_id is not None and frame.definition.parent_table_name:
-            parent_column_name = _shorten_identifier(
-                f"{_sanitize_identifier(frame.definition.parent_table_name)}_id"
-            )
-            values[parent_column_name] = parent_id
-
+    def _sync_frame_values(frame: _Frame) -> None:
+        if frame.definition is None or frame.buffered_row is None:
+            return
         for column_spec in frame.definition.columns:
             if column_spec.source == "text":
                 if frame.text_value is not None:
-                    values[column_spec.column_name] = _coerce_value(
+                    frame.buffered_row.values[column_spec.column_name] = _coerce_value(
                         frame.text_value, column_spec.sql_type
                     )
                 continue
             if column_spec.column_name in frame.pending_values:
-                values[column_spec.column_name] = _coerce_value(
-                    frame.pending_values[column_spec.column_name], column_spec.sql_type
+                frame.buffered_row.values[column_spec.column_name] = _coerce_value(
+                    frame.pending_values[column_spec.column_name],
+                    column_spec.sql_type,
                 )
-
-        if "_xml_hash" in frame.pending_values:
-            values["_xml_hash"] = frame.pending_values["_xml_hash"]
-
-        result = session.execute(insert(table).values(**values))
-        row_id = int(result.inserted_primary_key[0])
-        frame.row_id = row_id
-        inserted_counts[frame.definition.table_name] += 1
-
-        top_frame = _get_top_level_frame(frame)
-        top_frame.inserted_rows.append((frame.definition.table_name, row_id))
-
-        return row_id
 
     def populate_attributes(frame: _Frame, attributes: dict[str, str]) -> None:
         if frame.definition is None:
@@ -339,56 +441,6 @@ def stream_xml_to_database(
                 frame.pending_values[column_spec.column_name] = attributes[
                     column_spec.xml_name
                 ]
-
-    def update_row(frame: _Frame) -> None:
-        if frame.definition is None or frame.row_id is None:
-            return
-
-        table = get_table(frame.definition)
-        values: dict[str, Any] = {}
-        for column_spec in frame.definition.columns:
-            if column_spec.source == "text":
-                if frame.text_value is not None:
-                    values[column_spec.column_name] = _coerce_value(
-                        frame.text_value, column_spec.sql_type
-                    )
-                continue
-            if column_spec.column_name in frame.pending_values:
-                values[column_spec.column_name] = _coerce_value(
-                    frame.pending_values[column_spec.column_name], column_spec.sql_type
-                )
-
-        if "_xml_hash" in frame.pending_values:
-            values["_xml_hash"] = frame.pending_values["_xml_hash"]
-
-        if values:
-            session.execute(
-                update(table).where(table.c.id == frame.row_id).values(**values)
-            )
-
-    def commit_completed_top_level_frame(frame: _Frame) -> None:
-        nonlocal completed_top_level_frames, last_progress_log_at
-
-        if frame.parent is not None and len(frame_stack) == 1:
-            completed_top_level_frames += 1
-            if commit_every > 0 and completed_top_level_frames % commit_every == 0:
-                session.commit()
-
-            now = time.monotonic()
-            should_log_progress = (
-                completed_top_level_frames % max(1, progress_log_every) == 0
-                or now - last_progress_log_at >= progress_log_seconds
-            )
-            if should_log_progress:
-                elapsed_seconds = now - started_at
-                total_rows = sum(inserted_counts.values())
-                logger.info(
-                    "XML ingest progress: %s top-level records committed, %s rows inserted in %.1fs",
-                    completed_top_level_frames,
-                    total_rows,
-                    elapsed_seconds,
-                )
-                last_progress_log_at = now
 
     def current_parent() -> _Frame | None:
         return frame_stack[-1] if frame_stack else None
@@ -418,6 +470,7 @@ def stream_xml_to_database(
                     if deduplicate_by_hash:
                         _init_frame_hash(root_frame, element, local_name)
                     populate_attributes(root_frame, element.attrib)
+                    _ensure_buffered_row(root_frame)
                     frame_stack.append(root_frame)
                     continue
 
@@ -437,6 +490,7 @@ def stream_xml_to_database(
                     if deduplicate_by_hash:
                         _init_frame_hash(child_frame, element, local_name)
                     populate_attributes(child_frame, element.attrib)
+                    _ensure_buffered_row(child_frame)
                     frame_stack.append(child_frame)
                     continue
 
@@ -461,6 +515,7 @@ def stream_xml_to_database(
 
             frame = frame_stack.pop()
             text_value = _clean_text(element.text)
+            frame.text_value = text_value
 
             if deduplicate_by_hash:
                 if text_value is not None:
@@ -480,56 +535,104 @@ def stream_xml_to_database(
                         frame.parent.pending_values[frame.simple_column_name] = (
                             text_value
                         )
-                    commit_completed_top_level_frame(frame)
+                        _sync_frame_values(frame.parent)
                 element.clear()
                 continue
 
-            frame.text_value = text_value
+            _sync_frame_values(frame)
 
             if (
-                deduplicate_by_hash
-                and frame.parent is not None
-                and (frame.parent.definition is None or frame.parent.parent is None)
+                frame.definition is not None
+                and frame.buffered_row is not None
+                and frame.buffered_row.row_id is not None
             ):
-                try:
-                    raw_bytes = "|".join(frame.hash_tokens).encode("utf-8")
-                    node_hash = sha1(raw_bytes).hexdigest()
-                    is_dup = _is_hash_duplicate(frame, node_hash)
-                    logger.debug(
-                        "Top frame %s hash=%s is_dup=%s",
-                        frame.definition.table_name,
-                        node_hash,
-                        is_dup,
+                table = tables[frame.definition.table_name]
+                values = {
+                    col.column_name: frame.buffered_row.values[col.column_name]
+                    for col in frame.definition.columns
+                    if col.column_name in frame.buffered_row.values
+                }
+                if values:
+                    session.execute(
+                        update(table)
+                        .where(table.c.id == frame.buffered_row.row_id)
+                        .values(**values)
                     )
-                    if is_dup:
-                        frame.skipped = True
-                        if frame.inserted_rows:
-                            from sqlalchemy import delete
 
-                            for tbl_name, r_id in reversed(frame.inserted_rows):
-                                tbl = tables[tbl_name]
-                                session.execute(delete(tbl).where(tbl.c.id == r_id))
-                                inserted_counts[tbl_name] -= 1
-                        element.clear()
-                        continue
-                    frame.pending_values["_xml_hash"] = node_hash
-                    seen_hashes.add(node_hash)
-                    if len(seen_hashes) > 100000:
-                        seen_hashes.clear()
-                except Exception as exc:
-                    logger.debug("Failed computing node hash: %s", exc)
+            is_top_level_record = (
+                (frame.parent is not None and len(frame_stack) == 1)
+                or (frame.parent is None and completed_top_level_frames == 0)
+            )
 
-            if frame.row_id is None:
-                ensure_inserted(frame)
-            else:
-                update_row(frame)
-            commit_completed_top_level_frame(frame)
-            if frame.parent is not None and len(frame_stack) == 1 and root_element is not None:
-                root_element.clear()
-            frame.inserted_rows.clear()
-            if deduplicate_by_hash:
-                frame.hash_tokens.clear()
+            if is_top_level_record:
+                top_frame = _get_top_level_frame(frame)
+                if deduplicate_by_hash:
+                    try:
+                        raw_bytes = "|".join(frame.hash_tokens).encode("utf-8")
+                        node_hash = sha1(raw_bytes).hexdigest()
+                        is_dup = _is_hash_duplicate(frame, node_hash)
+                        if is_dup:
+                            frame.skipped = True
+                            top_frame.buffered_rows.clear()
+                            if root_element is not None:
+                                root_element.clear()
+                            element.clear()
+                            continue
+                        if frame.buffered_row is not None:
+                            frame.buffered_row.values["_xml_hash"] = node_hash
+                        seen_hashes.add(node_hash)
+                        if len(seen_hashes) > 100000:
+                            seen_hashes.clear()
+                    except Exception as exc:
+                        logger.debug("Failed computing node hash: %s", exc)
+
+                pending_batch_rows.extend(top_frame.buffered_rows)
+                top_frame.buffered_rows.clear()
+
+                completed_top_level_frames += 1
+                if commit_every > 0 and completed_top_level_frames % commit_every == 0:
+                    for f in frame_stack:
+                        _sync_frame_values(f)
+                    _flush_batch(
+                        session,
+                        tables,
+                        table_levels,
+                        pending_batch_rows,
+                        inserted_counts,
+                    )
+                    pending_batch_rows.clear()
+                    session.commit()
+
+                now = time.monotonic()
+                should_log_progress = (
+                    completed_top_level_frames % max(1, progress_log_every) == 0
+                    or now - last_progress_log_at >= progress_log_seconds
+                )
+                if should_log_progress:
+                    elapsed_seconds = now - started_at
+                    total_rows = sum(inserted_counts.values())
+                    logger.info(
+                        "XML ingest progress: %s top-level records committed, %s rows inserted in %.1fs",
+                        completed_top_level_frames,
+                        total_rows,
+                        elapsed_seconds,
+                    )
+                    last_progress_log_at = now
+
+                if root_element is not None and len(frame_stack) > 0:
+                    root_element.clear()
+                if deduplicate_by_hash:
+                    frame.hash_tokens.clear()
+
             element.clear()
+
+    if pending_batch_rows:
+        for f in frame_stack:
+            _sync_frame_values(f)
+        _flush_batch(
+            session, tables, table_levels, pending_batch_rows, inserted_counts
+        )
+        pending_batch_rows.clear()
 
     session.flush()
     session.commit()

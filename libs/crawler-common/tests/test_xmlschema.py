@@ -833,3 +833,109 @@ def test_auto_migrate_schema_quotes_reserved_identifiers() -> None:
     inspector = inspect(engine)
     cols = {c["name"] for c in inspector.get_columns("order")}
     assert "user" in cols
+
+
+def test_stream_xml_to_database_synchronizes_late_arriving_ancestor_values() -> None:
+    xsd = """<xs:schema xmlns:xs="http://www.w3.org/2001/XMLSchema">
+      <xs:element name="library">
+        <xs:complexType>
+          <xs:sequence>
+            <xs:element name="name" type="xs:string"/>
+            <xs:element name="book" maxOccurs="unbounded">
+              <xs:complexType>
+                <xs:sequence>
+                  <xs:element name="title" type="xs:string"/>
+                </xs:sequence>
+              </xs:complexType>
+            </xs:element>
+            <xs:element name="description" type="xs:string" minOccurs="0"/>
+          </xs:sequence>
+        </xs:complexType>
+      </xs:element>
+    </xs:schema>"""
+
+    xml = """<library>
+      <name>Main Library</name>
+      <book><title>Book 1</title></book>
+      <book><title>Book 2</title></book>
+      <description>End description</description>
+    </library>"""
+
+    schema_plan = parse_xsd_schema(xsd)
+    engine = init_database("sqlite+pysqlite:///:memory:")
+    meta = create_sqlalchemy_schema(engine, schema_plan)
+    session = get_session(engine)
+
+    try:
+        # commit_every=1 forces book 1 to flush and insert the library row before description is parsed
+        counts = stream_xml_to_database(
+            session, xml, schema_plan, metadata=meta, commit_every=1
+        )
+        lib_tbl = meta.tables["library"]
+        res = session.execute(select(lib_tbl)).mappings().first()
+        assert res is not None
+        assert res["name"] == "Main Library"
+        assert res["description"] == "End description"
+        assert counts["library"] == 1
+        assert counts["library_book"] == 2
+    finally:
+        session.close()
+
+
+def test_stream_xml_to_database_normalizes_chunk_keys_for_heterogeneous_rows() -> None:
+    xsd = """<xs:schema xmlns:xs="http://www.w3.org/2001/XMLSchema">
+      <xs:element name="catalog">
+        <xs:complexType>
+          <xs:sequence>
+            <xs:element name="item" maxOccurs="unbounded">
+              <xs:complexType>
+                <xs:sequence>
+                  <xs:element name="id_code" type="xs:string"/>
+                  <xs:element name="name" type="xs:string" minOccurs="0"/>
+                  <xs:element name="price" type="xs:float" minOccurs="0"/>
+                  <xs:element name="note" type="xs:string" minOccurs="0"/>
+                </xs:sequence>
+              </xs:complexType>
+            </xs:element>
+          </xs:sequence>
+        </xs:complexType>
+      </xs:element>
+    </xs:schema>"""
+
+    # Row 1 has (id_code, name), Row 2 has (id_code, price), Row 3 has (id_code, note)
+    xml = """<catalog>
+      <item><id_code>A1</id_code><name>Item A</name></item>
+      <item><id_code>B2</id_code><price>19.99</price></item>
+      <item><id_code>C3</id_code><note>Special note</note></item>
+    </catalog>"""
+
+    schema_plan = parse_xsd_schema(xsd)
+    engine = init_database("sqlite+pysqlite:///:memory:")
+    meta = create_sqlalchemy_schema(engine, schema_plan)
+    session = get_session(engine)
+
+    try:
+        counts = stream_xml_to_database(
+            session, xml, schema_plan, metadata=meta, commit_every=100
+        )
+        item_tbl = meta.tables["catalog_item"]
+        rows = session.execute(select(item_tbl).order_by(item_tbl.c.id)).mappings().all()
+        assert len(rows) == 3
+        assert rows[0]["id_code"] == "A1"
+        assert rows[0]["name"] == "Item A"
+        assert rows[0]["price"] is None
+        assert rows[0]["note"] is None
+
+        assert rows[1]["id_code"] == "B2"
+        assert rows[1]["name"] is None
+        assert rows[1]["price"] == 19.99
+        assert rows[1]["note"] is None
+
+        assert rows[2]["id_code"] == "C3"
+        assert rows[2]["name"] is None
+        assert rows[2]["price"] is None
+        assert rows[2]["note"] == "Special note"
+    finally:
+        session.close()
+
+
