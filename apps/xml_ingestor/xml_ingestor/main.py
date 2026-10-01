@@ -148,7 +148,11 @@ def run_ingest(
 
             session.execute(text("SET synchronous_commit = 'off'"))
         except Exception as exc:
-            logger.debug("Failed setting synchronous_commit = 'off': %s", exc)
+            session.rollback()
+            logger.warning(
+                "Failed setting synchronous_commit = 'off', continuing with default synchronous_commit: %s",
+                exc,
+            )
     try:
         if xml_str.startswith("s3://") and (
             xml_str.endswith("/")

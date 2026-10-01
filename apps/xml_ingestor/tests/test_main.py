@@ -148,3 +148,42 @@ def test_build_parser_preserves_s3_uri_for_xsd_argument():
     args = parser.parse_args(["--xsd", "s3://biomed-data/schemas/test.xsd"])
     res = app_main._resolve_path(args.xsd, "XML_INGESTOR_XSD")
     assert res == "s3://biomed-data/schemas/test.xsd"
+
+
+def test_run_ingest_rolls_back_when_async_commit_fails(monkeypatch):
+    class FakeDialect:
+        name = "postgresql"
+
+    class FakeEngine:
+        dialect = FakeDialect()
+
+    rolled_back = []
+
+    class FakeSession:
+        def execute(self, stmt):
+            raise RuntimeError("permission denied or syntax error")
+
+        def rollback(self):
+            rolled_back.append(True)
+
+        def commit(self):
+            pass
+
+        def close(self):
+            pass
+
+    monkeypatch.setattr(app_main, "parse_xsd_schema", lambda *a, **kw: "plan")
+    monkeypatch.setattr(app_main, "init_database", lambda *a, **kw: FakeEngine())
+    monkeypatch.setattr(app_main, "create_sqlalchemy_schema", lambda *a, **kw: "meta")
+    monkeypatch.setattr(app_main, "get_session", lambda *a, **kw: FakeSession())
+    monkeypatch.setattr(app_main, "stream_xml_to_database", lambda *a, **kw: {"root": 1})
+
+    counts = app_main.run_ingest(
+        Path("schema.xsd"),
+        Path("data.xml"),
+        "postgresql://localhost/db",
+        async_commit=True,
+    )
+    assert counts == {"root": 1}
+    assert rolled_back == [True]
+
