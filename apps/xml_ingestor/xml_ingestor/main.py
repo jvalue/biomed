@@ -131,6 +131,16 @@ def run_ingest(
 
     xml_str = str(xml_path)
     session = get_session(engine)
+    if (
+        hasattr(engine, "dialect")
+        and getattr(engine.dialect, "name", None) == "postgresql"
+    ):
+        try:
+            from sqlalchemy import text
+
+            session.execute(text("SET synchronous_commit = 'off'"))
+        except Exception as exc:
+            logger.debug("Failed setting synchronous_commit = 'off': %s", exc)
     try:
         if xml_str.startswith("s3://") and (
             xml_str.endswith("/")
