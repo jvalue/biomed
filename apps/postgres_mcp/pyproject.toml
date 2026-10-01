@@ -19,7 +19,7 @@ dependencies = [
     "mcp[cli]>=1.0.0,<2",
     "psycopg2-binary>=2.9.9",
     "python-dotenv>=1.0.0",
-    "sqlalchemy>=2.0.0",
+    "sqlalchemy>=2.0.10",
 ]
 
 [tool.hatch.build.targets.wheel]

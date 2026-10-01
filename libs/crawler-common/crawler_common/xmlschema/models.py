@@ -81,6 +81,8 @@ class _Frame:
     definition: TableSpec | None
     parent: _Frame | None
     row_id: int | None = None
+    buffered_row: Any = None
+    buffered_rows: list[Any] = field(default_factory=list)
     pending_values: dict[str, Any] = field(default_factory=dict)
     text_value: str | None = None
     simple_column_name: str | None = None
