@@ -295,13 +295,24 @@ def _flush_batch(
 
             for i in range(0, len(table_rows), chunk_size):
                 chunk = table_rows[i : i + chunk_size]
+
+                # Union of all keys present across this chunk
+                chunk_keys: set[str] = set()
+                for r in chunk:
+                    chunk_keys.update(r.values.keys())
+                if parent_col_name is not None:
+                    chunk_keys.add(parent_col_name)
+
                 batch_values: list[dict[str, Any]] = []
                 for r in chunk:
                     if parent_col_name is not None and r.parent_row is not None:
                         r.values[parent_col_name] = r.parent_row.row_id
-                    batch_values.append(r.values)
+                    row_dict = {k: r.values.get(k, None) for k in chunk_keys}
+                    batch_values.append(row_dict)
 
-                stmt = insert(table).returning(table.c.id)
+                stmt = insert(table).returning(
+                    table.c.id, sort_by_parameter_order=True
+                )
                 returned_ids = session.scalars(stmt, batch_values).all()
 
                 for r, rid in zip(chunk, returned_ids):
@@ -402,6 +413,22 @@ def stream_xml_to_database(
         top_frame = _get_top_level_frame(frame)
         top_frame.buffered_rows.append(b_row)
         return b_row
+
+    def _sync_frame_values(frame: _Frame) -> None:
+        if frame.definition is None or frame.buffered_row is None:
+            return
+        for column_spec in frame.definition.columns:
+            if column_spec.source == "text":
+                if frame.text_value is not None:
+                    frame.buffered_row.values[column_spec.column_name] = _coerce_value(
+                        frame.text_value, column_spec.sql_type
+                    )
+                continue
+            if column_spec.column_name in frame.pending_values:
+                frame.buffered_row.values[column_spec.column_name] = _coerce_value(
+                    frame.pending_values[column_spec.column_name],
+                    column_spec.sql_type,
+                )
 
     def populate_attributes(frame: _Frame, attributes: dict[str, str]) -> None:
         if frame.definition is None:
@@ -508,26 +535,29 @@ def stream_xml_to_database(
                         frame.parent.pending_values[frame.simple_column_name] = (
                             text_value
                         )
+                        _sync_frame_values(frame.parent)
                 element.clear()
                 continue
 
-            if frame.buffered_row is not None:
-                for column_spec in frame.definition.columns:
-                    if column_spec.source == "text":
-                        if frame.text_value is not None:
-                            frame.buffered_row.values[column_spec.column_name] = (
-                                _coerce_value(
-                                    frame.text_value, column_spec.sql_type
-                                )
-                            )
-                        continue
-                    if column_spec.column_name in frame.pending_values:
-                        frame.buffered_row.values[column_spec.column_name] = (
-                            _coerce_value(
-                                frame.pending_values[column_spec.column_name],
-                                column_spec.sql_type,
-                            )
-                        )
+            _sync_frame_values(frame)
+
+            if (
+                frame.definition is not None
+                and frame.buffered_row is not None
+                and frame.buffered_row.row_id is not None
+            ):
+                table = tables[frame.definition.table_name]
+                values = {
+                    col.column_name: frame.buffered_row.values[col.column_name]
+                    for col in frame.definition.columns
+                    if col.column_name in frame.buffered_row.values
+                }
+                if values:
+                    session.execute(
+                        update(table)
+                        .where(table.c.id == frame.buffered_row.row_id)
+                        .values(**values)
+                    )
 
             is_top_level_record = (
                 (frame.parent is not None and len(frame_stack) == 1)
@@ -561,6 +591,8 @@ def stream_xml_to_database(
 
                 completed_top_level_frames += 1
                 if commit_every > 0 and completed_top_level_frames % commit_every == 0:
+                    for f in frame_stack:
+                        _sync_frame_values(f)
                     _flush_batch(
                         session,
                         tables,
@@ -595,6 +627,8 @@ def stream_xml_to_database(
             element.clear()
 
     if pending_batch_rows:
+        for f in frame_stack:
+            _sync_frame_values(f)
         _flush_batch(
             session, tables, table_levels, pending_batch_rows, inserted_counts
         )

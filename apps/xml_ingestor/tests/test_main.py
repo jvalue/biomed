@@ -81,6 +81,7 @@ def test_build_parser_accepts_optional_inputs():
     assert namespace.table_prefix == "pm"
     assert namespace.deduplicate_by_hash is True
     assert namespace.auto_migrate is True
+    assert namespace.async_commit is False
 
 
 def test_main_resolves_values_from_env(monkeypatch):
@@ -94,6 +95,7 @@ def test_main_resolves_values_from_env(monkeypatch):
     monkeypatch.setenv("XML_INGESTOR_TABLE_PREFIX", "medline")
     monkeypatch.setenv("XML_INGESTOR_DEDUPLICATE_BY_HASH", "true")
     monkeypatch.setenv("XML_INGESTOR_AUTO_MIGRATE", "true")
+    monkeypatch.setenv("XML_INGESTOR_ASYNC_COMMIT", "true")
 
     resolved = {}
 
@@ -114,6 +116,7 @@ def test_main_resolves_values_from_env(monkeypatch):
         resolved["table_prefix"] = table_prefix
         resolved["deduplicate_by_hash"] = kwargs.get("deduplicate_by_hash")
         resolved["auto_migrate"] = kwargs.get("auto_migrate")
+        resolved["async_commit"] = kwargs.get("async_commit")
         return {"root": 1}
 
     monkeypatch.setattr(app_main, "run_ingest", fake_run_ingest)
@@ -129,6 +132,7 @@ def test_main_resolves_values_from_env(monkeypatch):
     assert resolved["table_prefix"] == "medline"
     assert resolved["deduplicate_by_hash"] is True
     assert resolved["auto_migrate"] is True
+    assert resolved["async_commit"] is True
 
 
 def test_resolve_path_resolves_s3_prefix_without_appending_data_xml(monkeypatch):

@@ -112,6 +112,12 @@ def build_parser() -> argparse.ArgumentParser:
         default=True,
         help="Automatically add missing columns to existing database tables when XSD changes (default: True)",
     )
+    parser.add_argument(
+        "--async-commit",
+        action=argparse.BooleanOptionalAction,
+        default=False,
+        help="Enable asynchronous WAL commits on PostgreSQL (SET synchronous_commit = 'off') for faster bulk ingestion at the expense of crash durability (default: False)",
+    )
     return parser
 
 
@@ -124,6 +130,7 @@ def run_ingest(
     table_prefix: str | None = None,
     deduplicate_by_hash: bool = True,
     auto_migrate: bool = True,
+    async_commit: bool = False,
 ) -> dict[str, int]:
     schema_plan = parse_xsd_schema(xsd_path, table_prefix=table_prefix)
     engine = init_database(database_url, echo=echo_sql)
@@ -132,7 +139,8 @@ def run_ingest(
     xml_str = str(xml_path)
     session = get_session(engine)
     if (
-        hasattr(engine, "dialect")
+        async_commit
+        and hasattr(engine, "dialect")
         and getattr(engine.dialect, "name", None) == "postgresql"
     ):
         try:
@@ -212,6 +220,13 @@ def main(argv: list[str] | None = None) -> int:
             else args.auto_migrate
         )
 
+        env_async_commit = os.getenv("XML_INGESTOR_ASYNC_COMMIT")
+        async_commit = (
+            env_async_commit.strip().lower() in {"1", "true", "yes", "on"}
+            if env_async_commit is not None
+            else args.async_commit
+        )
+
         counts = run_ingest(
             xsd_path,
             xml_path,
@@ -221,6 +236,7 @@ def main(argv: list[str] | None = None) -> int:
             table_prefix=table_prefix,
             deduplicate_by_hash=deduplicate_by_hash,
             auto_migrate=auto_migrate,
+            async_commit=async_commit,
         )
         logger.info("Ingestion complete: %s", counts)
         return 0
