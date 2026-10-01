@@ -10,9 +10,14 @@ import pika
 
 logger = logging.getLogger(__name__)
 
+DownloadCallback = (
+    Callable[[str, object, str | None], None]
+    | Callable[[str, object], None]
+)
+
 
 def _adapt_download_callback(
-    callback: Callable[..., None],
+    callback: DownloadCallback,
 ) -> Callable[[str, object, str | None], None]:
     """Wrap a download callback to accept (download_url, ftp_run_id, db_name).
 
@@ -119,7 +124,7 @@ def publish_to_queue(
 def consume_download_urls(
     rabbitmq_url: str,
     queue_name: str,
-    on_download_url: Callable[[str, object], None],
+    on_download_url: DownloadCallback,
 ) -> None:
     """
     Consume download URLs from a RabbitMQ queue and process them.
@@ -127,7 +132,9 @@ def consume_download_urls(
     Args:
         rabbitmq_url: RabbitMQ connection URL (e.g., amqp://user:pass@host:5672/)
         queue_name: Name of the queue to consume from
-        on_download_url: Callback function to process each download URL
+        on_download_url: Callback function to process each download URL.
+            Accepts either 3 arguments `(download_url, ftp_run_id, db_name)`
+            or 2 arguments `(download_url, ftp_run_id)`.
 
     Raises:
         Exception: If connection or consumption fails
