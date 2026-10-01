@@ -1,7 +1,7 @@
 """Tests for RabbitMQ queue helpers."""
 
 import json
-from crawler_common.queue.rabbitmq import consume_download_urls, publish_to_queue
+from crawler_common.queue.rabbitmq import consume_download_urls
 
 
 def test_consume_download_urls_passes_db_name(monkeypatch):
