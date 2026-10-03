@@ -1,5 +1,6 @@
 """RabbitMQ utilities for publishing and consuming messages."""
 
+import inspect
 import json
 import logging
 from collections.abc import Callable
@@ -8,6 +9,36 @@ from urllib.parse import urlparse
 import pika
 
 logger = logging.getLogger(__name__)
+
+DownloadCallback = (
+    Callable[[str, object, str | None], None]
+    | Callable[[str, object], None]
+)
+
+
+def _adapt_download_callback(
+    callback: DownloadCallback,
+) -> Callable[[str, object, str | None], None]:
+    """Wrap a download callback to accept (download_url, ftp_run_id, db_name).
+
+    Inspects the signature upfront so TypeErrors raised inside the callback
+    propagate without triggering accidental retries with fewer arguments.
+    """
+    try:
+        sig = inspect.signature(callback)
+        # Test if the callback can accept 3 positional arguments
+        sig.bind("dummy_url", 1, "dummy_db")
+        return callback
+    except TypeError:
+        # Fall back to testing 2 positional arguments (legacy callback)
+        try:
+            sig = inspect.signature(callback)
+            sig.bind("dummy_url", 1)
+            return lambda url, run_id, _db_name: callback(url, run_id)
+        except TypeError:
+            return callback
+    except (ValueError, TypeError):
+        return callback
 
 
 def publish_to_queue(
@@ -93,7 +124,7 @@ def publish_to_queue(
 def consume_download_urls(
     rabbitmq_url: str,
     queue_name: str,
-    on_download_url: Callable[[str, object], None],
+    on_download_url: DownloadCallback,
 ) -> None:
     """
     Consume download URLs from a RabbitMQ queue and process them.
@@ -101,7 +132,9 @@ def consume_download_urls(
     Args:
         rabbitmq_url: RabbitMQ connection URL (e.g., amqp://user:pass@host:5672/)
         queue_name: Name of the queue to consume from
-        on_download_url: Callback function to process each download URL
+        on_download_url: Callback function to process each download URL.
+            Accepts either 3 arguments `(download_url, ftp_run_id, db_name)`
+            or 2 arguments `(download_url, ftp_run_id)`.
 
     Raises:
         Exception: If connection or consumption fails
@@ -139,6 +172,7 @@ def consume_download_urls(
         channel.basic_qos(prefetch_count=1)  # Process one message at a time
         logger.debug("Set prefetch count to 1 (sequential processing)")
 
+        adapted_callback = _adapt_download_callback(on_download_url)
         message_count = 0
 
         def callback(ch, method, properties, body: bytes) -> None:
@@ -150,6 +184,7 @@ def consume_download_urls(
                 message = json.loads(body.decode("utf-8"))
                 download_url = message.get("url")
                 ftp_run_id = message.get("ftp_run_id", None)
+                db_name = message.get("db_name", None)
 
                 if not download_url:
                     logger.warning(
@@ -159,9 +194,9 @@ def consume_download_urls(
                     return
 
                 logger.info(
-                    f"Message #{message_count}: Processing download URL from FTP run {ftp_run_id}: {download_url}"
+                    f"Message #{message_count}: Processing download URL (run={ftp_run_id}, db_name={db_name}): {download_url}"
                 )
-                on_download_url(download_url, ftp_run_id)
+                adapted_callback(download_url, ftp_run_id, db_name)
                 logger.debug(
                     f"Message #{message_count}: Successfully processed: {download_url}"
                 )
