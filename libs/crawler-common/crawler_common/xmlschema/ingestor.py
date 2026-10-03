@@ -337,10 +337,16 @@ def stream_xml_to_database(
     if metadata is None:
         metadata = build_sqlalchemy_metadata(schema_plan)
 
-    tables = metadata.tables
+    tables: dict[str, Table] = {}
+    for t_key, t_obj in metadata.tables.items():
+        tables[t_obj.name] = t_obj
+        tables[t_key] = t_obj
+
     table_levels = _compute_table_levels(schema_plan)
     inserted_counts: dict[str, int] = {
-        table_name: 0 for table_name in tables if not table_name.startswith("_")
+        table_name: 0
+        for table_name in schema_plan.tables_by_name
+        if not table_name.startswith("_")
     }
     frame_stack: list[_Frame] = []
     pending_batch_rows: list[_BufferedRow] = []

@@ -939,3 +939,45 @@ def test_stream_xml_to_database_normalizes_chunk_keys_for_heterogeneous_rows() -
         session.close()
 
 
+def test_parse_xsd_and_ingest_with_db_schema() -> None:
+    xsd = """<xs:schema xmlns:xs="http://www.w3.org/2001/XMLSchema">
+      <xs:element name="database">
+        <xs:complexType>
+          <xs:sequence>
+            <xs:element name="record" maxOccurs="unbounded">
+              <xs:complexType>
+                <xs:sequence>
+                  <xs:element name="name" type="xs:string"/>
+                </xs:sequence>
+              </xs:complexType>
+            </xs:element>
+          </xs:sequence>
+        </xs:complexType>
+      </xs:element>
+    </xs:schema>"""
+
+    xml = """<database>
+      <record><name>Rec1</name></record>
+      <record><name>Rec2</name></record>
+    </database>"""
+
+    schema_plan = parse_xsd_schema(xsd, db_schema="uniprot")
+    assert schema_plan.db_schema == "uniprot"
+
+    engine = init_database("sqlite+pysqlite:///:memory:")
+    meta = create_sqlalchemy_schema(engine, schema_plan, db_schema="uniprot")
+    session = get_session(engine)
+
+    try:
+        counts = stream_xml_to_database(session, xml, schema_plan, metadata=meta)
+        session.commit()
+        assert counts["database_record"] == 2
+        tbl = meta.tables["uniprot.database_record"]
+        assert tbl.schema == "uniprot"
+        rows = session.execute(select(tbl.c.name)).scalars().all()
+        assert rows == ["Rec1", "Rec2"]
+    finally:
+        session.close()
+
+
+

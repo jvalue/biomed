@@ -93,6 +93,7 @@ def test_main_resolves_values_from_env(monkeypatch):
     monkeypatch.setenv("XML_INGESTOR_ECHO_SQL", "true")
     monkeypatch.setenv("XML_INGESTOR_COMMIT_EVERY", "2500")
     monkeypatch.setenv("XML_INGESTOR_TABLE_PREFIX", "medline")
+    monkeypatch.setenv("XML_INGESTOR_SCHEMA", "uniprot")
     monkeypatch.setenv("XML_INGESTOR_DEDUPLICATE_BY_HASH", "true")
     monkeypatch.setenv("XML_INGESTOR_AUTO_MIGRATE", "true")
     monkeypatch.setenv("XML_INGESTOR_ASYNC_COMMIT", "true")
@@ -114,6 +115,7 @@ def test_main_resolves_values_from_env(monkeypatch):
         resolved["echo_sql"] = echo_sql
         resolved["commit_every"] = commit_every
         resolved["table_prefix"] = table_prefix
+        resolved["db_schema"] = kwargs.get("db_schema")
         resolved["deduplicate_by_hash"] = kwargs.get("deduplicate_by_hash")
         resolved["auto_migrate"] = kwargs.get("auto_migrate")
         resolved["async_commit"] = kwargs.get("async_commit")
@@ -130,6 +132,7 @@ def test_main_resolves_values_from_env(monkeypatch):
     assert resolved["echo_sql"] is True
     assert resolved["commit_every"] == 2500
     assert resolved["table_prefix"] == "medline"
+    assert resolved["db_schema"] == "uniprot"
     assert resolved["deduplicate_by_hash"] is True
     assert resolved["auto_migrate"] is True
     assert resolved["async_commit"] is True

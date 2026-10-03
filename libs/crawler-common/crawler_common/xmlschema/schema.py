@@ -28,12 +28,23 @@ from crawler_common.xmlschema.models import (
 logger = logging.getLogger(__name__)
 
 
-def build_sqlalchemy_metadata(schema_plan: SchemaPlan) -> MetaData:
+def build_sqlalchemy_metadata(
+    schema_plan: SchemaPlan,
+    db_schema: str | None = None,
+) -> MetaData:
     """Materialize the schema plan into SQLAlchemy table objects."""
 
     metadata = MetaData()
+    target_schema = db_schema or schema_plan.db_schema
 
     def build_table(table_spec: TableSpec) -> Table:
+        table_key = (
+            f"{target_schema}.{table_spec.table_name}"
+            if target_schema
+            else table_spec.table_name
+        )
+        if table_key in metadata.tables:
+            return metadata.tables[table_key]
         if table_spec.table_name in metadata.tables:
             return metadata.tables[table_spec.table_name]
 
@@ -45,11 +56,16 @@ def build_sqlalchemy_metadata(schema_plan: SchemaPlan) -> MetaData:
             parent_column_name = _shorten_identifier(
                 f"{_sanitize_identifier(table_spec.parent_table_name)}_id"
             )
+            parent_target = (
+                f"{target_schema}.{table_spec.parent_table_name}.id"
+                if target_schema
+                else f"{table_spec.parent_table_name}.id"
+            )
             columns.append(
                 Column(
                     parent_column_name,
                     Integer,
-                    ForeignKey(f"{table_spec.parent_table_name}.id"),
+                    ForeignKey(parent_target),
                     nullable=False,
                     index=True,
                 )
@@ -68,7 +84,12 @@ def build_sqlalchemy_metadata(schema_plan: SchemaPlan) -> MetaData:
                 )
             )
 
-        table = Table(table_spec.table_name, metadata, *columns)
+        table = Table(
+            table_spec.table_name,
+            metadata,
+            *columns,
+            schema=target_schema,
+        )
 
         for child_spec in table_spec.child_tables.values():
             build_table(child_spec)
@@ -97,34 +118,40 @@ def create_sqlalchemy_schema(
     engine: Engine,
     schema_plan: SchemaPlan,
     auto_migrate: bool = True,
+    db_schema: str | None = None,
 ) -> MetaData:
     """Create the translated schema in the target database and optionally migrate missing columns."""
 
+    target_schema = db_schema or schema_plan.db_schema
     if engine.dialect.name == "postgresql":
         with engine.begin() as conn:
             conn.execute(text(f"CREATE SCHEMA IF NOT EXISTS {INGEST_METADATA_SCHEMA}"))
+            if target_schema and target_schema != "public":
+                conn.execute(text(f"CREATE SCHEMA IF NOT EXISTS {target_schema}"))
     elif engine.dialect.name == "sqlite":
         try:
             from sqlalchemy import event
 
+            schemas_to_attach = [INGEST_METADATA_SCHEMA]
+            if target_schema and target_schema not in schemas_to_attach:
+                schemas_to_attach.append(target_schema)
+
             @event.listens_for(engine, "connect")
             def _attach_ingest_schema(dbapi_connection, connection_record):
                 cursor = dbapi_connection.cursor()
-                cursor.execute(
-                    f"ATTACH DATABASE ':memory:' AS {INGEST_METADATA_SCHEMA}"
-                )
+                for sch in schemas_to_attach:
+                    cursor.execute(f"ATTACH DATABASE ':memory:' AS {sch}")
                 cursor.close()
 
             with engine.begin() as conn:
-                conn.execute(
-                    text(f"ATTACH DATABASE ':memory:' AS {INGEST_METADATA_SCHEMA}")
-                )
+                for sch in schemas_to_attach:
+                    conn.execute(text(f"ATTACH DATABASE ':memory:' AS {sch}"))
         except Exception as exc:
             logger.debug(
-                "Failed attaching SQLite schema %s: %s", INGEST_METADATA_SCHEMA, exc
+                "Failed attaching SQLite schema %s: %s", target_schema, exc
             )
 
-    metadata = build_sqlalchemy_metadata(schema_plan)
+    metadata = build_sqlalchemy_metadata(schema_plan, db_schema=target_schema)
     metadata.create_all(engine)
 
     if auto_migrate:

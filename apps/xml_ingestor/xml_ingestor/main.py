@@ -101,6 +101,10 @@ def build_parser() -> argparse.ArgumentParser:
         help="Optional prefix for generated database table names (e.g. 'pm' for 'pm_table_name')",
     )
     parser.add_argument(
+        "--schema",
+        help="Optional PostgreSQL schema namespace for generated database tables (e.g. 'uniprot', 'bioproject')",
+    )
+    parser.add_argument(
         "--deduplicate-by-hash",
         action=argparse.BooleanOptionalAction,
         default=True,
@@ -128,13 +132,18 @@ def run_ingest(
     echo_sql: bool = False,
     commit_every: int = 1000,
     table_prefix: str | None = None,
+    db_schema: str | None = None,
     deduplicate_by_hash: bool = True,
     auto_migrate: bool = True,
     async_commit: bool = False,
 ) -> dict[str, int]:
-    schema_plan = parse_xsd_schema(xsd_path, table_prefix=table_prefix)
+    schema_plan = parse_xsd_schema(
+        xsd_path, table_prefix=table_prefix, db_schema=db_schema
+    )
     engine = init_database(database_url, echo=echo_sql)
-    metadata = create_sqlalchemy_schema(engine, schema_plan, auto_migrate=auto_migrate)
+    metadata = create_sqlalchemy_schema(
+        engine, schema_plan, auto_migrate=auto_migrate, db_schema=db_schema
+    )
 
     xml_str = str(xml_path)
     session = get_session(engine)
@@ -209,6 +218,7 @@ def main(argv: list[str] | None = None) -> int:
             commit_every = 1000
 
         table_prefix = args.table_prefix or os.getenv("XML_INGESTOR_TABLE_PREFIX")
+        db_schema = args.schema or os.getenv("XML_INGESTOR_SCHEMA")
 
         env_dedup = os.getenv("XML_INGESTOR_DEDUPLICATE_BY_HASH")
         deduplicate_by_hash = (
@@ -238,6 +248,7 @@ def main(argv: list[str] | None = None) -> int:
             echo_sql=echo_sql,
             commit_every=commit_every,
             table_prefix=table_prefix,
+            db_schema=db_schema,
             deduplicate_by_hash=deduplicate_by_hash,
             auto_migrate=auto_migrate,
             async_commit=async_commit,
