@@ -15,6 +15,7 @@ from sqlalchemy import (
     Text,
     text,
 )
+from sqlalchemy.schema import CreateSchema
 from sqlalchemy.engine import Engine
 
 from crawler_common.xmlschema.models import (
@@ -36,6 +37,8 @@ def build_sqlalchemy_metadata(
 
     metadata = MetaData()
     target_schema = db_schema or schema_plan.db_schema
+    if target_schema == "public":
+        target_schema = None
 
     def build_table(table_spec: TableSpec) -> Table:
         table_key = (
@@ -104,6 +107,7 @@ def build_sqlalchemy_metadata(
         Table(
             "_ingested_files",
             metadata,
+            Column("target_schema", Text, primary_key=True, default="public"),
             Column("file_key", Text, primary_key=True),
             Column("file_etag", Text, nullable=True),
             Column("file_size", BigInteger, nullable=True),
@@ -123,29 +127,49 @@ def create_sqlalchemy_schema(
     """Create the translated schema in the target database and optionally migrate missing columns."""
 
     target_schema = db_schema or schema_plan.db_schema
+    if target_schema == "public":
+        target_schema = None
     if engine.dialect.name == "postgresql":
         with engine.begin() as conn:
-            conn.execute(text(f"CREATE SCHEMA IF NOT EXISTS {INGEST_METADATA_SCHEMA}"))
+            conn.execute(CreateSchema(INGEST_METADATA_SCHEMA, if_not_exists=True))
             if target_schema and target_schema != "public":
-                conn.execute(text(f"CREATE SCHEMA IF NOT EXISTS {target_schema}"))
+                conn.execute(CreateSchema(target_schema, if_not_exists=True))
     elif engine.dialect.name == "sqlite":
         try:
             from sqlalchemy import event
 
-            schemas_to_attach = [INGEST_METADATA_SCHEMA]
-            if target_schema and target_schema not in schemas_to_attach:
-                schemas_to_attach.append(target_schema)
+            if not hasattr(engine, "_attached_sqlite_schemas"):
+                engine._attached_sqlite_schemas = set()
 
-            @event.listens_for(engine, "connect")
-            def _attach_ingest_schema(dbapi_connection, connection_record):
-                cursor = dbapi_connection.cursor()
-                for sch in schemas_to_attach:
-                    cursor.execute(f"ATTACH DATABASE ':memory:' AS {sch}")
-                cursor.close()
+                @event.listens_for(engine, "connect")
+                def _attach_sqlite_schemas(dbapi_connection, connection_record):
+                    cursor = dbapi_connection.cursor()
+                    try:
+                        cursor.execute("PRAGMA database_list")
+                        existing = {row[1] for row in cursor.fetchall()}
+                        for sch in engine._attached_sqlite_schemas:
+                            if sch not in existing:
+                                quoted_sch = f'"{sch.replace(chr(34), chr(34) * 2)}"'
+                                cursor.execute(f"ATTACH DATABASE ':memory:' AS {quoted_sch}")
+                    finally:
+                        cursor.close()
 
-            with engine.begin() as conn:
-                for sch in schemas_to_attach:
-                    conn.execute(text(f"ATTACH DATABASE ':memory:' AS {sch}"))
+            engine._attached_sqlite_schemas.add(INGEST_METADATA_SCHEMA)
+            if target_schema and target_schema != "public":
+                engine._attached_sqlite_schemas.add(target_schema)
+
+            with engine.connect() as conn:
+                raw_conn = conn.connection
+                cursor = raw_conn.cursor()
+                try:
+                    cursor.execute("PRAGMA database_list")
+                    existing = {row[1] for row in cursor.fetchall()}
+                    for sch in engine._attached_sqlite_schemas:
+                        if sch not in existing:
+                            quoted_sch = f'"{sch.replace(chr(34), chr(34) * 2)}"'
+                            cursor.execute(f"ATTACH DATABASE ':memory:' AS {quoted_sch}")
+                finally:
+                    cursor.close()
         except Exception as exc:
             logger.debug(
                 "Failed attaching SQLite schema %s: %s", target_schema, exc
@@ -202,9 +226,12 @@ def _auto_migrate_schema(engine: Engine, metadata: MetaData) -> None:
                 for column in table.columns:
                     if column.name not in existing_cols:
                         col_type_sql = str(column.type.compile(engine.dialect))
+                        default_clause = ""
+                        if column.default is not None:
+                            default_clause = f" DEFAULT '{column.default.arg}'"
                         quoted_table = preparer.format_table(table)
                         quoted_column = preparer.quote(column.name)
-                        alter_query = f"ALTER TABLE {quoted_table} ADD COLUMN {quoted_column} {col_type_sql}"
+                        alter_query = f"ALTER TABLE {quoted_table} ADD COLUMN {quoted_column} {col_type_sql}{default_clause}"
                         logger.info(
                             "Migrating table '%s': adding missing column '%s' (%s)",
                             table_name,
@@ -212,5 +239,31 @@ def _auto_migrate_schema(engine: Engine, metadata: MetaData) -> None:
                             col_type_sql,
                         )
                         conn.execute(text(alter_query))
+
+                if engine.dialect.name == "postgresql" and short_name == "_ingested_files":
+                    try:
+                        conn.execute(
+                            text(
+                                f"""
+                                DO $$
+                                BEGIN
+                                    IF EXISTS (
+                                        SELECT 1 FROM information_schema.table_constraints
+                                        WHERE table_schema = '{INGEST_METADATA_SCHEMA}' AND table_name = '_ingested_files' AND constraint_type = 'PRIMARY KEY'
+                                    ) AND NOT EXISTS (
+                                        SELECT 1 FROM information_schema.key_column_usage
+                                        WHERE table_schema = '{INGEST_METADATA_SCHEMA}' AND table_name = '_ingested_files' AND column_name = 'target_schema'
+                                    ) THEN
+                                        ALTER TABLE {INGEST_METADATA_SCHEMA}._ingested_files DROP CONSTRAINT IF EXISTS _ingested_files_pkey;
+                                        UPDATE {INGEST_METADATA_SCHEMA}._ingested_files SET target_schema = 'public' WHERE target_schema IS NULL;
+                                        ALTER TABLE {INGEST_METADATA_SCHEMA}._ingested_files ALTER COLUMN target_schema SET NOT NULL;
+                                        ALTER TABLE {INGEST_METADATA_SCHEMA}._ingested_files ADD PRIMARY KEY (target_schema, file_key);
+                                    END IF;
+                                END $$;
+                                """
+                            )
+                        )
+                    except Exception as exc:
+                        logger.debug("Failed updating _ingested_files primary key in Postgres: %s", exc)
     except Exception as exc:
         logger.warning("Auto-migration check skipped or failed: %s", exc)

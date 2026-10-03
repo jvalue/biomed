@@ -46,6 +46,16 @@ def test_run_ingest_wires_parser_and_database(monkeypatch):
         )
         return {"root": 1}
 
+    def fake_record_ingested_file(
+        session: object,
+        metadata: object,
+        xml_path: Path,
+        **kwargs: object,
+    ):
+        calls.append(
+            ("record_ingested_file", session, metadata, xml_path, kwargs)
+        )
+
     monkeypatch.setattr(app_main, "parse_xsd_schema", fake_parse_xsd_schema)
     monkeypatch.setattr(app_main, "init_database", fake_init_database)
     monkeypatch.setattr(
@@ -53,6 +63,7 @@ def test_run_ingest_wires_parser_and_database(monkeypatch):
     )
     monkeypatch.setattr(app_main, "get_session", fake_get_session)
     monkeypatch.setattr(app_main, "stream_xml_to_database", fake_stream_xml_to_database)
+    monkeypatch.setattr(app_main, "record_ingested_file", fake_record_ingested_file)
 
     counts = app_main.run_ingest(
         Path("schema.xsd"),
@@ -66,6 +77,7 @@ def test_run_ingest_wires_parser_and_database(monkeypatch):
     assert calls[2][0] == "create_sqlalchemy_schema"
     assert calls[3] == ("get_session", "engine")
     assert calls[4][0] == "stream_xml_to_database"
+    assert calls[5][0] == "record_ingested_file"
     assert calls[-2] == ("commit",)
     assert calls[-1] == ("close",)
 

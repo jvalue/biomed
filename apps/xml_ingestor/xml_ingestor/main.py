@@ -10,6 +10,7 @@ from crawler_common.xmlschema import (
     create_sqlalchemy_schema,
     parse_xsd_schema,
     process_s3_prefix_ingestion,
+    record_ingested_file,
     stream_xml_to_database,
 )
 from dotenv import load_dotenv
@@ -183,6 +184,17 @@ def run_ingest(
                 metadata,
                 commit_every=commit_every,
                 deduplicate_by_hash=deduplicate_by_hash,
+            )
+            target_schema = (
+                db_schema
+                or getattr(schema_plan, "db_schema", None)
+                or "public"
+            )
+            record_ingested_file(
+                session,
+                metadata,
+                xml_path,
+                target_schema=target_schema,
             )
         session.commit()
         return counts

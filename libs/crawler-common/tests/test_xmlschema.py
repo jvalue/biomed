@@ -5,6 +5,8 @@ from crawler_common.xmlschema import (
     build_sqlalchemy_metadata,
     create_sqlalchemy_schema,
     parse_xsd_schema,
+    process_s3_prefix_ingestion,
+    record_ingested_file,
     stream_xml_to_database,
 )
 from sqlalchemy import select
@@ -980,4 +982,173 @@ def test_parse_xsd_and_ingest_with_db_schema() -> None:
         session.close()
 
 
+def test_process_s3_prefix_ingestion_scopes_tracking_by_schema(monkeypatch) -> None:
+    xsd = """<xs:schema xmlns:xs="http://www.w3.org/2001/XMLSchema">
+      <xs:element name="catalog">
+        <xs:complexType>
+          <xs:sequence>
+            <xs:element name="item" maxOccurs="unbounded">
+              <xs:complexType>
+                <xs:sequence>
+                  <xs:element name="name" type="xs:string"/>
+                </xs:sequence>
+              </xs:complexType>
+            </xs:element>
+          </xs:sequence>
+        </xs:complexType>
+      </xs:element>
+    </xs:schema>"""
 
+    class FakeS3Client:
+        def list_objects_v2(self, Bucket, Prefix):
+            return {
+                "Contents": [
+                    {"Key": "files/batch1.xml", "ETag": '"etag1"', "Size": 100}
+                ]
+            }
+
+    monkeypatch.setattr(
+        "crawler_common.s3.client.create_s3_client", lambda **kw: FakeS3Client()
+    )
+
+    ingested_uris: list[str] = []
+
+    def fake_stream(session, uri, plan, meta, **kwargs):
+        ingested_uris.append(f"{plan.db_schema}::{uri}")
+        return {"catalog_item": 1}
+
+    monkeypatch.setattr(
+        "crawler_common.xmlschema.ingestor.stream_xml_to_database", fake_stream
+    )
+
+    engine = init_database("sqlite+pysqlite:///:memory:")
+    plan_public = parse_xsd_schema(xsd, db_schema="public")
+    meta_public = create_sqlalchemy_schema(engine, plan_public)
+
+    plan_uniprot = parse_xsd_schema(xsd, db_schema="uniprot")
+    meta_uniprot = create_sqlalchemy_schema(engine, plan_uniprot, db_schema="uniprot")
+
+    session = get_session(engine)
+    try:
+        # 1. Ingest into public schema
+        counts1 = process_s3_prefix_ingestion(
+            session, "s3://mybucket/files/", plan_public, meta_public
+        )
+        assert counts1 == {"catalog_item": 1}
+
+        # 2. Second run into public schema should skip (already ingested)
+        counts2 = process_s3_prefix_ingestion(
+            session, "s3://mybucket/files/", plan_public, meta_public
+        )
+        assert counts2 == {}
+
+        # 3. Ingest into uniprot schema should NOT be suppressed by public schema record
+        counts3 = process_s3_prefix_ingestion(
+            session, "s3://mybucket/files/", plan_uniprot, meta_uniprot
+        )
+        assert counts3 == {"catalog_item": 1}
+
+        assert "public::s3://mybucket/files/batch1.xml" in ingested_uris
+        assert "uniprot::s3://mybucket/files/batch1.xml" in ingested_uris
+    finally:
+        session.close()
+
+
+def test_create_sqlalchemy_schema_postgres_quotes_schema() -> None:
+    from unittest.mock import MagicMock
+    from sqlalchemy.dialects import postgresql
+
+    mock_engine = MagicMock()
+    mock_engine.dialect.name = "postgresql"
+
+    xsd = """<xs:schema xmlns:xs="http://www.w3.org/2001/XMLSchema">
+      <xs:element name="item">
+        <xs:complexType>
+          <xs:sequence>
+            <xs:element name="name" type="xs:string"/>
+          </xs:sequence>
+        </xs:complexType>
+      </xs:element>
+    </xs:schema>"""
+
+    plan = parse_xsd_schema(xsd, db_schema="UniProt")
+    create_sqlalchemy_schema(mock_engine, plan, auto_migrate=False, db_schema="UniProt")
+
+    executed_calls = (
+        mock_engine.begin.return_value.__enter__.return_value.execute.call_args_list
+    )
+    executed_stmts = [call[0][0] for call in executed_calls]
+
+    compiled_stmts = [
+        str(stmt.compile(dialect=postgresql.dialect()))
+        if hasattr(stmt, "compile")
+        else str(stmt)
+        for stmt in executed_stmts
+    ]
+    assert any('CREATE SCHEMA IF NOT EXISTS "_ingest_metadata"' in s or 'CREATE SCHEMA IF NOT EXISTS _ingest_metadata' in s for s in compiled_stmts)
+    assert any('CREATE SCHEMA IF NOT EXISTS "UniProt"' in s for s in compiled_stmts)
+
+
+def test_create_sqlalchemy_schema_sqlite_idempotent_attachment() -> None:
+    engine = init_database("sqlite+pysqlite:///:memory:")
+
+    xsd = """<xs:schema xmlns:xs="http://www.w3.org/2001/XMLSchema">
+      <xs:element name="item">
+        <xs:complexType>
+          <xs:sequence>
+            <xs:element name="name" type="xs:string"/>
+          </xs:sequence>
+        </xs:complexType>
+      </xs:element>
+    </xs:schema>"""
+
+    plan1 = parse_xsd_schema(xsd, db_schema="schema_alpha")
+    meta1 = create_sqlalchemy_schema(engine, plan1, db_schema="schema_alpha")
+    assert meta1 is not None
+
+    plan2 = parse_xsd_schema(xsd, db_schema="schema_beta")
+    meta2 = create_sqlalchemy_schema(engine, plan2, db_schema="schema_beta")
+    assert meta2 is not None
+
+    with engine.connect() as conn:
+        raw_conn = conn.connection
+        cursor = raw_conn.cursor()
+        cursor.execute("PRAGMA database_list")
+        databases = {row[1] for row in cursor.fetchall()}
+        cursor.close()
+
+    assert "_ingest_metadata" in databases
+    assert "schema_alpha" in databases
+    assert "schema_beta" in databases
+
+
+def test_record_ingested_file_populates_metadata_table() -> None:
+    engine = init_database("sqlite+pysqlite:///:memory:")
+    xsd = """<xs:schema xmlns:xs="http://www.w3.org/2001/XMLSchema">
+      <xs:element name="item" type="xs:string"/>
+    </xs:schema>"""
+
+    plan = parse_xsd_schema(xsd, db_schema="bioproject")
+    metadata = create_sqlalchemy_schema(engine, plan, db_schema="bioproject")
+    session = get_session(engine)
+
+    try:
+        record_ingested_file(
+            session,
+            metadata,
+            "s3://mybucket/downloads/file.xml",
+            target_schema="bioproject",
+            file_etag="etag-123",
+            file_size=4567,
+        )
+
+        table = metadata.tables["_ingest_metadata._ingested_files"]
+        rows = session.execute(select(table)).all()
+        assert len(rows) == 1
+        row = rows[0]
+        assert row.target_schema == "bioproject"
+        assert row.file_key == "downloads/file.xml"
+        assert row.file_etag == "etag-123"
+        assert row.file_size == 4567
+    finally:
+        session.close()
