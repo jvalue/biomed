@@ -66,6 +66,7 @@ class SchemaPlan:
 
     root_tables: dict[str, TableSpec]
     tables_by_name: dict[str, TableSpec]
+    db_schema: str | None = None
 
 
 @dataclass(slots=True)

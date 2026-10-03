@@ -2,6 +2,7 @@
 
 from crawler_common.xmlschema.ingestor import (
     process_s3_prefix_ingestion,
+    record_ingested_file,
     stream_xml_to_database,
 )
 from crawler_common.xmlschema.models import (
@@ -25,5 +26,6 @@ __all__ = [
     "create_sqlalchemy_schema",
     "parse_xsd_schema",
     "process_s3_prefix_ingestion",
+    "record_ingested_file",
     "stream_xml_to_database",
 ]

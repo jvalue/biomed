@@ -46,6 +46,16 @@ def test_run_ingest_wires_parser_and_database(monkeypatch):
         )
         return {"root": 1}
 
+    def fake_record_ingested_file(
+        session: object,
+        metadata: object,
+        xml_path: Path,
+        **kwargs: object,
+    ):
+        calls.append(
+            ("record_ingested_file", session, metadata, xml_path, kwargs)
+        )
+
     monkeypatch.setattr(app_main, "parse_xsd_schema", fake_parse_xsd_schema)
     monkeypatch.setattr(app_main, "init_database", fake_init_database)
     monkeypatch.setattr(
@@ -53,6 +63,7 @@ def test_run_ingest_wires_parser_and_database(monkeypatch):
     )
     monkeypatch.setattr(app_main, "get_session", fake_get_session)
     monkeypatch.setattr(app_main, "stream_xml_to_database", fake_stream_xml_to_database)
+    monkeypatch.setattr(app_main, "record_ingested_file", fake_record_ingested_file)
 
     counts = app_main.run_ingest(
         Path("schema.xsd"),
@@ -66,6 +77,7 @@ def test_run_ingest_wires_parser_and_database(monkeypatch):
     assert calls[2][0] == "create_sqlalchemy_schema"
     assert calls[3] == ("get_session", "engine")
     assert calls[4][0] == "stream_xml_to_database"
+    assert calls[5][0] == "record_ingested_file"
     assert calls[-2] == ("commit",)
     assert calls[-1] == ("close",)
 
@@ -93,6 +105,7 @@ def test_main_resolves_values_from_env(monkeypatch):
     monkeypatch.setenv("XML_INGESTOR_ECHO_SQL", "true")
     monkeypatch.setenv("XML_INGESTOR_COMMIT_EVERY", "2500")
     monkeypatch.setenv("XML_INGESTOR_TABLE_PREFIX", "medline")
+    monkeypatch.setenv("XML_INGESTOR_SCHEMA", "uniprot")
     monkeypatch.setenv("XML_INGESTOR_DEDUPLICATE_BY_HASH", "true")
     monkeypatch.setenv("XML_INGESTOR_AUTO_MIGRATE", "true")
     monkeypatch.setenv("XML_INGESTOR_ASYNC_COMMIT", "true")
@@ -114,6 +127,7 @@ def test_main_resolves_values_from_env(monkeypatch):
         resolved["echo_sql"] = echo_sql
         resolved["commit_every"] = commit_every
         resolved["table_prefix"] = table_prefix
+        resolved["db_schema"] = kwargs.get("db_schema")
         resolved["deduplicate_by_hash"] = kwargs.get("deduplicate_by_hash")
         resolved["auto_migrate"] = kwargs.get("auto_migrate")
         resolved["async_commit"] = kwargs.get("async_commit")
@@ -130,6 +144,7 @@ def test_main_resolves_values_from_env(monkeypatch):
     assert resolved["echo_sql"] is True
     assert resolved["commit_every"] == 2500
     assert resolved["table_prefix"] == "medline"
+    assert resolved["db_schema"] == "uniprot"
     assert resolved["deduplicate_by_hash"] is True
     assert resolved["auto_migrate"] is True
     assert resolved["async_commit"] is True
