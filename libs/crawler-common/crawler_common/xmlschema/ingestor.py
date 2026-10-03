@@ -608,6 +608,8 @@ def stream_xml_to_database(
                     )
                     pending_batch_rows.clear()
                     session.commit()
+                    if hasattr(session, "expunge_all"):
+                        session.expunge_all()
 
                 now = time.monotonic()
                 should_log_progress = (
@@ -618,14 +620,14 @@ def stream_xml_to_database(
                     elapsed_seconds = now - started_at
                     total_rows = sum(inserted_counts.values())
                     logger.info(
-                        "XML ingest progress: %s top-level records committed, %s rows inserted in %.1fs",
+                        "XML ingest progress: %s top-level records processed, %s rows inserted in %.1fs",
                         completed_top_level_frames,
                         total_rows,
                         elapsed_seconds,
                     )
                     last_progress_log_at = now
 
-                if root_element is not None and len(frame_stack) > 0:
+                if root_element is not None:
                     root_element.clear()
                 if deduplicate_by_hash:
                     frame.hash_tokens.clear()
