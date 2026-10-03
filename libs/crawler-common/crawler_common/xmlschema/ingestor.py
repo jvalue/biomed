@@ -337,10 +337,16 @@ def stream_xml_to_database(
     if metadata is None:
         metadata = build_sqlalchemy_metadata(schema_plan)
 
-    tables = metadata.tables
+    tables: dict[str, Table] = {}
+    for t_key, t_obj in metadata.tables.items():
+        tables[t_obj.name] = t_obj
+        tables[t_key] = t_obj
+
     table_levels = _compute_table_levels(schema_plan)
     inserted_counts: dict[str, int] = {
-        table_name: 0 for table_name in tables if not table_name.startswith("_")
+        table_name: 0
+        for table_name in schema_plan.tables_by_name
+        if not table_name.startswith("_")
     }
     frame_stack: list[_Frame] = []
     pending_batch_rows: list[_BufferedRow] = []
@@ -646,6 +652,76 @@ def stream_xml_to_database(
     return inserted_counts
 
 
+def record_ingested_file(
+    session: Session,
+    metadata: MetaData,
+    xml_path: Path | str,
+    target_schema: str | None = None,
+    file_etag: str | None = None,
+    file_size: int | None = None,
+) -> None:
+    metadata_tables = getattr(metadata, "tables", None)
+    if metadata_tables is None:
+        return
+
+    ingested_files_table = metadata_tables.get(
+        f"{INGEST_METADATA_SCHEMA}._ingested_files"
+    )
+    if ingested_files_table is None:
+        ingested_files_table = metadata_tables.get("_ingested_files")
+    if ingested_files_table is None:
+        return
+
+    xml_str = str(xml_path)
+    file_key = xml_str
+    schema_name = target_schema or "public"
+
+    if xml_str.startswith("s3://"):
+        try:
+            from urllib.parse import urlparse
+            from crawler_common.s3.client import create_s3_client
+
+            parsed = urlparse(xml_str)
+            bucket_name = parsed.netloc
+            key = parsed.path.lstrip("/")
+            file_key = key
+            if file_etag is None or file_size is None:
+                endpoint_url = os.getenv("S3_ENDPOINT_URL") or "http://minio:9000"
+                s3_client = create_s3_client(endpoint_url=endpoint_url, timeout_seconds=30)
+                head = s3_client.head_object(Bucket=bucket_name, Key=key)
+                if file_etag is None:
+                    file_etag = str(head.get("ETag", "")).strip('"')
+                if file_size is None:
+                    file_size = head.get("ContentLength")
+        except Exception as exc:
+            logger.debug("Failed retrieving S3 metadata for %s: %s", xml_str, exc)
+    else:
+        try:
+            p = Path(xml_str)
+            if p.exists() and file_size is None:
+                file_size = p.stat().st_size
+        except Exception:
+            pass
+
+    insert_values: dict[str, Any] = {
+        "file_key": file_key,
+        "file_etag": file_etag,
+        "file_size": file_size,
+        "ingested_at": datetime.datetime.now(datetime.timezone.utc),
+    }
+    if "target_schema" in ingested_files_table.c:
+        insert_values["target_schema"] = schema_name
+
+    try:
+        session.execute(insert(ingested_files_table).values(**insert_values))
+        session.commit()
+    except Exception as exc:
+        session.rollback()
+        logger.warning(
+            "Failed recording file %s in _ingested_files: %s", file_key, exc
+        )
+
+
 def process_s3_prefix_ingestion(
     session: Session,
     s3_uri: str,
@@ -689,6 +765,7 @@ def process_s3_prefix_ingestion(
         logger.info("No XML/compressed objects found in S3 prefix %s", s3_uri)
         return {}
 
+    target_schema = schema_plan.db_schema or "public"
     ingested_files_table = metadata.tables.get(
         f"{INGEST_METADATA_SCHEMA}._ingested_files"
     )
@@ -697,9 +774,14 @@ def process_s3_prefix_ingestion(
     already_processed: set[str] = set()
     if ingested_files_table is not None:
         try:
-            stmt = select(
-                ingested_files_table.c.file_key, ingested_files_table.c.file_etag
-            )
+            if "target_schema" in ingested_files_table.c:
+                stmt = select(
+                    ingested_files_table.c.file_key, ingested_files_table.c.file_etag
+                ).where(ingested_files_table.c.target_schema == target_schema)
+            else:
+                stmt = select(
+                    ingested_files_table.c.file_key, ingested_files_table.c.file_etag
+                )
             rows = session.execute(stmt).all()
             for r in rows:
                 if r[0]:
@@ -717,15 +799,21 @@ def process_s3_prefix_ingestion(
 
         lookup_key = f"{key}::{etag}"
         if lookup_key in already_processed:
-            logger.debug("Skipping already processed S3 file: %s (etag=%s)", key, etag)
+            logger.debug(
+                "Skipping already processed S3 file in schema %s: %s (etag=%s)",
+                target_schema,
+                key,
+                etag,
+            )
             continue
 
         new_files_count += 1
         file_uri = f"s3://{bucket_name}/{key}"
         logger.info(
-            "Ingesting new S3 file (%d/%d): %s",
+            "Ingesting new S3 file (%d/%d) into schema %s: %s",
             new_files_count,
             len(s3_objects),
+            target_schema,
             file_uri,
         )
 
@@ -741,22 +829,15 @@ def process_s3_prefix_ingestion(
         for tbl, count in file_counts.items():
             total_counts[tbl] += count
 
-        if ingested_files_table is not None:
-            try:
-                session.execute(
-                    insert(ingested_files_table).values(
-                        file_key=key,
-                        file_etag=etag,
-                        file_size=file_size,
-                        ingested_at=datetime.datetime.now(datetime.timezone.utc),
-                    )
-                )
-                session.commit()
-                already_processed.add(lookup_key)
-            except Exception as exc:
-                logger.warning(
-                    "Failed recording file %s in _ingested_files: %s", key, exc
-                )
+        record_ingested_file(
+            session,
+            metadata,
+            file_uri,
+            target_schema=target_schema,
+            file_etag=etag,
+            file_size=file_size,
+        )
+        already_processed.add(lookup_key)
 
     if new_files_count == 0:
         logger.info("No new XML files found to process in S3 prefix %s", s3_uri)

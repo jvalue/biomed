@@ -375,6 +375,7 @@ def _build_table_spec(
 def parse_xsd_schema(
     xsd_source: str | Path | TextIO,
     table_prefix: str | None = None,
+    db_schema: str | None = None,
 ) -> SchemaPlan:
     """Parse an XSD file into a table plan."""
 
@@ -395,4 +396,8 @@ def parse_xsd_schema(
         if table_spec is not None:
             root_tables[table_spec.xml_name] = table_spec
 
-    return SchemaPlan(root_tables=root_tables, tables_by_name=tables_by_name)
+    return SchemaPlan(
+        root_tables=root_tables,
+        tables_by_name=tables_by_name,
+        db_schema=db_schema,
+    )
