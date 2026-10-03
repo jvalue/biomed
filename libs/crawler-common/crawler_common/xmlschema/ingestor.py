@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import datetime
+import gc
 import logging
 import os
 import time
@@ -320,6 +321,10 @@ def _flush_batch(
 
                 inserted_counts[table_name] += len(chunk)
 
+    for r in all_rows:
+        r.parent_row = None
+        r.values.clear()
+
 
 def stream_xml_to_database(
     session: Session,
@@ -610,6 +615,7 @@ def stream_xml_to_database(
                     session.commit()
                     if hasattr(session, "expunge_all"):
                         session.expunge_all()
+                    gc.collect()
 
                 now = time.monotonic()
                 should_log_progress = (
