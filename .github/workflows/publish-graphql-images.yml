@@ -2,6 +2,11 @@ name: Publish GraphQL & MCP Container Images
 
 on:
   workflow_dispatch:
+    inputs:
+      branch:
+        description: "Branch to build from"
+        required: true
+        default: "add-graphql-layer"
   release:
     types: ["created"]
   workflow_run:
@@ -17,6 +22,8 @@ jobs:
 
     steps:
       - uses: actions/checkout@v4
+        with:
+          ref: ${{ github.event.inputs.branch || github.ref }}
 
       - name: Build docker image
         run: docker compose build graphql-api
@@ -68,6 +75,8 @@ jobs:
 
     steps:
       - uses: actions/checkout@v4
+        with:
+          ref: ${{ github.event.inputs.branch || github.ref }}
 
       - name: Build docker image
         run: docker compose build biomed-mcp
