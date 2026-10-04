@@ -127,5 +127,44 @@ services:
       mc mb --ignore-existing local/biomed-data;
       "
 
+  graphql-api:
+    image: graphql-api
+    build:
+      context: .
+      dockerfile: apps/graphql_api/Dockerfile
+    ports:
+      - "8003:8003"
+    environment:
+      - GRAPHQL_HOST=0.0.0.0
+      - GRAPHQL_PORT=8003
+      - POSTGRES_DATABASE_URL=postgresql://postgres:postgres@biomed-db:5435/postgres
+      - S3_ENDPOINT_URL=http://minio:9000
+      - S3_BUCKET=biomed-data
+      - AWS_ACCESS_KEY_ID=minioadmin
+      - AWS_SECRET_ACCESS_KEY=minioadmin
+    depends_on:
+      - biomed-db
+      - minio-init
+
+  biomed-mcp:
+    image: biomed-mcp
+    build:
+      context: .
+      dockerfile: apps/biomed_mcp/Dockerfile
+    ports:
+      - "8004:8004"
+    environment:
+      - MCP_TRANSPORT=sse
+      - FASTMCP_HOST=0.0.0.0
+      - FASTMCP_PORT=8004
+      - POSTGRES_DATABASE_URL=postgresql://postgres:postgres@biomed-db:5435/postgres
+      - S3_ENDPOINT_URL=http://minio:9000
+      - S3_BUCKET=biomed-data
+      - AWS_ACCESS_KEY_ID=minioadmin
+      - AWS_SECRET_ACCESS_KEY=minioadmin
+    depends_on:
+      - biomed-db
+      - minio-init
+
 volumes:
   minio-data:
