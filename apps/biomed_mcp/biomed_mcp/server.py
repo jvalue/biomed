@@ -153,25 +153,122 @@ def query_view(
 @mcp.tool()
 def search_uniprot(
     query: str | None = None,
+    accession: str | None = None,
+    taxid: str | None = None,
     limit: int = 50,
 ) -> dict[str, object]:
-    """Search UniProt protein entry summaries by accession, name, organism, gene, or keyword."""
+    """Search UniProt protein entry summaries by query text, accession, or NCBI taxid."""
     data = _gql(
         """
-        query SearchUniprot($query: String, $limit: Int!) {
-            uniprotEntries(query: $query, limit: $limit) {
+        query SearchUniprot($query: String, $accession: String, $taxid: String, $limit: Int!) {
+            uniprotEntries(query: $query, accession: $accession, taxid: $taxid, limit: $limit) {
                 primaryAccession
+                entryId
                 entryName
-                organismName
+                dataset
+                proteinName
                 geneNames
+                organismName
+                taxid
+                sequenceLength
+                sequence
+                version
+                created
+                modified
                 keywords
                 extraFields
             }
         }
         """,
-        {"query": query, "limit": limit},
+        {"query": query, "accession": accession, "taxid": taxid, "limit": limit},
     )
     return {"count": len(data["uniprotEntries"]), "entries": data["uniprotEntries"]}
+
+
+@mcp.tool()
+def search_bioproject(
+    query: str | None = None,
+    accession: str | None = None,
+    taxid: str | None = None,
+    limit: int = 50,
+) -> dict[str, object]:
+    """Search NCBI BioProject entries by query text, accession, or NCBI taxid."""
+    data = _gql(
+        """
+        query SearchBioProject($query: String, $accession: String, $taxid: String, $limit: Int!) {
+            bioprojectEntries(query: $query, accession: $accession, taxid: $taxid, limit: $limit) {
+                accession
+                archive
+                archiveProjectId
+                projectName
+                projectTitle
+                projectDescription
+                taxid
+                speciesTaxid
+                organismName
+                strain
+                isolateName
+                supergroup
+                projectType
+                publicationCount
+                externalLinkCount
+                extraFields
+            }
+        }
+        """,
+        {"query": query, "accession": accession, "taxid": taxid, "limit": limit},
+    )
+    return {"count": len(data["bioprojectEntries"]), "projects": data["bioprojectEntries"]}
+
+
+@mcp.tool()
+def get_bioproject_publications(
+    accession: str | None = None,
+    pubmed_id: str | None = None,
+    limit: int = 50,
+) -> dict[str, object]:
+    """Query publications for a BioProject accession or by PubMed ID."""
+    data = _gql(
+        """
+        query BioProjectPubs($accession: String, $pubmedId: String, $limit: Int!) {
+            bioprojectPublications(accession: $accession, pubmedId: $pubmedId, limit: $limit) {
+                accession
+                pubmedId
+                publicationDate
+                publicationStatus
+                articleTitle
+                journalTitle
+                publicationYear
+                authors
+            }
+        }
+        """,
+        {"accession": accession, "pubmedId": pubmed_id, "limit": limit},
+    )
+    return {"count": len(data["bioprojectPublications"]), "publications": data["bioprojectPublications"]}
+
+
+@mcp.tool()
+def get_uniprot_cross_references(
+    accession: str | None = None,
+    database_type: str | None = None,
+    limit: int = 50,
+) -> dict[str, object]:
+    """Query external database cross-references (PDB, RefSeq, Ensembl, etc.) for a UniProt accession."""
+    data = _gql(
+        """
+        query UniprotXrefs($accession: String, $databaseType: String, $limit: Int!) {
+            uniprotCrossReferences(accession: $accession, databaseType: $databaseType, limit: $limit) {
+                databaseType
+                databaseId
+                primaryAccession
+                entryId
+            }
+        }
+        """,
+        {"accession": accession, "databaseType": database_type, "limit": limit},
+    )
+    return {"count": len(data["uniprotCrossReferences"]), "crossReferences": data["uniprotCrossReferences"]}
 
 
 @mcp.tool()
