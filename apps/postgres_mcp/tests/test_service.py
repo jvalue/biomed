@@ -110,3 +110,21 @@ def test_execute_query_limit_coercion() -> None:
     res = service.execute_query("SELECT * FROM pm_articles", limit=1)
 
     assert res["count"] == 1
+
+
+def test_list_and_query_views() -> None:
+    service = make_service()
+    # Create a view in sqlite test database
+    with service._engine.begin() as conn:
+        conn.exec_driver_sql(
+            "CREATE VIEW v_pm_articles AS SELECT id, title FROM pm_articles"
+        )
+
+    views_res = service.list_views(schema_name="main")
+    assert views_res["view_count"] == 1
+    assert views_res["views"][0]["view_name"] == "v_pm_articles"
+
+    query_res = service.query_view("v_pm_articles", schema_name="main", limit=10)
+    assert query_res["count"] == 2
+    assert "title" in query_res["rows"][0]
+

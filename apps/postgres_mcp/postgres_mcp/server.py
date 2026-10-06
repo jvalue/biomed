@@ -102,6 +102,23 @@ class PostgresService:
         ]
         tables_info = []
 
+        # Bulk fetch estimated row counts from pg_class if PostgreSQL
+        estimates: dict[str, int] = {}
+        try:
+            with self._engine.connect() as conn:
+                stats_res = conn.execute(
+                    text(
+                        "SELECT relname, GREATEST(reltuples::bigint, 0) "
+                        "FROM pg_class JOIN pg_namespace ON "
+                        "pg_namespace.oid = pg_class.relnamespace "
+                        "WHERE nspname = :schema AND relkind = 'r' AND reltuples >= 0"
+                    ),
+                    {"schema": schema},
+                )
+                estimates = {row[0]: int(row[1]) for row in stats_res}
+        except Exception:
+            estimates = {}
+
         with self._engine.connect() as conn:
             for table_name in table_names:
                 columns = [
@@ -111,15 +128,15 @@ class PostgresService:
                 ]
                 pk = inspector.get_pk_constraint(table_name, schema=schema)
 
-                # Attempt row count estimation or exact count
-                row_count: int | None = None
-                try:
-                    count_res = conn.execute(
-                        text(f'SELECT COUNT(*) FROM "{schema}"."{table_name}"')
-                    ).scalar()
-                    row_count = int(count_res) if count_res is not None else 0
-                except Exception:
-                    row_count = None
+                row_count: int | None = estimates.get(table_name)
+                if row_count is None:
+                    try:
+                        count_res = conn.execute(
+                            text(f'SELECT COUNT(*) FROM "{schema}"."{table_name}"')
+                        ).scalar()
+                        row_count = int(count_res) if count_res is not None else 0
+                    except Exception:
+                        row_count = None
 
                 tables_info.append(
                     {
@@ -136,6 +153,286 @@ class PostgresService:
             "schema": schema,
             "table_count": len(tables_info),
             "tables": tables_info,
+        }
+
+    def list_views(self, schema_name: str | None = None) -> dict[str, Any]:
+        schema = schema_name or self._settings.default_schema
+        inspector = inspect(self._engine)
+
+        view_names = set(inspector.get_view_names(schema=schema))
+        if hasattr(inspector, "get_materialized_view_names"):
+            try:
+                view_names.update(inspector.get_materialized_view_names(schema=schema))
+            except Exception:
+                pass
+
+        views_info = []
+
+        for view_name in sorted(view_names):
+            try:
+                columns = inspector.get_columns(view_name, schema=schema)
+            except Exception:
+                columns = []
+            views_info.append(
+                {
+                    "view_name": view_name,
+                    "schema": schema,
+                    "column_count": len(columns),
+                    "columns": [col["name"] for col in columns],
+                    "resource_uri": f"postgres://view/{view_name}",
+                }
+            )
+
+        return {
+            "schema": schema,
+            "view_count": len(views_info),
+            "views": views_info,
+        }
+
+    def query_view(
+        self,
+        view_name: str,
+        schema_name: str | None = None,
+        limit: int | None = None,
+        offset: int = 0,
+    ) -> dict[str, Any]:
+        schema = schema_name or self._settings.default_schema
+        inspector = inspect(self._engine)
+
+        all_views = set(inspector.get_view_names(schema=schema))
+        if hasattr(inspector, "get_materialized_view_names"):
+            try:
+                all_views.update(inspector.get_materialized_view_names(schema=schema))
+            except Exception:
+                pass
+
+        if view_name not in all_views and not inspector.has_table(
+            view_name, schema=schema
+        ):
+            raise ValueError(f"View or table '{schema}.{view_name}' does not exist.")
+
+        effective_limit = self._coerce_limit(limit)
+        preparer = self._engine.dialect.identifier_preparer
+        query = text(
+            f"SELECT * FROM {preparer.quote(schema)}.{preparer.quote(view_name)} "
+            "LIMIT :limit OFFSET :offset"
+        )
+
+        with self._engine.connect() as conn:
+            result = conn.execute(
+                query, {"limit": effective_limit, "offset": max(0, offset)}
+            )
+            rows = [
+                {col: self._serialize_value(val) for col, val in row._mapping.items()}
+                for row in result
+            ]
+
+        return {
+            "schema": schema,
+            "view_name": view_name,
+            "limit": effective_limit,
+            "offset": offset,
+            "count": len(rows),
+            "rows": rows,
+        }
+
+    def get_uniprot_summary(
+        self,
+        query: str | None = None,
+        accession: str | None = None,
+        taxid: str | None = None,
+        limit: int = 50,
+        offset: int = 0,
+    ) -> dict[str, Any]:
+        """Search or list UniProt entries using mv_uniprot_entry_overview or v_uniprot_entry_summary."""
+        effective_limit = self._coerce_limit(limit)
+        inspector = inspect(self._engine)
+        is_postgres = self._engine.dialect.name == "postgresql"
+        like_op = "ILIKE" if is_postgres else "LIKE"
+
+        target_schema = "uniprot" if "uniprot" in inspector.get_schema_names() else self._settings.default_schema
+        view_name = "mv_uniprot_entry_overview"
+        all_views = set(inspector.get_view_names(schema=target_schema))
+        if hasattr(inspector, "get_materialized_view_names"):
+            try:
+                all_views.update(inspector.get_materialized_view_names(schema=target_schema))
+            except Exception:
+                pass
+
+        if view_name not in all_views and "v_uniprot_entry_summary" in all_views:
+            view_name = "v_uniprot_entry_summary"
+
+        clauses: list[str] = []
+        params: dict[str, Any] = {"limit": effective_limit, "offset": max(0, offset)}
+
+        if accession:
+            clauses.append("primary_accession = :acc")
+            params["acc"] = accession.strip()
+
+        if taxid:
+            clauses.append("taxid = :taxid")
+            params["taxid"] = taxid.strip()
+
+        if query and query.strip():
+            clauses.append(
+                f"(primary_accession {like_op} :q OR entry_name {like_op} :q OR protein_name {like_op} :q "
+                f"OR organism_name {like_op} :q OR gene_names {like_op} :q)"
+            )
+            params["q"] = f"%{query.strip()}%"
+
+        where_sql = f" WHERE {' AND '.join(clauses)}" if clauses else ""
+        sql = text(
+            f'SELECT * FROM "{target_schema}"."{view_name}"'
+            f"{where_sql} LIMIT :limit OFFSET :offset"
+        )
+
+        with self._engine.connect() as conn:
+            result = conn.execute(sql, params)
+            rows = [
+                {col: self._serialize_value(val) for col, val in row._mapping.items()}
+                for row in result
+            ]
+
+        return {
+            "query": query,
+            "count": len(rows),
+            "rows": rows,
+        }
+
+    def get_bioproject_summary(
+        self,
+        query: str | None = None,
+        accession: str | None = None,
+        taxid: str | None = None,
+        limit: int = 50,
+        offset: int = 0,
+    ) -> dict[str, Any]:
+        """Search or list BioProject projects using mv_bioproject_overview."""
+        effective_limit = self._coerce_limit(limit)
+        inspector = inspect(self._engine)
+        is_postgres = self._engine.dialect.name == "postgresql"
+        like_op = "ILIKE" if is_postgres else "LIKE"
+
+        target_schema = "bioproject" if "bioproject" in inspector.get_schema_names() else self._settings.default_schema
+        view_name = "mv_bioproject_overview"
+
+        clauses: list[str] = []
+        params: dict[str, Any] = {"limit": effective_limit, "offset": max(0, offset)}
+
+        if accession:
+            clauses.append("accession = :acc")
+            params["acc"] = accession.strip()
+
+        if taxid:
+            clauses.append("taxid = :taxid")
+            params["taxid"] = taxid.strip()
+
+        if query and query.strip():
+            clauses.append(
+                f"(accession {like_op} :q OR project_name {like_op} :q OR project_title {like_op} :q "
+                f"OR organism_name {like_op} :q OR supergroup {like_op} :q)"
+            )
+            params["q"] = f"%{query.strip()}%"
+
+        where_sql = f" WHERE {' AND '.join(clauses)}" if clauses else ""
+        sql = text(
+            f'SELECT * FROM "{target_schema}"."{view_name}"'
+            f"{where_sql} LIMIT :limit OFFSET :offset"
+        )
+
+        with self._engine.connect() as conn:
+            result = conn.execute(sql, params)
+            rows = [
+                {col: self._serialize_value(val) for col, val in row._mapping.items()}
+                for row in result
+            ]
+
+        return {
+            "query": query,
+            "count": len(rows),
+            "rows": rows,
+        }
+
+    def get_bioproject_publications(
+        self,
+        accession: str | None = None,
+        pubmed_id: str | None = None,
+        limit: int = 50,
+    ) -> dict[str, Any]:
+        """Query BioProject publications using mv_bioproject_publications."""
+        effective_limit = self._coerce_limit(limit)
+        inspector = inspect(self._engine)
+
+        target_schema = "bioproject" if "bioproject" in inspector.get_schema_names() else self._settings.default_schema
+        clauses: list[str] = []
+        params: dict[str, Any] = {"limit": effective_limit}
+
+        if accession:
+            clauses.append("accession = :acc")
+            params["acc"] = accession.strip()
+
+        if pubmed_id:
+            clauses.append("pubmed_id = :pmid")
+            params["pmid"] = pubmed_id.strip()
+
+        where_sql = f" WHERE {' AND '.join(clauses)}" if clauses else ""
+        sql = text(
+            f'SELECT * FROM "{target_schema}"."mv_bioproject_publications"'
+            f"{where_sql} LIMIT :limit"
+        )
+
+        with self._engine.connect() as conn:
+            result = conn.execute(sql, params)
+            rows = [
+                {col: self._serialize_value(val) for col, val in row._mapping.items()}
+                for row in result
+            ]
+
+        return {
+            "count": len(rows),
+            "rows": rows,
+        }
+
+    def get_uniprot_cross_references(
+        self,
+        accession: str | None = None,
+        database_type: str | None = None,
+        limit: int = 50,
+    ) -> dict[str, Any]:
+        """Query UniProt cross-references using mv_uniprot_cross_references."""
+        effective_limit = self._coerce_limit(limit)
+        inspector = inspect(self._engine)
+        is_postgres = self._engine.dialect.name == "postgresql"
+        like_op = "ILIKE" if is_postgres else "LIKE"
+
+        target_schema = "uniprot" if "uniprot" in inspector.get_schema_names() else self._settings.default_schema
+        clauses: list[str] = []
+        params: dict[str, Any] = {"limit": effective_limit}
+
+        if accession:
+            clauses.append("primary_accession = :acc")
+            params["acc"] = accession.strip()
+
+        if database_type:
+            clauses.append(f"database_type {like_op} :db_type")
+            params["db_type"] = database_type.strip()
+
+        where_sql = f" WHERE {' AND '.join(clauses)}" if clauses else ""
+        sql = text(
+            f'SELECT * FROM "{target_schema}"."mv_uniprot_cross_references"'
+            f"{where_sql} LIMIT :limit"
+        )
+
+        with self._engine.connect() as conn:
+            result = conn.execute(sql, params)
+            rows = [
+                {col: self._serialize_value(val) for col, val in row._mapping.items()}
+                for row in result
+            ]
+
+        return {
+            "count": len(rows),
+            "rows": rows,
         }
 
     def describe_table(
@@ -319,16 +616,34 @@ def postgres_tables_root() -> dict[str, object]:
     return service.list_tables()
 
 
+@mcp.resource("postgres://views")
+def postgres_views_root() -> dict[str, object]:
+    """Summary list of all database views (including UniProt entry views)."""
+    return service.list_views()
+
+
 @mcp.resource("postgres://table/{table_name}")
 def postgres_table_schema(table_name: str) -> dict[str, object]:
     """Detailed schema description for a single table."""
     return service.describe_table(table_name)
 
 
+@mcp.resource("postgres://view/{view_name}")
+def postgres_view_query(view_name: str) -> dict[str, object]:
+    """Query rows from a specific database view."""
+    return service.query_view(view_name)
+
+
 @mcp.tool()
 def list_tables(schema_name: str = "public") -> dict[str, object]:
     """List tables in the database along with column and row counts."""
     return service.list_tables(schema_name=schema_name)
+
+
+@mcp.tool()
+def list_views(schema_name: str = "public") -> dict[str, object]:
+    """List all views in the PostgreSQL database."""
+    return service.list_views(schema_name=schema_name)
 
 
 @mcp.tool()
@@ -348,6 +663,28 @@ def read_table(
     return service.read_table(
         table_name, schema_name=schema_name, limit=limit, offset=offset
     )
+
+
+@mcp.tool()
+def query_view(
+    view_name: str,
+    schema_name: str = "public",
+    limit: int = 100,
+    offset: int = 0,
+) -> dict[str, object]:
+    """Query rows from any database view."""
+    return service.query_view(
+        view_name, schema_name=schema_name, limit=limit, offset=offset
+    )
+
+
+@mcp.tool()
+def get_uniprot_summary(
+    query: str | None = None,
+    limit: int = 50,
+) -> dict[str, object]:
+    """Query UniProt protein entry summaries from v_uniprot_entry_summary."""
+    return service.get_uniprot_summary(query=query, limit=limit)
 
 
 @mcp.tool()
