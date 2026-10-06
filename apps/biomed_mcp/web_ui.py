@@ -1,19 +1,30 @@
 # ruff: noqa: E501
 from __future__ import annotations
 
+import asyncio
 import json
 import os
 import sys
 from http.server import BaseHTTPRequestHandler, HTTPServer
 from pathlib import Path
+from typing import Any
 from urllib.parse import parse_qs, urlparse
 from urllib.request import Request, urlopen
 
 from dotenv import load_dotenv
+from mcp import ClientSession
+from mcp.client.sse import sse_client
 
 APP_DIR = Path(__file__).resolve().parent
 load_dotenv(APP_DIR / ".env")
 load_dotenv(APP_DIR.parent.parent / ".env")
+
+MCP_SERVER_URL = os.getenv("MCP_SERVER_URL", "http://localhost:8004/sse")
+GRAPHQL_URL = os.getenv("GRAPHQL_API_URL", "http://localhost:8003/graphql")
+PORT = int(os.getenv("WEB_UI_PORT", "5050"))
+
+# Default to remote cluster GraphQL endpoint if port-forwarded
+os.environ["GRAPHQL_API_URL"] = os.getenv("GRAPHQL_API_URL", "http://localhost:8003/graphql")
 
 sys.path.insert(0, str(APP_DIR.parent / "graphql_api"))
 sys.path.insert(0, str(APP_DIR.parent / "postgres_mcp"))
@@ -35,7 +46,37 @@ from biomed_mcp.server import (  # noqa: E402
     search_uniprot,
 )
 
+GRAPHQL_URL = os.getenv("GRAPHQL_API_URL", "http://localhost:8003/graphql")
 PORT = int(os.getenv("WEB_UI_PORT", "5050"))
+
+
+def _execute_gql(query: str, variables: dict[str, Any] | None = None) -> dict[str, Any]:
+    """Execute GraphQL query against remote HTTP service or in-process schema."""
+    # Attempt HTTP request to port-forwarded / cluster GraphQL API first
+    try:
+        req = Request(
+            GRAPHQL_URL,
+            data=json.dumps({"query": query, "variables": variables or {}}).encode("utf-8"),
+            headers={"Content-Type": "application/json"},
+        )
+        with urlopen(req, timeout=30) as resp:
+            data = json.loads(resp.read().decode("utf-8"))
+            if data.get("errors"):
+                messages = "; ".join(str(e.get("message", e)) for e in data["errors"])
+                raise RuntimeError(f"GraphQL error: {messages}")
+            return data["data"]
+    except Exception as http_exc:
+        # Fallback to in-process execution if GraphQL endpoint is not running
+        try:
+            from graphql_api.schema.query import schema as graphql_schema
+
+            result = graphql_schema.execute_sync(query, variable_values=variables)
+            if result.errors:
+                messages = "; ".join(str(e) for e in result.errors)
+                raise RuntimeError(f"In-process GraphQL error: {messages}")
+            return result.data
+        except Exception:
+            raise http_exc
 
 TOOLS_SCHEMA = [
     {
@@ -264,63 +305,90 @@ TOOLS_SCHEMA = [
 ]
 
 
+async def _call_mcp_tool_sse(name: str, args: dict[str, Any]) -> dict[str, Any]:
+    """Invoke tool on remote FastMCP server over Server-Sent Events (SSE)."""
+    async with sse_client(MCP_SERVER_URL) as (read, write):
+        async with ClientSession(read, write) as session:
+            await session.initialize()
+            result = await session.call_tool(name, arguments=args)
+            if getattr(result, "isError", False):
+                err_text = "; ".join(c.text for c in result.content if hasattr(c, "text"))
+                raise RuntimeError(err_text or f"Tool call failed for {name}")
+            for c in result.content:
+                if hasattr(c, "text"):
+                    try:
+                        return json.loads(c.text)
+                    except Exception:
+                        return {"result": c.text}
+            return {"content": [getattr(c, "text", str(c)) for c in result.content]}
+
+
+def _local_tool_dispatch(name: str, args: dict) -> dict:
+    if name == "search_uniprot":
+        return search_uniprot(
+            query=args.get("query"),
+            accession=args.get("accession"),
+            taxid=args.get("taxid"),
+            limit=args.get("limit", 50),
+        )
+    if name == "search_bioproject":
+        return search_bioproject(
+            query=args.get("query"),
+            accession=args.get("accession"),
+            taxid=args.get("taxid"),
+            limit=args.get("limit", 50),
+        )
+    if name == "get_bioproject_publications":
+        return get_bioproject_publications(
+            accession=args.get("accession"),
+            pubmed_id=args.get("pubmed_id"),
+            limit=args.get("limit", 50),
+        )
+    if name == "get_uniprot_cross_references":
+        return get_uniprot_cross_references(
+            accession=args.get("accession"),
+            database_type=args.get("database_type"),
+            limit=args.get("limit", 50),
+        )
+    if name == "list_views":
+        return list_views(schema_name=args.get("schema_name", "public"))
+    if name == "query_view":
+        return query_view(
+            view_name=args["view_name"],
+            schema_name=args.get("schema_name", "public"),
+            limit=args.get("limit", 100),
+            offset=args.get("offset", 0),
+        )
+    if name == "list_tables":
+        return list_tables(schema_name=args.get("schema_name", "public"))
+    if name == "describe_table":
+        return describe_table(
+            table_name=args["table_name"],
+            schema_name=args.get("schema_name", "public"),
+        )
+    if name == "execute_query":
+        return execute_query(sql=args["sql"], limit=args.get("limit", 100))
+    if name == "list_s3_objects":
+        return list_s3_objects(
+            prefix=args.get("prefix", ""),
+            delimiter=args.get("delimiter", "/"),
+            max_keys=args.get("max_keys", 100),
+        )
+    if name == "get_s3_object_metadata":
+        return get_s3_object_metadata(key=args["key"])
+    if name == "read_s3_object":
+        return read_s3_object(key=args["key"])
+    return {"error": f"Unknown tool: {name}"}
+
+
 def handle_tool_call(name: str, args: dict) -> dict:
+    if MCP_SERVER_URL:
+        try:
+            return asyncio.run(_call_mcp_tool_sse(name, args))
+        except Exception as sse_exc:
+            print(f"⚠️ SSE MCP call to {MCP_SERVER_URL} failed ({sse_exc}); using local/GraphQL fallback.")
     try:
-        if name == "search_uniprot":
-            return search_uniprot(
-                query=args.get("query"),
-                accession=args.get("accession"),
-                taxid=args.get("taxid"),
-                limit=args.get("limit", 50),
-            )
-        if name == "search_bioproject":
-            return search_bioproject(
-                query=args.get("query"),
-                accession=args.get("accession"),
-                taxid=args.get("taxid"),
-                limit=args.get("limit", 50),
-            )
-        if name == "get_bioproject_publications":
-            return get_bioproject_publications(
-                accession=args.get("accession"),
-                pubmed_id=args.get("pubmed_id"),
-                limit=args.get("limit", 50),
-            )
-        if name == "get_uniprot_cross_references":
-            return get_uniprot_cross_references(
-                accession=args.get("accession"),
-                database_type=args.get("database_type"),
-                limit=args.get("limit", 50),
-            )
-        if name == "list_views":
-            return list_views(schema_name=args.get("schema_name", "public"))
-        if name == "query_view":
-            return query_view(
-                view_name=args["view_name"],
-                schema_name=args.get("schema_name", "public"),
-                limit=args.get("limit", 100),
-                offset=args.get("offset", 0),
-            )
-        if name == "list_tables":
-            return list_tables(schema_name=args.get("schema_name", "public"))
-        if name == "describe_table":
-            return describe_table(
-                table_name=args["table_name"],
-                schema_name=args.get("schema_name", "public"),
-            )
-        if name == "execute_query":
-            return execute_query(sql=args["sql"], limit=args.get("limit", 100))
-        if name == "list_s3_objects":
-            return list_s3_objects(
-                prefix=args.get("prefix", ""),
-                delimiter=args.get("delimiter", "/"),
-                max_keys=args.get("max_keys", 100),
-            )
-        if name == "get_s3_object_metadata":
-            return get_s3_object_metadata(key=args["key"])
-        if name == "read_s3_object":
-            return read_s3_object(key=args["key"])
-        return {"error": f"Unknown tool: {name}"}
+        return _local_tool_dispatch(name, args)
     except Exception as exc:
         return {"error": str(exc)}
 
@@ -510,6 +578,7 @@ HTML_PAGE = r"""<!DOCTYPE html>
         .quick-runner { padding: 0.6rem 1rem; background: var(--surface); border-top: 1px solid var(--card-border); display: flex; gap: 0.5rem; flex-wrap: wrap; }
         .chip { background: var(--card); border: 1px solid var(--card-border); color: var(--muted); font-size: 0.75rem; padding: 0.25rem 0.6rem; border-radius: 9999px; cursor: pointer; transition: 0.15s; }
         .chip:hover { color: var(--accent); border-color: var(--accent); }
+        .chip.chip-active { background: var(--accent); color: #000; font-weight: 600; border-color: var(--accent); }
 
         .input-area { padding: 0.85rem 1rem; background: var(--surface); border-top: 1px solid var(--card-border); display: flex; gap: 0.75rem; }
         .input-area input { flex: 1; background: var(--bg); border: 1px solid var(--card-border); color: var(--text); padding: 0.65rem 1rem; border-radius: 8px; font-size: 0.95rem; }
@@ -527,10 +596,10 @@ HTML_PAGE = r"""<!DOCTYPE html>
         <div class="settings-bar">
             <label style="font-size:0.8rem; color:var(--muted);">Schema:</label>
             <select id="schemaSelect" onchange="fetchCurrentTab()">
-                <option value="uniprot" selected>uniprot</option>
-                <option value="bioproject">bioproject</option>
-                <option value="public">public</option>
+                <option value="bioproject" selected>bioproject</option>
+                <option value="uniprot">uniprot</option>
                 <option value="_ingest_metadata">_ingest_metadata</option>
+                <option value="public">public</option>
             </select>
             <label style="font-size:0.8rem; color:var(--muted); margin-left:0.5rem;">LLM:</label>
             <input type="text" id="llmUrl" value="https://api.mammouth.ai/v1/" style="width: 170px;">
@@ -606,6 +675,11 @@ HTML_PAGE = r"""<!DOCTYPE html>
             return text.replace(/\n/g, '<br>');
         }
 
+        function selectSchema(schemaName) {
+            document.getElementById("schemaSelect").value = schemaName;
+            fetchDatabaseData();
+        }
+
         async function fetchDatabaseData() {
             const schema = document.getElementById("schemaSelect").value;
             const content = document.getElementById("sidebarContent");
@@ -619,12 +693,23 @@ HTML_PAGE = r"""<!DOCTYPE html>
                 const viewsData = await viewsRes.json();
                 const tablesData = await tablesRes.json();
 
-                let html = `<h3>Materialized Views (${viewsData.views ? viewsData.views.length : 0})</h3>`;
+                const schemas = ['bioproject', 'uniprot', '_ingest_metadata', 'public'];
+                let schemaButtons = `<div style="display:flex; gap:0.35rem; margin-bottom:0.75rem; flex-wrap:wrap;">`;
+                schemas.forEach(s => {
+                    const activeCls = s === schema ? 'chip-active' : '';
+                    schemaButtons += `<span class="chip ${activeCls}" onclick="selectSchema('${s}')">${s}</span>`;
+                });
+                schemaButtons += `</div>`;
+
+                let html = schemaButtons;
+                html += `<h3>Materialized Views (${viewsData.views ? viewsData.views.length : 0})</h3>`;
                 if (viewsData.views && viewsData.views.length > 0) {
                     viewsData.views.forEach(v => {
-                        html += `<div class="item-card view-card" onclick="quickSend('Query view ${v.view_name} in schema ${schema} limit 5')">
-                            <b style="color:var(--accent);">${v.view_name}</b><br>
-                            <span style="color:var(--muted); font-size:0.75rem;">Columns: ${v.column_count}</span>
+                        const name = v.viewName || v.view_name;
+                        const cols = v.columnCount ?? v.column_count ?? 0;
+                        html += `<div class="item-card view-card" onclick="quickSend('Query view ${name} in schema ${schema} limit 5')">
+                            <b style="color:var(--accent);">${name}</b><br>
+                            <span style="color:var(--muted); font-size:0.75rem;">Columns: ${cols}</span>
                         </div>`;
                     });
                 } else {
@@ -634,9 +719,12 @@ HTML_PAGE = r"""<!DOCTYPE html>
                 html += `<h3>Tables (${tablesData.tables ? tablesData.tables.length : 0})</h3>`;
                 if (tablesData.tables && tablesData.tables.length > 0) {
                     tablesData.tables.forEach(t => {
-                        html += `<div class="item-card" onclick="quickSend('Describe table ${t.table_name} in schema ${schema}')">
-                            <b>${t.table_name}</b><br>
-                            <span style="color:var(--muted); font-size:0.75rem;">Columns: ${t.column_count} | Rows: ${t.row_count ?? 'N/A'}</span>
+                        const name = t.tableName || t.table_name;
+                        const cols = t.columnCount ?? t.column_count ?? 0;
+                        const rows = t.rowCount ?? t.row_count ?? 'N/A';
+                        html += `<div class="item-card" onclick="quickSend('Describe table ${name} in schema ${schema}')">
+                            <b>${name}</b><br>
+                            <span style="color:var(--muted); font-size:0.75rem;">Columns: ${cols} | Rows: ${rows}</span>
                         </div>`;
                     });
                 } else {
@@ -661,9 +749,10 @@ HTML_PAGE = r"""<!DOCTYPE html>
                 if (data.objects && data.objects.length > 0) {
                     data.objects.forEach(obj => {
                         const sizeMb = (obj.size / (1024 * 1024)).toFixed(2);
+                        const mod = obj.lastModified || obj.last_modified || 'N/A';
                         html += `<div class="item-card s3-card" onclick="quickSend('Get metadata for S3 object ${obj.key}')">
                             <b style="color:var(--accent-green); word-break:break-all;">${obj.key}</b><br>
-                            <span style="color:var(--muted); font-size:0.75rem;">Size: ${sizeMb} MB | Modified: ${obj.last_modified || 'N/A'}</span>
+                            <span style="color:var(--muted); font-size:0.75rem;">Size: ${sizeMb} MB | Modified: ${mod}</span>
                         </div>`;
                     });
                 } else {
@@ -771,7 +860,7 @@ class WebUIHandler(BaseHTTPRequestHandler):
             self.send_header("Content-Type", "application/json")
             self.end_headers()
             try:
-                tables = list_tables(schema_name=schema_name)
+                tables = handle_tool_call("list_tables", {"schema_name": schema_name})
             except Exception as exc:
                 tables = {"error": str(exc), "tables": []}
             self.wfile.write(json.dumps(tables).encode("utf-8"))
@@ -781,7 +870,7 @@ class WebUIHandler(BaseHTTPRequestHandler):
             self.send_header("Content-Type", "application/json")
             self.end_headers()
             try:
-                views = list_views(schema_name=schema_name)
+                views = handle_tool_call("list_views", {"schema_name": schema_name})
             except Exception as exc:
                 views = {"error": str(exc), "views": []}
             self.wfile.write(json.dumps(views).encode("utf-8"))
@@ -791,7 +880,7 @@ class WebUIHandler(BaseHTTPRequestHandler):
             self.send_header("Content-Type", "application/json")
             self.end_headers()
             try:
-                objects = list_s3_objects(prefix=prefix)
+                objects = handle_tool_call("list_s3_objects", {"prefix": prefix})
             except Exception as exc:
                 objects = {"error": str(exc), "objects": []}
             self.wfile.write(json.dumps(objects).encode("utf-8"))

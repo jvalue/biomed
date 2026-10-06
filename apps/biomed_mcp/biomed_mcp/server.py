@@ -12,17 +12,19 @@ import json
 import os
 from pathlib import Path
 from typing import Any
+from urllib.request import Request, urlopen
 
 from dotenv import load_dotenv
 from mcp.server.fastmcp import FastMCP
 
-# Import the Strawberry schema so we can execute queries in-process.
-# This triggers the lazy service initialisation in the resolvers when the
-# first query is actually executed (not at import time).
+# Import the Strawberry schema so we can execute queries in-process as fallback.
 from graphql_api.schema.query import schema as graphql_schema
 
 APP_DIR = Path(__file__).resolve().parents[1]
 load_dotenv(APP_DIR / ".env")
+
+def _get_graphql_url() -> str:
+    return os.getenv("GRAPHQL_API_URL", "")
 
 mcp = FastMCP("Biomed Unified MCP", json_response=True)
 
@@ -33,10 +35,31 @@ mcp = FastMCP("Biomed Unified MCP", json_response=True)
 
 
 def _gql(query: str, variables: dict[str, Any] | None = None) -> dict[str, Any]:
-    """Execute a GraphQL query in-process and return the data dict.
+    """Execute a GraphQL query against HTTP service if available, else in-process.
 
     Raises ``RuntimeError`` if the query produces errors.
     """
+    gql_url = _get_graphql_url()
+    if gql_url:
+        try:
+            req = Request(
+                gql_url,
+                data=json.dumps({"query": query, "variables": variables or {}}).encode("utf-8"),
+                headers={"Content-Type": "application/json"},
+            )
+            with urlopen(req, timeout=30) as resp:
+                data = json.loads(resp.read().decode("utf-8"))
+                if data.get("errors"):
+                    messages = "; ".join(str(e.get("message", e)) for e in data["errors"])
+                    raise RuntimeError(f"GraphQL error: {messages}")
+                return data["data"]
+        except Exception as exc:
+            # If connection was refused or endpoint unavailable, fall back to in-process
+            if not isinstance(exc, (RuntimeError,)):
+                pass
+            else:
+                raise
+
     result = graphql_schema.execute_sync(query, variable_values=variables)
     if result.errors:
         messages = "; ".join(str(e) for e in result.errors)
