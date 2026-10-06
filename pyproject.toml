@@ -19,4 +19,6 @@ members = [
   "apps/postgres_mcp",
   "apps/s3_mcp",
   "apps/xml_ingestor",
+  "apps/graphql_api",
+  "apps/biomed_mcp",
 ]
