@@ -5,9 +5,12 @@ from __future__ import annotations
 import strawberry
 
 from graphql_api.resolvers.postgres import (
+    resolve_bioproject_entries,
+    resolve_bioproject_publications,
     resolve_execute_query,
     resolve_table_detail,
     resolve_tables,
+    resolve_uniprot_cross_references,
     resolve_uniprot_entries,
     resolve_view_query,
     resolve_views,
@@ -18,12 +21,15 @@ from graphql_api.resolvers.s3 import (
     resolve_s3_objects,
 )
 from graphql_api.schema.types import (
+    BioProjectEntry,
+    BioProjectPublication,
     QueryResult,
     S3ListResult,
     S3ObjectContent,
     S3ObjectMetadata,
     TableDetail,
     TableInfo,
+    UniprotCrossReference,
     UniprotEntry,
     ViewInfo,
     ViewQueryResult,
@@ -63,14 +69,60 @@ class Query:
     # ----- PostgreSQL: domain-specific ----------------------------------------
 
     @strawberry.field(
-        description="Search or list UniProt protein entry summaries."
+        description="Search or list UniProt protein entry summaries from mv_uniprot_entry_overview."
     )
     def uniprot_entries(
         self,
         query: str | None = None,
+        accession: str | None = None,
+        taxid: str | None = None,
         limit: int = 50,
+        offset: int = 0,
     ) -> list[UniprotEntry]:
-        return resolve_uniprot_entries(query=query, limit=limit)
+        return resolve_uniprot_entries(
+            query=query, accession=accession, taxid=taxid, limit=limit, offset=offset
+        )
+
+    @strawberry.field(
+        description="Search or list NCBI BioProject summaries from mv_bioproject_overview."
+    )
+    def bioproject_entries(
+        self,
+        query: str | None = None,
+        accession: str | None = None,
+        taxid: str | None = None,
+        limit: int = 50,
+        offset: int = 0,
+    ) -> list[BioProjectEntry]:
+        return resolve_bioproject_entries(
+            query=query, accession=accession, taxid=taxid, limit=limit, offset=offset
+        )
+
+    @strawberry.field(
+        description="Query BioProject publication references from mv_bioproject_publications."
+    )
+    def bioproject_publications(
+        self,
+        accession: str | None = None,
+        pubmed_id: str | None = None,
+        limit: int = 50,
+    ) -> list[BioProjectPublication]:
+        return resolve_bioproject_publications(
+            accession=accession, pubmed_id=pubmed_id, limit=limit
+        )
+
+    @strawberry.field(
+        description="Query UniProt database cross-references from mv_uniprot_cross_references."
+    )
+    def uniprot_cross_references(
+        self,
+        accession: str | None = None,
+        database_type: str | None = None,
+        limit: int = 50,
+    ) -> list[UniprotCrossReference]:
+        return resolve_uniprot_cross_references(
+            accession=accession, database_type=database_type, limit=limit
+        )
 
     # ----- PostgreSQL: raw SQL ------------------------------------------------
 

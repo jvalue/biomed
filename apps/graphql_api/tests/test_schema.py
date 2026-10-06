@@ -35,6 +35,58 @@ def _create_test_db_engine():
         Column("name", String, nullable=False),
     )
 
+    Table(
+        "mv_uniprot_entry_overview",
+        metadata,
+        Column("entry_id", Integer, primary_key=True),
+        Column("primary_accession", String, nullable=False),
+        Column("entry_name", String, nullable=True),
+        Column("dataset", String, nullable=True),
+        Column("protein_name", String, nullable=True),
+        Column("gene_names", String, nullable=True),
+        Column("organism_name", String, nullable=True),
+        Column("taxid", String, nullable=True),
+        Column("sequence_length", Integer, nullable=True),
+        Column("sequence", String, nullable=True),
+    )
+
+    Table(
+        "mv_bioproject_overview",
+        metadata,
+        Column("accession", String, primary_key=True),
+        Column("archive", String, nullable=True),
+        Column("project_name", String, nullable=True),
+        Column("project_title", String, nullable=True),
+        Column("project_description", String, nullable=True),
+        Column("organism_name", String, nullable=True),
+        Column("taxid", String, nullable=True),
+        Column("supergroup", String, nullable=True),
+        Column("project_type", String, nullable=True),
+        Column("publication_count", Integer, default=0),
+        Column("external_link_count", Integer, default=0),
+    )
+
+    Table(
+        "mv_bioproject_publications",
+        metadata,
+        Column("accession", String, primary_key=True),
+        Column("pubmed_id", String, nullable=True),
+        Column("article_title", String, nullable=True),
+        Column("journal_title", String, nullable=True),
+        Column("publication_year", String, nullable=True),
+        Column("authors", String, nullable=True),
+    )
+
+    Table(
+        "mv_uniprot_cross_references",
+        metadata,
+        Column("id", Integer, primary_key=True, autoincrement=True),
+        Column("entry_id", Integer, nullable=True),
+        Column("primary_accession", String, nullable=True),
+        Column("database_type", String, nullable=False),
+        Column("database_id", String, nullable=False),
+    )
+
     metadata.create_all(engine)
 
     with engine.begin() as conn:
@@ -43,6 +95,65 @@ def _create_test_db_engine():
             [
                 {"title": "Genome Sequencing in Biomedicine", "author": "Alice Smith"},
                 {"title": "XML Data Streaming Patterns", "author": "Bob Jones"},
+            ],
+        )
+        conn.execute(
+            Table("mv_uniprot_entry_overview", metadata).insert(),
+            [
+                {
+                    "entry_id": 1001,
+                    "primary_accession": "P0C9F0",
+                    "entry_name": "1001R_ASFK5",
+                    "dataset": "Swiss-Prot",
+                    "protein_name": "Protein MGF 100-1R",
+                    "gene_names": "Ken-018",
+                    "organism_name": "African swine fever virus",
+                    "taxid": "561445",
+                    "sequence_length": 100,
+                    "sequence": "MKVL...",
+                }
+            ],
+        )
+        conn.execute(
+            Table("mv_bioproject_overview", metadata).insert(),
+            [
+                {
+                    "accession": "PRJNA12345",
+                    "archive": "NCBI",
+                    "project_name": "Swine Genome Project",
+                    "project_title": "Genome analysis of ASFV",
+                    "project_description": "Comprehensive genome assembly",
+                    "organism_name": "African swine fever virus",
+                    "taxid": "561445",
+                    "supergroup": "Viruses",
+                    "project_type": "SingleOrganism",
+                    "publication_count": 3,
+                    "external_link_count": 1,
+                }
+            ],
+        )
+        conn.execute(
+            Table("mv_bioproject_publications", metadata).insert(),
+            [
+                {
+                    "accession": "PRJNA12345",
+                    "pubmed_id": "12345678",
+                    "article_title": "Sequencing ASFV",
+                    "journal_title": "Virology Journal",
+                    "publication_year": "2024",
+                    "authors": "Jane Doe; John Smith",
+                }
+            ],
+        )
+        conn.execute(
+            Table("mv_uniprot_cross_references", metadata).insert(),
+            [
+                {
+                    "entry_id": 1001,
+                    "primary_accession": "P0C9F0",
+                    "database_type": "PDB",
+                    "database_id": "8XYZ",
+                }
             ],
         )
 
@@ -146,7 +257,44 @@ class TestExecuteQuery:
         )
         result = data["executeQuery"]
         assert result["count"] == 1
-        assert result["rows"][0]["data"]["title"] == "Genome Sequencing in Biomedicine"
+class TestDomainQueries:
+    def test_uniprot_entries_query(self):
+        data = _execute(
+            '{ uniprotEntries(query: "swine") { primaryAccession entryName proteinName geneNames organismName taxid } }'
+        )
+        entries = data["uniprotEntries"]
+        assert len(entries) == 1
+        assert entries[0]["primaryAccession"] == "P0C9F0"
+        assert entries[0]["entryName"] == "1001R_ASFK5"
+        assert entries[0]["taxid"] == "561445"
+
+    def test_uniprot_cross_references(self):
+        data = _execute(
+            '{ uniprotCrossReferences(accession: "P0C9F0") { databaseType databaseId primaryAccession } }'
+        )
+        xrefs = data["uniprotCrossReferences"]
+        assert len(xrefs) == 1
+        assert xrefs[0]["databaseType"] == "PDB"
+        assert xrefs[0]["databaseId"] == "8XYZ"
+
+    def test_bioproject_entries_query(self):
+        data = _execute(
+            '{ bioprojectEntries(query: "ASFV") { accession projectName projectTitle organismName supergroup publicationCount } }'
+        )
+        projects = data["bioprojectEntries"]
+        assert len(projects) == 1
+        assert projects[0]["accession"] == "PRJNA12345"
+        assert projects[0]["supergroup"] == "Viruses"
+        assert projects[0]["publicationCount"] == 3
+
+    def test_bioproject_publications_query(self):
+        data = _execute(
+            '{ bioprojectPublications(accession: "PRJNA12345") { accession pubmedId articleTitle journalTitle publicationYear } }'
+        )
+        pubs = data["bioprojectPublications"]
+        assert len(pubs) == 1
+        assert pubs[0]["pubmedId"] == "12345678"
+        assert pubs[0]["publicationYear"] == "2024"
 
 
 # ---------------------------------------------------------------------------

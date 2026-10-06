@@ -82,15 +82,63 @@ class ViewQueryResult:
     rows: list[ViewRow]
 
 
-@strawberry.type(description="UniProt protein entry summary from v_uniprot_entry_summary.")
+@strawberry.type(description="UniProt protein entry summary from mv_uniprot_entry_overview.")
 class UniprotEntry:
     primary_accession: str
+    entry_id: int | None = None
     entry_name: str | None = None
+    dataset: str | None = None
+    protein_name: str | None = None
+    gene_names: str | None = None
     organism_name: str | None = None
-    gene_names: list[str] | None = None
+    taxid: str | None = None
+    sequence_length: int | None = None
+    sequence: str | None = None
+    version: int | None = None
+    created: str | None = None
+    modified: str | None = None
     keywords: list[str] | None = None
-    # Additional fields are captured in extra_fields for forward compatibility
     extra_fields: strawberry.scalars.JSON | None = None
+
+
+@strawberry.type(description="NCBI BioProject summary from mv_bioproject_overview.")
+class BioProjectEntry:
+    accession: str
+    archive: str | None = None
+    archive_project_id: str | None = None
+    project_name: str | None = None
+    project_title: str | None = None
+    project_description: str | None = None
+    taxid: str | None = None
+    species_taxid: str | None = None
+    organism_name: str | None = None
+    strain: str | None = None
+    isolate_name: str | None = None
+    supergroup: str | None = None
+    project_type: str | None = None
+    publication_count: int = 0
+    external_link_count: int = 0
+    extra_fields: strawberry.scalars.JSON | None = None
+
+
+@strawberry.type(description="BioProject publication reference from mv_bioproject_publications.")
+class BioProjectPublication:
+    accession: str
+    pubmed_id: str | None = None
+    publication_date: str | None = None
+    publication_status: str | None = None
+    article_title: str | None = None
+    journal_title: str | None = None
+    publication_year: str | None = None
+    authors: str | None = None
+
+
+@strawberry.type(description="UniProt external database cross-reference from mv_uniprot_cross_references.")
+class UniprotCrossReference:
+    database_type: str
+    database_id: str
+    primary_accession: str | None = None
+    entry_id: int | None = None
 
 
 @strawberry.type(description="Result of a raw SQL query execution.")

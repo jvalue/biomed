@@ -5,12 +5,15 @@ from __future__ import annotations
 from typing import Any
 
 from graphql_api.schema.types import (
+    BioProjectEntry,
+    BioProjectPublication,
     ColumnInfo,
     ForeignKeyInfo,
     IndexInfo,
     QueryResult,
     TableDetail,
     TableInfo,
+    UniprotCrossReference,
     UniprotEntry,
     ViewInfo,
     ViewQueryResult,
@@ -41,7 +44,7 @@ def _get_service() -> PostgresService:
     return _service
 
 
-def set_service(service: PostgresService) -> None:
+def set_service(service: PostgresService | None) -> None:
     """Override the shared service instance (useful for testing)."""
     global _service
     _service = service
@@ -142,32 +145,156 @@ def resolve_view_query(
 
 def resolve_uniprot_entries(
     query: str | None = None,
+    accession: str | None = None,
+    taxid: str | None = None,
     limit: int = 50,
+    offset: int = 0,
 ) -> list[UniprotEntry]:
     """Search or list UniProt entry summaries."""
-    result = _get_service().get_uniprot_summary(query=query, limit=limit)
+    result = _get_service().get_uniprot_summary(
+        query=query, accession=accession, taxid=taxid, limit=limit, offset=offset
+    )
     entries: list[UniprotEntry] = []
+    known_keys = {
+        "entry_id",
+        "primary_accession",
+        "entry_name",
+        "dataset",
+        "protein_name",
+        "gene_names",
+        "organism_name",
+        "taxid",
+        "sequence_length",
+        "sequence",
+        "version",
+        "created",
+        "modified",
+        "keywords",
+    }
     for row in result["rows"]:
-        # Extract known fields; put the rest in extra_fields
-        known_keys = {
-            "primary_accession",
-            "entry_name",
-            "organism_name",
-            "gene_names",
-            "keywords",
-        }
         extra = {k: v for k, v in row.items() if k not in known_keys}
+        gene_names_val = row.get("gene_names")
+        if isinstance(gene_names_val, list):
+            gene_names_val = ", ".join(str(g) for g in gene_names_val)
+
         entries.append(
             UniprotEntry(
                 primary_accession=row.get("primary_accession", ""),
+                entry_id=row.get("entry_id"),
                 entry_name=row.get("entry_name"),
+                dataset=row.get("dataset"),
+                protein_name=row.get("protein_name"),
+                gene_names=gene_names_val,
                 organism_name=row.get("organism_name"),
-                gene_names=row.get("gene_names"),
-                keywords=row.get("keywords"),
+                taxid=str(row.get("taxid")) if row.get("taxid") is not None else None,
+                sequence_length=row.get("sequence_length"),
+                sequence=row.get("sequence"),
+                version=row.get("version"),
+                created=str(row.get("created")) if row.get("created") else None,
+                modified=str(row.get("modified")) if row.get("modified") else None,
+                keywords=row.get("keywords") if isinstance(row.get("keywords"), list) else None,
                 extra_fields=extra if extra else None,
             )
         )
     return entries
+
+
+def resolve_bioproject_entries(
+    query: str | None = None,
+    accession: str | None = None,
+    taxid: str | None = None,
+    limit: int = 50,
+    offset: int = 0,
+) -> list[BioProjectEntry]:
+    """Search or list BioProject project summaries."""
+    result = _get_service().get_bioproject_summary(
+        query=query, accession=accession, taxid=taxid, limit=limit, offset=offset
+    )
+    entries: list[BioProjectEntry] = []
+    known_keys = {
+        "accession",
+        "archive",
+        "archive_project_id",
+        "project_name",
+        "project_title",
+        "project_description",
+        "taxid",
+        "species_taxid",
+        "organism_name",
+        "strain",
+        "isolate_name",
+        "supergroup",
+        "project_type",
+        "publication_count",
+        "external_link_count",
+    }
+    for row in result["rows"]:
+        extra = {k: v for k, v in row.items() if k not in known_keys}
+        entries.append(
+            BioProjectEntry(
+                accession=row.get("accession", ""),
+                archive=row.get("archive"),
+                archive_project_id=str(row.get("archive_project_id")) if row.get("archive_project_id") is not None else None,
+                project_name=row.get("project_name"),
+                project_title=row.get("project_title"),
+                project_description=row.get("project_description"),
+                taxid=str(row.get("taxid")) if row.get("taxid") is not None else None,
+                species_taxid=str(row.get("species_taxid")) if row.get("species_taxid") is not None else None,
+                organism_name=row.get("organism_name"),
+                strain=row.get("strain"),
+                isolate_name=row.get("isolate_name"),
+                supergroup=row.get("supergroup"),
+                project_type=row.get("project_type"),
+                publication_count=int(row.get("publication_count", 0)),
+                external_link_count=int(row.get("external_link_count", 0)),
+                extra_fields=extra if extra else None,
+            )
+        )
+    return entries
+
+
+def resolve_bioproject_publications(
+    accession: str | None = None,
+    pubmed_id: str | None = None,
+    limit: int = 50,
+) -> list[BioProjectPublication]:
+    """Query BioProject publications."""
+    result = _get_service().get_bioproject_publications(
+        accession=accession, pubmed_id=pubmed_id, limit=limit
+    )
+    return [
+        BioProjectPublication(
+            accession=row.get("accession", ""),
+            pubmed_id=str(row.get("pubmed_id")) if row.get("pubmed_id") is not None else None,
+            publication_date=str(row.get("publication_date")) if row.get("publication_date") else None,
+            publication_status=row.get("publication_status"),
+            article_title=row.get("article_title"),
+            journal_title=row.get("journal_title"),
+            publication_year=str(row.get("publication_year")) if row.get("publication_year") is not None else None,
+            authors=row.get("authors"),
+        )
+        for row in result["rows"]
+    ]
+
+
+def resolve_uniprot_cross_references(
+    accession: str | None = None,
+    database_type: str | None = None,
+    limit: int = 50,
+) -> list[UniprotCrossReference]:
+    """Query UniProt cross-references."""
+    result = _get_service().get_uniprot_cross_references(
+        accession=accession, database_type=database_type, limit=limit
+    )
+    return [
+        UniprotCrossReference(
+            database_type=row.get("database_type", ""),
+            database_id=str(row.get("database_id", "")),
+            primary_accession=row.get("primary_accession"),
+            entry_id=row.get("entry_id"),
+        )
+        for row in result["rows"]
+    ]
 
 
 def resolve_execute_query(

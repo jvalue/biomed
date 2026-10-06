@@ -231,27 +231,52 @@ class PostgresService:
     def get_uniprot_summary(
         self,
         query: str | None = None,
+        accession: str | None = None,
+        taxid: str | None = None,
         limit: int = 50,
+        offset: int = 0,
     ) -> dict[str, Any]:
-        """Search or list UniProt entries using the v_uniprot_entry_summary view."""
+        """Search or list UniProt entries using mv_uniprot_entry_overview or v_uniprot_entry_summary."""
         effective_limit = self._coerce_limit(limit)
-        schema = self._settings.default_schema
+        inspector = inspect(self._engine)
+        is_postgres = self._engine.dialect.name == "postgresql"
+        like_op = "ILIKE" if is_postgres else "LIKE"
+
+        target_schema = "uniprot" if "uniprot" in inspector.get_schema_names() else self._settings.default_schema
+        view_name = "mv_uniprot_entry_overview"
+        all_views = set(inspector.get_view_names(schema=target_schema))
+        if hasattr(inspector, "get_materialized_view_names"):
+            try:
+                all_views.update(inspector.get_materialized_view_names(schema=target_schema))
+            except Exception:
+                pass
+
+        if view_name not in all_views and "v_uniprot_entry_summary" in all_views:
+            view_name = "v_uniprot_entry_summary"
+
+        clauses: list[str] = []
+        params: dict[str, Any] = {"limit": effective_limit, "offset": max(0, offset)}
+
+        if accession:
+            clauses.append("primary_accession = :acc")
+            params["acc"] = accession.strip()
+
+        if taxid:
+            clauses.append("taxid = :taxid")
+            params["taxid"] = taxid.strip()
 
         if query and query.strip():
-            sql = text(
-                f'SELECT * FROM "{schema}"."v_uniprot_entry_summary" '
-                "WHERE primary_accession ILIKE :q OR entry_name ILIKE :q "
-                "OR organism_name ILIKE :q "
-                "OR array_to_string(gene_names, ' ') ILIKE :q "
-                "OR array_to_string(keywords, ' ') ILIKE :q "
-                "LIMIT :limit"
+            clauses.append(
+                f"(primary_accession {like_op} :q OR entry_name {like_op} :q OR protein_name {like_op} :q "
+                f"OR organism_name {like_op} :q OR gene_names {like_op} :q)"
             )
-            params = {"q": f"%{query.strip()}%", "limit": effective_limit}
-        else:
-            sql = text(
-                f'SELECT * FROM "{schema}"."v_uniprot_entry_summary" LIMIT :limit'
-            )
-            params = {"limit": effective_limit}
+            params["q"] = f"%{query.strip()}%"
+
+        where_sql = f" WHERE {' AND '.join(clauses)}" if clauses else ""
+        sql = text(
+            f'SELECT * FROM "{target_schema}"."{view_name}"'
+            f"{where_sql} LIMIT :limit OFFSET :offset"
+        )
 
         with self._engine.connect() as conn:
             result = conn.execute(sql, params)
@@ -262,6 +287,142 @@ class PostgresService:
 
         return {
             "query": query,
+            "count": len(rows),
+            "rows": rows,
+        }
+
+    def get_bioproject_summary(
+        self,
+        query: str | None = None,
+        accession: str | None = None,
+        taxid: str | None = None,
+        limit: int = 50,
+        offset: int = 0,
+    ) -> dict[str, Any]:
+        """Search or list BioProject projects using mv_bioproject_overview."""
+        effective_limit = self._coerce_limit(limit)
+        inspector = inspect(self._engine)
+        is_postgres = self._engine.dialect.name == "postgresql"
+        like_op = "ILIKE" if is_postgres else "LIKE"
+
+        target_schema = "bioproject" if "bioproject" in inspector.get_schema_names() else self._settings.default_schema
+        view_name = "mv_bioproject_overview"
+
+        clauses: list[str] = []
+        params: dict[str, Any] = {"limit": effective_limit, "offset": max(0, offset)}
+
+        if accession:
+            clauses.append("accession = :acc")
+            params["acc"] = accession.strip()
+
+        if taxid:
+            clauses.append("taxid = :taxid")
+            params["taxid"] = taxid.strip()
+
+        if query and query.strip():
+            clauses.append(
+                f"(accession {like_op} :q OR project_name {like_op} :q OR project_title {like_op} :q "
+                f"OR organism_name {like_op} :q OR supergroup {like_op} :q)"
+            )
+            params["q"] = f"%{query.strip()}%"
+
+        where_sql = f" WHERE {' AND '.join(clauses)}" if clauses else ""
+        sql = text(
+            f'SELECT * FROM "{target_schema}"."{view_name}"'
+            f"{where_sql} LIMIT :limit OFFSET :offset"
+        )
+
+        with self._engine.connect() as conn:
+            result = conn.execute(sql, params)
+            rows = [
+                {col: self._serialize_value(val) for col, val in row._mapping.items()}
+                for row in result
+            ]
+
+        return {
+            "query": query,
+            "count": len(rows),
+            "rows": rows,
+        }
+
+    def get_bioproject_publications(
+        self,
+        accession: str | None = None,
+        pubmed_id: str | None = None,
+        limit: int = 50,
+    ) -> dict[str, Any]:
+        """Query BioProject publications using mv_bioproject_publications."""
+        effective_limit = self._coerce_limit(limit)
+        inspector = inspect(self._engine)
+
+        target_schema = "bioproject" if "bioproject" in inspector.get_schema_names() else self._settings.default_schema
+        clauses: list[str] = []
+        params: dict[str, Any] = {"limit": effective_limit}
+
+        if accession:
+            clauses.append("accession = :acc")
+            params["acc"] = accession.strip()
+
+        if pubmed_id:
+            clauses.append("pubmed_id = :pmid")
+            params["pmid"] = pubmed_id.strip()
+
+        where_sql = f" WHERE {' AND '.join(clauses)}" if clauses else ""
+        sql = text(
+            f'SELECT * FROM "{target_schema}"."mv_bioproject_publications"'
+            f"{where_sql} LIMIT :limit"
+        )
+
+        with self._engine.connect() as conn:
+            result = conn.execute(sql, params)
+            rows = [
+                {col: self._serialize_value(val) for col, val in row._mapping.items()}
+                for row in result
+            ]
+
+        return {
+            "count": len(rows),
+            "rows": rows,
+        }
+
+    def get_uniprot_cross_references(
+        self,
+        accession: str | None = None,
+        database_type: str | None = None,
+        limit: int = 50,
+    ) -> dict[str, Any]:
+        """Query UniProt cross-references using mv_uniprot_cross_references."""
+        effective_limit = self._coerce_limit(limit)
+        inspector = inspect(self._engine)
+        is_postgres = self._engine.dialect.name == "postgresql"
+        like_op = "ILIKE" if is_postgres else "LIKE"
+
+        target_schema = "uniprot" if "uniprot" in inspector.get_schema_names() else self._settings.default_schema
+        clauses: list[str] = []
+        params: dict[str, Any] = {"limit": effective_limit}
+
+        if accession:
+            clauses.append("primary_accession = :acc")
+            params["acc"] = accession.strip()
+
+        if database_type:
+            clauses.append(f"database_type {like_op} :db_type")
+            params["db_type"] = database_type.strip()
+
+        where_sql = f" WHERE {' AND '.join(clauses)}" if clauses else ""
+        sql = text(
+            f'SELECT * FROM "{target_schema}"."mv_uniprot_cross_references"'
+            f"{where_sql} LIMIT :limit"
+        )
+
+        with self._engine.connect() as conn:
+            result = conn.execute(sql, params)
+            rows = [
+                {col: self._serialize_value(val) for col, val in row._mapping.items()}
+                for row in result
+            ]
+
+        return {
             "count": len(rows),
             "rows": rows,
         }
