@@ -109,7 +109,7 @@ class PostgresService:
                         "SELECT relname, GREATEST(reltuples::bigint, 0) "
                         "FROM pg_class JOIN pg_namespace ON "
                         "pg_namespace.oid = pg_class.relnamespace "
-                        "WHERE nspname = :schema AND relkind = 'r'"
+                        "WHERE nspname = :schema AND relkind = 'r' AND reltuples >= 0"
                     ),
                     {"schema": schema},
                 )
