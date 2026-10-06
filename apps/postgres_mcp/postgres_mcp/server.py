@@ -206,8 +206,10 @@ class PostgresService:
             raise ValueError(f"View or table '{schema}.{view_name}' does not exist.")
 
         effective_limit = self._coerce_limit(limit)
+        preparer = self._engine.dialect.identifier_preparer
         query = text(
-            f'SELECT * FROM "{schema}"."{view_name}" LIMIT :limit OFFSET :offset'
+            f"SELECT * FROM {preparer.quote(schema)}.{preparer.quote(view_name)} "
+            "LIMIT :limit OFFSET :offset"
         )
 
         with self._engine.connect() as conn:
