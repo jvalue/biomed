@@ -580,7 +580,12 @@ def stream_xml_to_database(
                     frame.hash_tokens.append(f"text:{text_value}")
                 frame.hash_tokens.append(f"</{local_name}>")
 
-                if frame.parent is not None and frame.parent.definition is not None:
+                # Only bubble tokens up within the top-level record's subtree, not to the root document container
+                if (
+                    frame.parent is not None
+                    and frame.parent.definition is not None
+                    and frame.parent.parent is not None
+                ):
                     frame.parent.hash_tokens.extend(frame.hash_tokens)
 
             if frame.is_inside_jsonb:
@@ -645,6 +650,7 @@ def stream_xml_to_database(
                         if is_dup:
                             frame.skipped = True
                             top_frame.buffered_rows.clear()
+                            frame.hash_tokens.clear()
                             if root_element is not None:
                                 root_element.clear()
                             element.clear()
@@ -699,6 +705,11 @@ def stream_xml_to_database(
                     frame.hash_tokens.clear()
 
             element.clear()
+            if hasattr(element, "getprevious"):
+                parent = element.getparent()
+                if parent is not None:
+                    while element.getprevious() is not None:
+                        del parent[0]
 
     if pending_batch_rows:
         for f in frame_stack:
