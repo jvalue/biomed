@@ -404,9 +404,16 @@ def process_chat(
         "role": "system",
         "content": (
             "You are an expert biomedical AI assistant connected to PostgreSQL (with UniProt and BioProject schemas) "
-            "and MinIO/S3 object storage via unified FastMCP tools. "
-            "Use the provided tools to query materialized views (mv_uniprot_entry_overview, mv_bioproject_overview), "
-            "cross-references, publications, tables, and S3 objects to accurately answer user inquiries."
+            "and MinIO/S3 object storage via FastMCP tools.\n\n"
+            "Key Materialized Views and Columns:\n"
+            "- bioproject.mv_bioproject_overview: (accession, project_title, project_description, organism_name, taxid, supergroup, project_type, publication_count, external_link_count)\n"
+            "- bioproject.mv_bioproject_biological_properties: (accession, organism_name, habitat, salinity, oxygen_requirement, optimum_temperature, temperature_range, gram_stain, shape, disease, biotic_relationship)\n"
+            "- bioproject.mv_bioproject_publications: (accession, pubmed_id, article_title, journal_title, publication_year, authors)\n"
+            "- uniprot.mv_uniprot_entry_overview: (accession, entry_name, protein_names, gene_names, organism_scientific, taxid, sequence_length, sequence)\n"
+            "- uniprot.mv_uniprot_cross_references: (accession, database_type, database_id)\n\n"
+            "Guidelines:\n"
+            "1. Prefer using specialized tools (`search_uniprot`, `search_bioproject`, `get_bioproject_publications`, `get_uniprot_cross_references`) when applicable.\n"
+            "2. Note that `optimum_temperature` is free-text (e.g. '5-14°C', '80 C'). For thermophile queries, filter by `temperature_range ILIKE '%thermophile%'` or use regex `substring(optimum_temperature from '([0-9]+)')::numeric > 70`."
         ),
     }
 
@@ -769,21 +776,41 @@ HTML_PAGE = r"""<!DOCTYPE html>
             sendMessage();
         }
 
+        let msgSeq = 0;
+
+        function appendMessage(role, content, isHtml = false) {
+            const container = document.getElementById("messages");
+            const div = document.createElement("div");
+            div.className = `message ${role}`;
+            div.id = `msg-${Date.now()}-${++msgSeq}`;
+            if (isHtml || role === "assistant") {
+                div.innerHTML = content;
+            } else {
+                div.textContent = content;
+            }
+            container.appendChild(div);
+            container.scrollTop = container.scrollHeight;
+            return div.id;
+        }
+
         async function sendMessage() {
             const input = document.getElementById("userInput");
+            const sendBtn = document.querySelector(".input-area button");
             const text = input.value.trim();
             if (!text) return;
 
             input.value = "";
-            appendMessage("user", text);
+            input.disabled = true;
+            if (sendBtn) sendBtn.disabled = true;
 
+            appendMessage("user", text, false);
             conversation.push({ role: "user", content: text });
 
             const llmUrl = document.getElementById("llmUrl").value;
             const modelName = document.getElementById("modelName").value;
             const apiKey = document.getElementById("apiKey").value;
 
-            const loadingId = appendMessage("assistant", "Querying unified MCP tools & processing...");
+            const loadingId = appendMessage("assistant", "Querying unified MCP tools & processing...", true);
 
             try {
                 const res = await fetch("/api/chat", {
@@ -797,7 +824,7 @@ HTML_PAGE = r"""<!DOCTYPE html>
                 if (loadingEl) loadingEl.remove();
 
                 if (data.error) {
-                    appendMessage("assistant", "⚠️ " + data.error);
+                    appendMessage("assistant", "⚠️ " + data.error, true);
                     return;
                 }
 
@@ -816,25 +843,18 @@ HTML_PAGE = r"""<!DOCTYPE html>
                 }
 
                 html += formatMarkdown(data.reply);
-                appendMessage("assistant", html);
+                appendMessage("assistant", html, true);
                 conversation.push({ role: "assistant", content: data.reply });
 
             } catch (err) {
                 const loadingEl = document.getElementById(loadingId);
                 if (loadingEl) loadingEl.remove();
-                appendMessage("assistant", "⚠️ Error: " + err.message);
+                appendMessage("assistant", "⚠️ Error: " + err.message, true);
+            } finally {
+                input.disabled = false;
+                if (sendBtn) sendBtn.disabled = false;
+                input.focus();
             }
-        }
-
-        function appendMessage(role, htmlContent) {
-            const container = document.getElementById("messages");
-            const div = document.createElement("div");
-            div.className = `message ${role}`;
-            div.id = "msg-" + Date.now();
-            div.innerHTML = htmlContent;
-            container.appendChild(div);
-            container.scrollTop = container.scrollHeight;
-            return div.id;
         }
 
         fetchCurrentTab();

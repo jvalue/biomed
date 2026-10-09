@@ -8,6 +8,7 @@ from hashlib import sha1
 from typing import Any
 
 from sqlalchemy import (
+    JSON,
     BigInteger,
     Boolean,
     Date,
@@ -17,6 +18,7 @@ from sqlalchemy import (
     Numeric,
     Text,
 )
+from sqlalchemy.dialects.postgresql import JSONB
 
 try:
     from lxml import etree as ET  # type: ignore
@@ -29,6 +31,7 @@ DEFAULT_PROGRESS_LOG_EVERY = 500
 DEFAULT_PROGRESS_LOG_SECONDS = 5.0
 DEFAULT_COMMIT_EVERY = 500
 INGEST_METADATA_SCHEMA = "_ingest_metadata"
+JSON_TYPE = JSONB().with_variant(JSON(), "sqlite")
 
 _IDENTIFIER_PATTERN = re.compile(r"[^0-9A-Za-z_]+")
 _COLLAPSE_PATTERN = re.compile(r"_+")
@@ -56,6 +59,7 @@ class TableSpec:
     repeatable: bool = False
     columns: list[ColumnSpec] = field(default_factory=list)
     simple_children: dict[str, ColumnSpec] = field(default_factory=dict)
+    jsonb_children: dict[str, ColumnSpec] = field(default_factory=dict)
     child_tables: dict[str, TableSpec] = field(default_factory=dict)
     text_column: ColumnSpec | None = None
 
@@ -87,6 +91,9 @@ class _Frame:
     pending_values: dict[str, Any] = field(default_factory=dict)
     text_value: str | None = None
     simple_column_name: str | None = None
+    jsonb_column_name: str | None = None
+    is_jsonb_root: bool = False
+    is_inside_jsonb: bool = False
     element: ET.Element | None = None
     skipped: bool = False
     hash_tokens: list[str] = field(default_factory=list)
