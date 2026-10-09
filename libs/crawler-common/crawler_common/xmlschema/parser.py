@@ -12,6 +12,7 @@ except ImportError:
     import xml.etree.ElementTree as ET  # type: ignore
 
 from crawler_common.xmlschema.models import (
+    JSON_TYPE,
     ColumnSpec,
     SchemaPlan,
     TableSpec,
@@ -42,7 +43,59 @@ def _complex_type_children(complex_type: ET.Element) -> list[ET.Element]:
 
 
 def _complex_type_attributes(complex_type: ET.Element) -> list[ET.Element]:
-    return [child for child in complex_type if _local_name(child.tag) == "attribute"]
+    attributes = [
+        child for child in complex_type if _local_name(child.tag) == "attribute"
+    ]
+    for container in complex_type:
+        c_name = _local_name(container.tag)
+        if c_name in {"simpleContent", "complexContent"}:
+            for ext in container:
+                if _local_name(ext.tag) in {"extension", "restriction"}:
+                    attributes.extend(
+                        child
+                        for child in ext
+                        if _local_name(child.tag) == "attribute"
+                    )
+    return attributes
+
+
+def _is_jsonb_element(*elements: ET.Element | None) -> bool:
+    for element in elements:
+        if element is None:
+            continue
+        annotation = next(
+            (child for child in element if _local_name(child.tag) == "annotation"),
+            None,
+        )
+        if annotation is None:
+            continue
+        appinfo = next(
+            (child for child in annotation if _local_name(child.tag) == "appinfo"),
+            None,
+        )
+        if appinfo is None:
+            continue
+
+        for child in appinfo:
+            tag = _local_name(child.tag).lower()
+            val = (
+                child.get("name")
+                or child.get("value")
+                or child.get("type")
+                or (child.text or "")
+            ).strip().lower()
+            if tag in {"json", "jsonb"} and (not val or val in {"true", "1", "yes"}):
+                return True
+            if tag in {"store_as", "type", "format", "as"} and val in {"json", "jsonb"}:
+                return True
+            if val in {"json", "jsonb"}:
+                return True
+
+        appinfo_text = (appinfo.text or "").strip().lower()
+        if appinfo_text in {"json", "jsonb"}:
+            return True
+
+    return False
 
 
 def _extract_table_alias(element: ET.Element) -> str | None:
@@ -301,12 +354,32 @@ def _build_table_spec(
         element,
         catalog.named_complex_types,
     )
+    type_name = element.get("type")
+    resolved_complex_type = _resolve_named_complex_type(
+        type_name, catalog.named_complex_types
+    )
+    inline_complex_type = _collect_inline_complex_type(element)
+    is_jsonb = _is_jsonb_element(element, resolved_complex_type, inline_complex_type)
+    table_alias = _extract_table_alias(element)
+
+    if parent_spec is not None and is_jsonb:
+        column_name = _column_name_for_child(table_alias or element_name)
+        column_spec = ColumnSpec(
+            xml_name=element_name,
+            column_name=column_name,
+            sql_type=JSON_TYPE,
+            nullable=True,
+            source="jsonb",
+        )
+        parent_spec.jsonb_children[element_name] = column_spec
+        parent_spec.columns.append(column_spec)
+        return None
+
     repeatable = _occurs_is_repeatable(element)
     has_attributes = bool(attributes)
     has_child_elements = bool(child_elements)
     is_root = parent_spec is None
     should_create_table = is_root or repeatable or has_attributes or has_child_elements
-    table_alias = _extract_table_alias(element)
 
     if not should_create_table and parent_spec is not None:
         column_name = _column_name_for_child(element_name)

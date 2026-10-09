@@ -1152,3 +1152,146 @@ def test_record_ingested_file_populates_metadata_table() -> None:
         assert row.file_size == 4567
     finally:
         session.close()
+
+
+def test_parse_xsd_with_jsonb_annotation() -> None:
+    xsd = """<xs:schema xmlns:xs="http://www.w3.org/2001/XMLSchema">
+      <xs:element name="Sample">
+        <xs:complexType>
+          <xs:sequence>
+            <xs:element name="Accession" type="xs:string"/>
+            <xs:element name="Attributes">
+              <xs:annotation>
+                <xs:appinfo>
+                  <jsonb>true</jsonb>
+                </xs:appinfo>
+              </xs:annotation>
+              <xs:complexType>
+                <xs:sequence>
+                  <xs:element name="Attribute" maxOccurs="unbounded">
+                    <xs:complexType>
+                      <xs:simpleContent>
+                        <xs:extension base="xs:string">
+                          <xs:attribute name="name" type="xs:string"/>
+                        </xs:extension>
+                      </xs:simpleContent>
+                    </xs:complexType>
+                  </xs:element>
+                </xs:sequence>
+              </xs:complexType>
+            </xs:element>
+          </xs:sequence>
+        </xs:complexType>
+      </xs:element>
+    </xs:schema>"""
+
+    plan = parse_xsd_schema(xsd)
+    assert len(plan.tables_by_name) == 1
+    assert "sample" in plan.tables_by_name
+    sample_table = plan.tables_by_name["sample"]
+    assert "Attributes" in sample_table.jsonb_children
+    assert sample_table.jsonb_children["Attributes"].column_name == "attributes"
+    col_names = [col.column_name for col in sample_table.columns]
+    assert "accession" in col_names
+    assert "attributes" in col_names
+    # Child tables should NOT have been generated
+    assert len(sample_table.child_tables) == 0
+
+
+def test_stream_xml_to_database_with_jsonb() -> None:
+    xsd = """<xs:schema xmlns:xs="http://www.w3.org/2001/XMLSchema">
+      <xs:element name="SampleSet">
+        <xs:annotation>
+          <xs:appinfo><table name="set"/></xs:appinfo>
+        </xs:annotation>
+        <xs:complexType>
+          <xs:sequence>
+            <xs:element name="Sample" maxOccurs="unbounded">
+              <xs:annotation>
+                <xs:appinfo><table name="sample"/></xs:appinfo>
+              </xs:annotation>
+              <xs:complexType>
+                <xs:sequence>
+                  <xs:element name="Accession" type="xs:string"/>
+                  <xs:element name="Attributes">
+                    <xs:annotation>
+                      <xs:appinfo>
+                        <store_as>jsonb</store_as>
+                      </xs:appinfo>
+                    </xs:annotation>
+                    <xs:complexType>
+                      <xs:sequence>
+                        <xs:element name="Attribute" maxOccurs="unbounded">
+                          <xs:complexType>
+                            <xs:simpleContent>
+                              <xs:extension base="xs:string">
+                                <xs:attribute name="attribute_name" type="xs:string"/>
+                                <xs:attribute name="unit" type="xs:string"/>
+                              </xs:extension>
+                            </xs:simpleContent>
+                          </xs:complexType>
+                        </xs:element>
+                      </xs:sequence>
+                    </xs:complexType>
+                  </xs:element>
+                </xs:sequence>
+              </xs:complexType>
+            </xs:element>
+          </xs:sequence>
+        </xs:complexType>
+      </xs:element>
+    </xs:schema>"""
+
+    xml = """<SampleSet>
+      <Sample>
+        <Accession>SAMN0001</Accession>
+        <Attributes>
+          <Attribute attribute_name="tissue" unit="mg">Liver</Attribute>
+          <Attribute attribute_name="age">42</Attribute>
+        </Attributes>
+      </Sample>
+      <Sample>
+        <Accession>SAMN0002</Accession>
+        <Attributes>
+          <Attribute attribute_name="organism">Homo sapiens</Attribute>
+        </Attributes>
+      </Sample>
+    </SampleSet>"""
+
+    engine = init_database("sqlite+pysqlite:///:memory:")
+    plan = parse_xsd_schema(xsd)
+    metadata = create_sqlalchemy_schema(engine, plan)
+    session = get_session(engine)
+
+    try:
+        counts = stream_xml_to_database(session, xml, plan, metadata=metadata)
+        assert counts["set_sample"] == 2
+        assert "set_sample_attributes" not in counts
+
+        sample_table = metadata.tables["set_sample"]
+        rows = session.execute(select(sample_table).order_by(sample_table.c.id)).mappings().all()
+        assert len(rows) == 2
+
+        assert rows[0]["accession"] == "SAMN0001"
+        attrs1 = rows[0]["attributes"]
+        if isinstance(attrs1, str):
+            import json
+            attrs1 = json.loads(attrs1)
+        assert "Attribute" in attrs1
+        assert len(attrs1["Attribute"]) == 2
+        assert attrs1["Attribute"][0]["attribute_name"] == "tissue"
+        assert attrs1["Attribute"][0]["unit"] == "mg"
+        assert attrs1["Attribute"][0]["value"] == "Liver"
+        assert attrs1["Attribute"][1]["attribute_name"] == "age"
+        assert attrs1["Attribute"][1]["value"] == "42"
+
+        assert rows[1]["accession"] == "SAMN0002"
+        attrs2 = rows[1]["attributes"]
+        if isinstance(attrs2, str):
+            import json
+            attrs2 = json.loads(attrs2)
+        assert attrs2["Attribute"]["attribute_name"] == "organism"
+        assert attrs2["Attribute"]["value"] == "Homo sapiens"
+    finally:
+        session.close()
+
