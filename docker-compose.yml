@@ -29,7 +29,6 @@ services:
     build:
       context: .
       dockerfile: apps/crawler/crawler_general/Dockerfile
-      network: host
     env_file:
       - ./apps/crawler/crawler_general/.env.docker
     environment:
@@ -43,7 +42,6 @@ services:
     build:
       context: .
       dockerfile: apps/crawler/crawler_dummy/Dockerfile
-      network: host
     env_file:
       - ./apps/crawler/crawler_dummy/.env.docker
 
@@ -51,7 +49,6 @@ services:
     build:
       context: .
       dockerfile: apps/crawler/downloader_general/Dockerfile
-      network: host
     environment:
       - RABBITMQ_URL=amqp://guest:guest@rabbitmq:5672/
       - RABBITMQ_QUEUE=download-urls
@@ -73,7 +70,6 @@ services:
     build:
       context: .
       dockerfile: apps/xml_ingestor/Dockerfile
-      network: host
     environment:
       - XML_INGESTOR_DATABASE_URL=postgresql://postgres:postgres@biomed-db:5435/postgres
     depends_on:
