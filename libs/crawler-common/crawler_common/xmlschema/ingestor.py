@@ -59,6 +59,30 @@ def _clean_text(value: str | None) -> str | None:
     return cleaned if cleaned else None
 
 
+def _xml_node_to_json(element: ET.Element) -> Any:
+    attribs = dict(element.attrib)
+    text = _clean_text(element.text)
+    children = list(element)
+
+    if not children and not attribs:
+        return text
+
+    res: dict[str, Any] = dict(attribs)
+    if text:
+        res["value"] = text
+
+    if children:
+        child_groups: dict[str, list[Any]] = defaultdict(list)
+        for child in children:
+            tag = _local_name(child.tag)
+            child_groups[tag].append(_xml_node_to_json(child))
+
+        for tag, items in child_groups.items():
+            res[tag] = items[0] if len(items) == 1 else items
+
+    return res
+
+
 def _coerce_value(value: Any, sql_type: Any) -> Any:
     if value is None or not isinstance(value, str):
         return value
@@ -486,8 +510,31 @@ def stream_xml_to_database(
                     continue
 
                 parent_frame = current_parent()
-                if parent_frame is None or parent_frame.definition is None:
-                    f = _Frame(definition=None, parent=parent_frame, element=element)
+                if parent_frame is None or parent_frame.is_inside_jsonb or parent_frame.definition is None:
+                    if parent_frame is not None and parent_frame.is_inside_jsonb:
+                        f = _Frame(
+                            definition=None,
+                            parent=parent_frame,
+                            is_inside_jsonb=True,
+                            element=element,
+                        )
+                    else:
+                        f = _Frame(definition=None, parent=parent_frame, element=element)
+                    if deduplicate_by_hash:
+                        _init_frame_hash(f, element, local_name)
+                    frame_stack.append(f)
+                    continue
+
+                jsonb_column = parent_frame.definition.jsonb_children.get(local_name)
+                if jsonb_column is not None:
+                    f = _Frame(
+                        definition=None,
+                        parent=parent_frame,
+                        jsonb_column_name=jsonb_column.column_name,
+                        is_jsonb_root=True,
+                        is_inside_jsonb=True,
+                        element=element,
+                    )
                     if deduplicate_by_hash:
                         _init_frame_hash(f, element, local_name)
                     frame_stack.append(f)
@@ -535,6 +582,19 @@ def stream_xml_to_database(
 
                 if frame.parent is not None and frame.parent.definition is not None:
                     frame.parent.hash_tokens.extend(frame.hash_tokens)
+
+            if frame.is_inside_jsonb:
+                if frame.is_jsonb_root:
+                    payload = _xml_node_to_json(element)
+                    if (
+                        frame.parent is not None
+                        and frame.jsonb_column_name is not None
+                        and not frame.parent.skipped
+                    ):
+                        frame.parent.pending_values[frame.jsonb_column_name] = payload
+                        _sync_frame_values(frame.parent)
+                    element.clear()
+                continue
 
             if frame.definition is None or frame.skipped:
                 if (
