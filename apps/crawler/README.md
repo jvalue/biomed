@@ -1,10 +1,11 @@
 # Crawler Apps
 
-Two Python crawler applications that share the `crawler-common` library:
-- **crawler_general** - FTP-focused demo crawler for biomedical data sources
-- **crawler_dummy** - Minimal skeleton for experiments
+Python crawler and downloader applications that share the `crawler-common` library:
+- **crawler_general** - Streaming FTP crawler for biomedical data sources with change detection and queue publishing
+- **downloader_general** - RabbitMQ consumer that downloads queued files to local disk or S3
+- **crawler_dummy** - Minimal skeleton for experiments and management backend integration
 
-Both apps use shared FTP helpers and configuration from `libs/crawler-common`.
+All apps share helpers, database models, and configuration utilities from `libs/crawler-common`.
 
 ## Biomedical Data Sources
 
@@ -23,10 +24,21 @@ uv sync
 
 This creates a shared `.venv/` at the workspace root containing:
 - `crawler-common` (shared library from `libs/crawler-common`)
-- `crawler_general` and `crawler_dummy` (crawler apps)
+- `crawler_general`, `downloader_general`, and `crawler_dummy` (crawler apps)
 - All Python dependencies for the projects
 
 For details on shared FTP helpers and configuration, see [libs/crawler-common/README.md](../../libs/crawler-common/README.md).
+
+## Architecture & Modules (`crawler_general`)
+
+`crawler_general` is organized into single-responsibility modules under `apps/crawler/crawler_general/src/`:
+
+- **`config.py`**: Typed runtime configuration ([`CrawlerConfig`](file:///home/dirk/Sources/biomed/apps/crawler/crawler_general/src/config.py)), environment loading from `.env`, and database prefix derivation ([`derive_crawl_db_name`](file:///home/dirk/Sources/biomed/apps/crawler/crawler_general/src/config.py)).
+- **`urls.py`**: Pure URL normalization ([`build_download_url`](file:///home/dirk/Sources/biomed/apps/crawler/crawler_general/src/urls.py)) avoiding root path duplication across deep FTP hierarchies.
+- **`diff.py`**: Delta detection ([`entry_has_changed`](file:///home/dirk/Sources/biomed/apps/crawler/crawler_general/src/diff.py)) handling file size, node type, and timestamp jitter tolerance, plus historical querying ([`get_latest_entries_by_path`](file:///home/dirk/Sources/biomed/apps/crawler/crawler_general/src/diff.py)).
+- **`publisher.py`**: Batch persistence to the database and RabbitMQ message dispatching ([`flush_discovery_batch`](file:///home/dirk/Sources/biomed/apps/crawler/crawler_general/src/publisher.py)).
+- **`crawler.py`**: Discovery run lifecycle management and streaming traversal orchestration ([`crawl_ftp`](file:///home/dirk/Sources/biomed/apps/crawler/crawler_general/src/crawler.py)).
+- **`main.py`**: CLI entrypoint and backward-compatibility export layer.
 
 ## Run Locally
 
@@ -41,13 +53,14 @@ uv run apps/crawler/crawler_dummy/src/main.py
 uv run apps/crawler/downloader_general/src/main.py
 ```
 
-The `crawler_general` app loads credentials from `apps/crawler/crawler_general/.env` and lists root folders from the configured FTP server.
+The `crawler_general` app loads credentials from `apps/crawler/crawler_general/.env` (template at `apps/crawler/crawler_general/.env.example`) and crawls the configured FTP server up to `FTP_MAX_DEPTH`.
+
+Discovered file download URLs are published into RabbitMQ (`RABBITMQ_QUEUE`), where `downloader_general` consumes them and downloads the files locally or to S3. Optionally, set `CRAWL_DB_NAME` to specify an explicit database prefix for downstream downloaders.
 
 For `downloader_general`, copy `apps/crawler/downloader_general/.env.example` to `apps/crawler/downloader_general/.env` for local RabbitMQ consumer settings.
 
 Set `DOWNLOAD_DEBUG_MAX_FILES_PER_FOLDER` to a positive integer to make the downloader skip files after it has processed that many items from the same folder path. This is useful when you want a representative sample without pulling an entire directory tree.
 
-`crawler_general` publishes discovered file download URLs into RabbitMQ (`RABBITMQ_QUEUE`), and `downloader_general` consumes that queue and downloads the files locally.
 For `crawler_dummy`, create `apps/crawler/crawler_dummy/.env.docker` (you can copy `.env.docker.example`) with:
 
 ```bash

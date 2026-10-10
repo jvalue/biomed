@@ -4,7 +4,6 @@ from __future__ import annotations
 
 import strawberry
 
-
 # ---------------------------------------------------------------------------
 # PostgreSQL domain types
 # ---------------------------------------------------------------------------
@@ -82,7 +81,9 @@ class ViewQueryResult:
     rows: list[ViewRow]
 
 
-@strawberry.type(description="UniProt protein entry summary from mv_uniprot_entry_overview.")
+@strawberry.type(
+    description="UniProt protein entry summary from mv_uniprot_entry_overview."
+)
 class UniprotEntry:
     primary_accession: str
     entry_id: int | None = None
@@ -121,7 +122,9 @@ class BioProjectEntry:
     extra_fields: strawberry.scalars.JSON | None = None
 
 
-@strawberry.type(description="BioProject publication reference from mv_bioproject_publications.")
+@strawberry.type(
+    description="BioProject publication reference from mv_bioproject_publications."
+)
 class BioProjectPublication:
     accession: str
     pubmed_id: str | None = None
@@ -133,7 +136,9 @@ class BioProjectPublication:
     authors: str | None = None
 
 
-@strawberry.type(description="UniProt external database cross-reference from mv_uniprot_cross_references.")
+@strawberry.type(
+    description="UniProt external database cross-reference from mv_uniprot_cross_references."
+)
 class UniprotCrossReference:
     database_type: str
     database_id: str

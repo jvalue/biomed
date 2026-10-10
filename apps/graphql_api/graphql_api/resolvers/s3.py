@@ -8,8 +8,10 @@ from graphql_api.schema.types import (
     S3ObjectContent,
     S3ObjectMetadata,
 )
-from s3_mcp.server import S3BucketService, S3McpSettings
-
+from graphql_api.services.s3 import (
+    S3BucketService,
+    load_settings,
+)
 
 # ---------------------------------------------------------------------------
 # Service factory (lazy singleton)
@@ -22,8 +24,6 @@ def _get_service() -> S3BucketService:
     """Return a shared S3BucketService instance, created on first call."""
     global _service
     if _service is None:
-        from s3_mcp.server import load_settings
-
         settings = load_settings()
         _service = S3BucketService(settings)
     return _service

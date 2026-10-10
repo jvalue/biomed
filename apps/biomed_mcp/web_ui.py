@@ -24,11 +24,11 @@ GRAPHQL_URL = os.getenv("GRAPHQL_API_URL", "http://localhost:8003/graphql")
 PORT = int(os.getenv("WEB_UI_PORT", "5050"))
 
 # Default to remote cluster GraphQL endpoint if port-forwarded
-os.environ["GRAPHQL_API_URL"] = os.getenv("GRAPHQL_API_URL", "http://localhost:8003/graphql")
+os.environ["GRAPHQL_API_URL"] = os.getenv(
+    "GRAPHQL_API_URL", "http://localhost:8003/graphql"
+)
 
 sys.path.insert(0, str(APP_DIR.parent / "graphql_api"))
-sys.path.insert(0, str(APP_DIR.parent / "postgres_mcp"))
-sys.path.insert(0, str(APP_DIR.parent / "s3_mcp"))
 sys.path.insert(0, str(APP_DIR))
 
 from biomed_mcp.server import (  # noqa: E402
@@ -56,7 +56,9 @@ def _execute_gql(query: str, variables: dict[str, Any] | None = None) -> dict[st
     try:
         req = Request(
             GRAPHQL_URL,
-            data=json.dumps({"query": query, "variables": variables or {}}).encode("utf-8"),
+            data=json.dumps({"query": query, "variables": variables or {}}).encode(
+                "utf-8"
+            ),
             headers={"Content-Type": "application/json"},
         )
         with urlopen(req, timeout=30) as resp:
@@ -76,7 +78,8 @@ def _execute_gql(query: str, variables: dict[str, Any] | None = None) -> dict[st
                 raise RuntimeError(f"In-process GraphQL error: {messages}")
             return result.data
         except Exception:
-            raise http_exc
+            raise http_exc from None
+
 
 TOOLS_SCHEMA = [
     {
@@ -99,7 +102,10 @@ TOOLS_SCHEMA = [
                         "type": "string",
                         "description": "NCBI Taxonomy ID (e.g. '561445', '9606')",
                     },
-                    "limit": {"type": "integer", "description": "Max entries to return (default: 50)"},
+                    "limit": {
+                        "type": "integer",
+                        "description": "Max entries to return (default: 50)",
+                    },
                 },
             },
         },
@@ -124,7 +130,10 @@ TOOLS_SCHEMA = [
                         "type": "string",
                         "description": "NCBI Taxonomy ID",
                     },
-                    "limit": {"type": "integer", "description": "Max projects to return (default: 50)"},
+                    "limit": {
+                        "type": "integer",
+                        "description": "Max projects to return (default: 50)",
+                    },
                 },
             },
         },
@@ -267,9 +276,18 @@ TOOLS_SCHEMA = [
             "parameters": {
                 "type": "object",
                 "properties": {
-                    "prefix": {"type": "string", "description": "S3 prefix/folder path"},
-                    "delimiter": {"type": "string", "description": "Delimiter (default '/')"},
-                    "max_keys": {"type": "integer", "description": "Max objects to list"},
+                    "prefix": {
+                        "type": "string",
+                        "description": "S3 prefix/folder path",
+                    },
+                    "delimiter": {
+                        "type": "string",
+                        "description": "Delimiter (default '/')",
+                    },
+                    "max_keys": {
+                        "type": "integer",
+                        "description": "Max objects to list",
+                    },
                 },
             },
         },
@@ -307,20 +325,22 @@ TOOLS_SCHEMA = [
 
 async def _call_mcp_tool_sse(name: str, args: dict[str, Any]) -> dict[str, Any]:
     """Invoke tool on remote FastMCP server over Server-Sent Events (SSE)."""
-    async with sse_client(MCP_SERVER_URL) as (read, write):
-        async with ClientSession(read, write) as session:
-            await session.initialize()
-            result = await session.call_tool(name, arguments=args)
-            if getattr(result, "isError", False):
-                err_text = "; ".join(c.text for c in result.content if hasattr(c, "text"))
-                raise RuntimeError(err_text or f"Tool call failed for {name}")
-            for c in result.content:
-                if hasattr(c, "text"):
-                    try:
-                        return json.loads(c.text)
-                    except Exception:
-                        return {"result": c.text}
-            return {"content": [getattr(c, "text", str(c)) for c in result.content]}
+    async with (
+        sse_client(MCP_SERVER_URL) as (read, write),
+        ClientSession(read, write) as session,
+    ):
+        await session.initialize()
+        result = await session.call_tool(name, arguments=args)
+        if getattr(result, "isError", False):
+            err_text = "; ".join(c.text for c in result.content if hasattr(c, "text"))
+            raise RuntimeError(err_text or f"Tool call failed for {name}")
+        for c in result.content:
+            if hasattr(c, "text"):
+                try:
+                    return json.loads(c.text)
+                except Exception:
+                    return {"result": c.text}
+        return {"content": [getattr(c, "text", str(c)) for c in result.content]}
 
 
 def _local_tool_dispatch(name: str, args: dict) -> dict:
@@ -386,7 +406,9 @@ def handle_tool_call(name: str, args: dict) -> dict:
         try:
             return asyncio.run(_call_mcp_tool_sse(name, args))
         except Exception as sse_exc:
-            print(f"⚠️ SSE MCP call to {MCP_SERVER_URL} failed ({sse_exc}); using local/GraphQL fallback.")
+            print(
+                f"⚠️ SSE MCP call to {MCP_SERVER_URL} failed ({sse_exc}); using local/GraphQL fallback."
+            )
     try:
         return _local_tool_dispatch(name, args)
     except Exception as exc:
@@ -950,10 +972,10 @@ class WebUIHandler(BaseHTTPRequestHandler):
 
 def run():
     server = HTTPServer(("127.0.0.1", PORT), WebUIHandler)
+    print(f"\n🚀 Biomed Unified MCP Web Inspector running at: http://127.0.0.1:{PORT}")
     print(
-        f"\n🚀 Biomed Unified MCP Web Inspector running at: http://127.0.0.1:{PORT}"
+        "Supports: UniProt, BioProject, S3/MinIO, and PostgreSQL Materialized Views\n"
     )
-    print("Supports: UniProt, BioProject, S3/MinIO, and PostgreSQL Materialized Views\n")
     try:
         server.serve_forever()
     except KeyboardInterrupt:

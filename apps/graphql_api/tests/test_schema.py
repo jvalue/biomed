@@ -8,8 +8,7 @@ from sqlalchemy import Column, Integer, MetaData, String, Table, create_engine
 from graphql_api.resolvers import postgres as pg_resolvers
 from graphql_api.resolvers import s3 as s3_resolvers
 from graphql_api.schema.query import schema
-from postgres_mcp.server import PostgresMcpSettings, PostgresService
-
+from graphql_api.services.postgres import PostgresMcpSettings, PostgresService
 
 # ---------------------------------------------------------------------------
 # Fixtures: in-memory PostgreSQL service (SQLite)
@@ -231,7 +230,9 @@ class TestViewsQuery:
             )
 
     def test_list_views(self):
-        data = _execute('{ views(schemaName: "main") { viewName columnCount columns } }')
+        data = _execute(
+            '{ views(schemaName: "main") { viewName columnCount columns } }'
+        )
         views = data["views"]
         assert len(views) >= 1
         view_names = [v["viewName"] for v in views]
@@ -257,6 +258,8 @@ class TestExecuteQuery:
         )
         result = data["executeQuery"]
         assert result["count"] == 1
+
+
 class TestDomainQueries:
     def test_uniprot_entries_query(self):
         data = _execute(

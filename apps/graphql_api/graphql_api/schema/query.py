@@ -45,9 +45,7 @@ class Query:
         return resolve_tables(schema_name=schema_name)
 
     @strawberry.field(description="Detailed schema description for a single table.")
-    def table_detail(
-        self, table_name: str, schema_name: str = "public"
-    ) -> TableDetail:
+    def table_detail(self, table_name: str, schema_name: str = "public") -> TableDetail:
         return resolve_table_detail(table_name, schema_name=schema_name)
 
     @strawberry.field(description="List all views in a database schema.")
@@ -126,9 +124,7 @@ class Query:
 
     # ----- PostgreSQL: raw SQL ------------------------------------------------
 
-    @strawberry.field(
-        description="Execute a read-only SQL query against the database."
-    )
+    @strawberry.field(description="Execute a read-only SQL query against the database.")
     def execute_query(
         self,
         sql: str,
@@ -145,9 +141,7 @@ class Query:
         delimiter: str = "/",
         max_keys: int = 100,
     ) -> S3ListResult:
-        return resolve_s3_objects(
-            prefix=prefix, delimiter=delimiter, max_keys=max_keys
-        )
+        return resolve_s3_objects(prefix=prefix, delimiter=delimiter, max_keys=max_keys)
 
     @strawberry.field(description="Get metadata for a single S3 object.")
     def s3_object_metadata(self, key: str) -> S3ObjectMetadata:

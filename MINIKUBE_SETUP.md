@@ -119,6 +119,9 @@ kubectl -n management port-forward svc/management-frontend 4201:80 &
 
 # MinIO (if you need to access MinIO from host for mc or browser)
 kubectl -n minio port-forward svc/minio 9000:9000 &
+
+# GraphQL API on localhost:8003 (interactive GraphiQL at http://localhost:8003/graphql)
+kubectl -n management port-forward svc/graphql-api 8003:8003 &
 ```
 
 - Notes:
@@ -175,6 +178,17 @@ minikube image load management-backend:local
 # update deployment image or restart to pick up new image
 kubectl -n management set image deployment/management-backend management-backend=management-backend:local --record || kubectl -n management rollout restart deployment/management-backend
 kubectl -n management rollout status deployment/management-backend
+```
+
+ - GraphQL API (build image and restart)
+
+```bash
+# from repo root
+docker build -t biomed-graphql-api:local -f apps/graphql_api/Dockerfile .
+minikube image load biomed-graphql-api:local
+
+kubectl -n management rollout restart deployment/graphql-api
+kubectl -n management rollout status deployment/graphql-api
 ```
 
  - Crawler image and WorkflowTemplate
