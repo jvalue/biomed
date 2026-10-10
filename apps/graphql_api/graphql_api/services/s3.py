@@ -10,7 +10,6 @@ from urllib.parse import quote, unquote
 from botocore.exceptions import BotoCoreError, ClientError, EndpointConnectionError
 from crawler_common.s3.client import create_s3_client
 from dotenv import load_dotenv
-from mcp.server.fastmcp import FastMCP
 
 DEFAULT_ENDPOINT_URL = "http://localhost:9000"
 DEFAULT_BUCKET_NAME = "biomed-data"
@@ -47,8 +46,9 @@ class S3BucketObject:
     resource_uri: str
 
 
-APP_DIR = Path(__file__).resolve().parents[1]
+APP_DIR = Path(__file__).resolve().parents[2]
 load_dotenv(APP_DIR / ".env")
+load_dotenv(APP_DIR.parent.parent / ".env")
 
 
 def _env_int(name: str, default: int) -> int:
@@ -251,42 +251,3 @@ class S3BucketService:
 
 settings = load_settings()
 service = S3BucketService(settings)
-mcp = FastMCP("Biomed S3 Browser", json_response=True)
-
-
-@mcp.resource("s3://bucket")
-def bucket_root() -> dict[str, object]:
-    return service.list_objects(prefix="")
-
-
-@mcp.tool()
-def list_bucket(
-    prefix: str = "",
-    delimiter: str = "/",
-    max_keys: int | None = None,
-) -> dict[str, object]:
-    """List bucket contents by prefix."""
-    return service.list_objects(prefix=prefix, delimiter=delimiter, max_keys=max_keys)
-
-
-@mcp.tool()
-def get_object_metadata(key: str) -> dict[str, object]:
-    """Get metadata for a single object."""
-    return service.get_object_metadata(key)
-
-
-@mcp.tool(structured_output=False)
-def read_object(key: str) -> str | bytes:
-    """Read a single object from the configured bucket."""
-    return service.read_object(key)
-
-
-def run() -> None:
-    transport = os.getenv("MCP_TRANSPORT", "stdio")
-    port_val = int(os.getenv("FASTMCP_PORT") or os.getenv("PORT") or "8000")
-    host_val = os.getenv("FASTMCP_HOST") or os.getenv("HOST") or "127.0.0.1"
-
-    mcp.settings.port = port_val
-    mcp.settings.host = host_val
-
-    mcp.run(transport=transport)

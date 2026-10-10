@@ -15,16 +15,18 @@ from typing import Any
 from urllib.request import Request, urlopen
 
 from dotenv import load_dotenv
-from mcp.server.fastmcp import FastMCP
 
 # Import the Strawberry schema so we can execute queries in-process as fallback.
 from graphql_api.schema.query import schema as graphql_schema
+from mcp.server.fastmcp import FastMCP
 
 APP_DIR = Path(__file__).resolve().parents[1]
 load_dotenv(APP_DIR / ".env")
 
+
 def _get_graphql_url() -> str:
     return os.getenv("GRAPHQL_API_URL", "")
+
 
 mcp = FastMCP("Biomed Unified MCP", json_response=True)
 
@@ -44,13 +46,17 @@ def _gql(query: str, variables: dict[str, Any] | None = None) -> dict[str, Any]:
         try:
             req = Request(
                 gql_url,
-                data=json.dumps({"query": query, "variables": variables or {}}).encode("utf-8"),
+                data=json.dumps({"query": query, "variables": variables or {}}).encode(
+                    "utf-8"
+                ),
                 headers={"Content-Type": "application/json"},
             )
             with urlopen(req, timeout=30) as resp:
                 data = json.loads(resp.read().decode("utf-8"))
                 if data.get("errors"):
-                    messages = "; ".join(str(e.get("message", e)) for e in data["errors"])
+                    messages = "; ".join(
+                        str(e.get("message", e)) for e in data["errors"]
+                    )
                     raise RuntimeError(f"GraphQL error: {messages}")
                 return data["data"]
         except Exception as exc:
@@ -106,9 +112,7 @@ def list_tables(schema_name: str = "public") -> dict[str, object]:
 
 
 @mcp.tool()
-def describe_table(
-    table_name: str, schema_name: str = "public"
-) -> dict[str, object]:
+def describe_table(table_name: str, schema_name: str = "public") -> dict[str, object]:
     """Get detailed schema metadata for a table (columns, keys, indexes)."""
     data = _gql(
         """
@@ -241,7 +245,10 @@ def search_bioproject(
         """,
         {"query": query, "accession": accession, "taxid": taxid, "limit": limit},
     )
-    return {"count": len(data["bioprojectEntries"]), "projects": data["bioprojectEntries"]}
+    return {
+        "count": len(data["bioprojectEntries"]),
+        "projects": data["bioprojectEntries"],
+    }
 
 
 @mcp.tool()
@@ -268,7 +275,10 @@ def get_bioproject_publications(
         """,
         {"accession": accession, "pubmedId": pubmed_id, "limit": limit},
     )
-    return {"count": len(data["bioprojectPublications"]), "publications": data["bioprojectPublications"]}
+    return {
+        "count": len(data["bioprojectPublications"]),
+        "publications": data["bioprojectPublications"],
+    }
 
 
 @mcp.tool()
@@ -291,7 +301,10 @@ def get_uniprot_cross_references(
         """,
         {"accession": accession, "databaseType": database_type, "limit": limit},
     )
-    return {"count": len(data["uniprotCrossReferences"]), "crossReferences": data["uniprotCrossReferences"]}
+    return {
+        "count": len(data["uniprotCrossReferences"]),
+        "crossReferences": data["uniprotCrossReferences"],
+    }
 
 
 @mcp.tool()

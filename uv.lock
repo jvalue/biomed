@@ -1,5 +1,5 @@
 version = 1
-revision = 3
+revision = 5
 requires-python = ">=3.13"
 resolution-markers = [
     "python_full_version >= '3.14'",
@@ -12,8 +12,6 @@ members = [
     "crawler",
     "crawler-common",
     "graphql-api",
-    "postgres-mcp",
-    "s3-mcp",
     "xml-ingestor",
 ]
 
@@ -817,47 +815,6 @@ wheels = [
 ]
 
 [[package]]
-name = "postgres-mcp"
-version = "0.1.0"
-source = { editable = "apps/postgres_mcp" }
-dependencies = [
-    { name = "crawler-common" },
-    { name = "mcp", extra = ["cli"] },
-    { name = "psycopg2-binary" },
-    { name = "python-dotenv" },
-    { name = "sqlalchemy" },
-]
-
-[package.dev-dependencies]
-dev = [
-    { name = "autopep8" },
-    { name = "pytest" },
-    { name = "pytest-cov" },
-    { name = "pytest-html" },
-    { name = "pytest-sugar" },
-    { name = "ruff" },
-]
-
-[package.metadata]
-requires-dist = [
-    { name = "crawler-common", editable = "libs/crawler-common" },
-    { name = "mcp", extras = ["cli"], specifier = ">=1.0.0,<2" },
-    { name = "psycopg2-binary", specifier = ">=2.9.9" },
-    { name = "python-dotenv", specifier = ">=1.0.0" },
-    { name = "sqlalchemy", specifier = ">=2.0.10" },
-]
-
-[package.metadata.requires-dev]
-dev = [
-    { name = "autopep8", specifier = ">=2.3.1" },
-    { name = "pytest", specifier = ">=8.3.4" },
-    { name = "pytest-cov", specifier = ">=6.0.0" },
-    { name = "pytest-html", specifier = ">=4.1.1" },
-    { name = "pytest-sugar", specifier = ">=1.0.0" },
-    { name = "ruff", specifier = ">=0.8.2" },
-]
-
-[[package]]
 name = "psycopg2-binary"
 version = "2.9.12"
 source = { registry = "https://pypi.org/simple" }
@@ -1270,43 +1227,6 @@ wheels = [
     { url = "https://files.pythonhosted.org/packages/aa/28/0c6dd865859c6d17bc8ccc34cb72b0e02d6c7eb25e8a1e22b5bea681e2c0/ruff-0.16.4-py3-none-win32.whl", hash = "sha256:312769988007aaeb8e189b443ccdd03c0e6374489e053467be6d96518ebff76e", size = 10021687, upload-time = "2026-08-20T17:43:52.281Z" },
     { url = "https://files.pythonhosted.org/packages/a3/03/e724450f621698117f9aa6dd241c94d0274ae96781378dc86745ae29f0e7/ruff-0.16.4-py3-none-win_amd64.whl", hash = "sha256:05d9d27a18c4bcbefada602480ec9e01e0bc949d432e0ced5df77edac195919c", size = 10567657, upload-time = "2026-08-20T17:43:54.78Z" },
     { url = "https://files.pythonhosted.org/packages/0e/fe/da8b9e1347696bb22120b77280ec5ce25d500ca5cb39d5ad6e5c18de19c1/ruff-0.16.4-py3-none-win_arm64.whl", hash = "sha256:a3a61621c9b6f6a89573e938a080e648f1695baa3f58570a3a707bc51ff65a21", size = 10451579, upload-time = "2026-08-20T17:43:57.135Z" },
-]
-
-[[package]]
-name = "s3-mcp"
-version = "0.1.0"
-source = { editable = "apps/s3_mcp" }
-dependencies = [
-    { name = "crawler-common" },
-    { name = "mcp" },
-    { name = "python-dotenv" },
-]
-
-[package.dev-dependencies]
-dev = [
-    { name = "autopep8" },
-    { name = "pytest" },
-    { name = "pytest-cov" },
-    { name = "pytest-html" },
-    { name = "pytest-sugar" },
-    { name = "ruff" },
-]
-
-[package.metadata]
-requires-dist = [
-    { name = "crawler-common", editable = "libs/crawler-common" },
-    { name = "mcp", specifier = ">=1.0.0,<2" },
-    { name = "python-dotenv", specifier = ">=1.0.0" },
-]
-
-[package.metadata.requires-dev]
-dev = [
-    { name = "autopep8", specifier = ">=2.3.1" },
-    { name = "pytest", specifier = ">=8.3.4" },
-    { name = "pytest-cov", specifier = ">=6.0.0" },
-    { name = "pytest-html", specifier = ">=4.1.1" },
-    { name = "pytest-sugar", specifier = ">=1.0.0" },
-    { name = "ruff", specifier = ">=0.8.2" },
 ]
 
 [[package]]

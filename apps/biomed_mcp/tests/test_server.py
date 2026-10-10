@@ -7,11 +7,10 @@ schema by injecting the same test services used in the graphql_api tests.
 from __future__ import annotations
 
 import pytest
-from sqlalchemy import Column, Integer, MetaData, String, Table, create_engine
-
 from graphql_api.resolvers import postgres as pg_resolvers
 from graphql_api.resolvers import s3 as s3_resolvers
-from postgres_mcp.server import PostgresMcpSettings, PostgresService
+from graphql_api.services.postgres import PostgresMcpSettings, PostgresService
+from sqlalchemy import Column, Integer, MetaData, String, Table, create_engine
 
 from biomed_mcp.server import (
     describe_table,
@@ -27,7 +26,6 @@ from biomed_mcp.server import (
     search_bioproject,
     search_uniprot,
 )
-
 
 # ---------------------------------------------------------------------------
 # Test database setup (mirrors graphql_api tests)
@@ -269,9 +267,7 @@ class TestPostgresTools:
             sql="SELECT title FROM pm_articles WHERE id = 1", limit=10
         )
         assert result["count"] == 1
-        assert (
-            result["rows"][0]["data"]["title"] == "Genome Sequencing in Biomedicine"
-        )
+        assert result["rows"][0]["data"]["title"] == "Genome Sequencing in Biomedicine"
 
     def test_search_uniprot(self):
         result = search_uniprot(query="swine")

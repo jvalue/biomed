@@ -1,5 +1,4 @@
-from __future__ import annotations
-
+import contextlib
 import os
 from dataclasses import dataclass
 from datetime import date, datetime
@@ -9,7 +8,6 @@ from typing import Any
 from uuid import UUID
 
 from dotenv import load_dotenv
-from mcp.server.fastmcp import FastMCP
 from sqlalchemy import Engine, create_engine, inspect, text
 from sqlalchemy.engine import URL
 
@@ -27,8 +25,9 @@ class PostgresMcpSettings:
     read_only: bool
 
 
-APP_DIR = Path(__file__).resolve().parents[1]
+APP_DIR = Path(__file__).resolve().parents[2]
 load_dotenv(APP_DIR / ".env")
+load_dotenv(APP_DIR.parent.parent / ".env")
 
 
 def _env_int(name: str, default: int) -> int:
@@ -161,10 +160,8 @@ class PostgresService:
 
         view_names = set(inspector.get_view_names(schema=schema))
         if hasattr(inspector, "get_materialized_view_names"):
-            try:
+            with contextlib.suppress(Exception):
                 view_names.update(inspector.get_materialized_view_names(schema=schema))
-            except Exception:
-                pass
 
         views_info = []
 
@@ -201,10 +198,8 @@ class PostgresService:
 
         all_views = set(inspector.get_view_names(schema=schema))
         if hasattr(inspector, "get_materialized_view_names"):
-            try:
+            with contextlib.suppress(Exception):
                 all_views.update(inspector.get_materialized_view_names(schema=schema))
-            except Exception:
-                pass
 
         if view_name not in all_views and not inspector.has_table(
             view_name, schema=schema
@@ -250,14 +245,18 @@ class PostgresService:
         is_postgres = self._engine.dialect.name == "postgresql"
         like_op = "ILIKE" if is_postgres else "LIKE"
 
-        target_schema = "uniprot" if "uniprot" in inspector.get_schema_names() else self._settings.default_schema
+        target_schema = (
+            "uniprot"
+            if "uniprot" in inspector.get_schema_names()
+            else self._settings.default_schema
+        )
         view_name = "mv_uniprot_entry_overview"
         all_views = set(inspector.get_view_names(schema=target_schema))
         if hasattr(inspector, "get_materialized_view_names"):
-            try:
-                all_views.update(inspector.get_materialized_view_names(schema=target_schema))
-            except Exception:
-                pass
+            with contextlib.suppress(Exception):
+                all_views.update(
+                    inspector.get_materialized_view_names(schema=target_schema)
+                )
 
         if view_name not in all_views and "v_uniprot_entry_summary" in all_views:
             view_name = "v_uniprot_entry_summary"
@@ -313,7 +312,11 @@ class PostgresService:
         is_postgres = self._engine.dialect.name == "postgresql"
         like_op = "ILIKE" if is_postgres else "LIKE"
 
-        target_schema = "bioproject" if "bioproject" in inspector.get_schema_names() else self._settings.default_schema
+        target_schema = (
+            "bioproject"
+            if "bioproject" in inspector.get_schema_names()
+            else self._settings.default_schema
+        )
         view_name = "mv_bioproject_overview"
 
         clauses: list[str] = []
@@ -363,7 +366,11 @@ class PostgresService:
         effective_limit = self._coerce_limit(limit)
         inspector = inspect(self._engine)
 
-        target_schema = "bioproject" if "bioproject" in inspector.get_schema_names() else self._settings.default_schema
+        target_schema = (
+            "bioproject"
+            if "bioproject" in inspector.get_schema_names()
+            else self._settings.default_schema
+        )
         clauses: list[str] = []
         params: dict[str, Any] = {"limit": effective_limit}
 
@@ -405,7 +412,11 @@ class PostgresService:
         is_postgres = self._engine.dialect.name == "postgresql"
         like_op = "ILIKE" if is_postgres else "LIKE"
 
-        target_schema = "uniprot" if "uniprot" in inspector.get_schema_names() else self._settings.default_schema
+        target_schema = (
+            "uniprot"
+            if "uniprot" in inspector.get_schema_names()
+            else self._settings.default_schema
+        )
         clauses: list[str] = []
         params: dict[str, Any] = {"limit": effective_limit}
 
@@ -607,102 +618,3 @@ class PostgresService:
 
 settings = load_settings()
 service = PostgresService(settings)
-mcp = FastMCP("Biomed Postgres Browser", json_response=True)
-
-
-@mcp.resource("postgres://tables")
-def postgres_tables_root() -> dict[str, object]:
-    """Summary list of all ingested database tables."""
-    return service.list_tables()
-
-
-@mcp.resource("postgres://views")
-def postgres_views_root() -> dict[str, object]:
-    """Summary list of all database views (including UniProt entry views)."""
-    return service.list_views()
-
-
-@mcp.resource("postgres://table/{table_name}")
-def postgres_table_schema(table_name: str) -> dict[str, object]:
-    """Detailed schema description for a single table."""
-    return service.describe_table(table_name)
-
-
-@mcp.resource("postgres://view/{view_name}")
-def postgres_view_query(view_name: str) -> dict[str, object]:
-    """Query rows from a specific database view."""
-    return service.query_view(view_name)
-
-
-@mcp.tool()
-def list_tables(schema_name: str = "public") -> dict[str, object]:
-    """List tables in the database along with column and row counts."""
-    return service.list_tables(schema_name=schema_name)
-
-
-@mcp.tool()
-def list_views(schema_name: str = "public") -> dict[str, object]:
-    """List all views in the PostgreSQL database."""
-    return service.list_views(schema_name=schema_name)
-
-
-@mcp.tool()
-def describe_table(table_name: str, schema_name: str = "public") -> dict[str, object]:
-    """Get table metadata (columns, primary keys, foreign keys, indexes)."""
-    return service.describe_table(table_name, schema_name=schema_name)
-
-
-@mcp.tool()
-def read_table(
-    table_name: str,
-    schema_name: str = "public",
-    limit: int = 100,
-    offset: int = 0,
-) -> dict[str, object]:
-    """Read rows from a table with pagination."""
-    return service.read_table(
-        table_name, schema_name=schema_name, limit=limit, offset=offset
-    )
-
-
-@mcp.tool()
-def query_view(
-    view_name: str,
-    schema_name: str = "public",
-    limit: int = 100,
-    offset: int = 0,
-) -> dict[str, object]:
-    """Query rows from any database view."""
-    return service.query_view(
-        view_name, schema_name=schema_name, limit=limit, offset=offset
-    )
-
-
-@mcp.tool()
-def get_uniprot_summary(
-    query: str | None = None,
-    limit: int = 50,
-) -> dict[str, object]:
-    """Query UniProt protein entry summaries from v_uniprot_entry_summary."""
-    return service.get_uniprot_summary(query=query, limit=limit)
-
-
-@mcp.tool()
-def execute_query(
-    sql: str,
-    params: dict[str, Any] | None = None,
-    limit: int = 100,
-) -> dict[str, object]:
-    """Execute a read-only SQL query on the PostgreSQL database."""
-    return service.execute_query(sql, params=params, limit=limit)
-
-
-def run() -> None:
-    transport = os.getenv("MCP_TRANSPORT", "stdio")
-    port_val = int(os.getenv("FASTMCP_PORT") or os.getenv("PORT") or "8002")
-    host_val = os.getenv("FASTMCP_HOST") or os.getenv("HOST") or "127.0.0.1"
-
-    mcp.settings.port = port_val
-    mcp.settings.host = host_val
-
-    mcp.run(transport=transport)
