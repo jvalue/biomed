@@ -126,14 +126,18 @@ CREATE INDEX IF NOT EXISTS idx_mv_uniprot_acc_accession
 CREATE MATERIALIZED VIEW IF NOT EXISTS mv_uniprot_cross_references AS
 SELECT
     db.uniprot_entry_id AS entry_id,
+    e.primary_accession,
     db.type AS database_type,
     db.id_value AS database_id,
     db.id AS dbreference_id
 FROM uniprot_entry_dbreference db
+LEFT JOIN mv_uniprot_entry_overview e ON e.entry_id = db.uniprot_entry_id
 WITH DATA;
 
 CREATE INDEX IF NOT EXISTS idx_mv_uniprot_xref_entry_id 
     ON mv_uniprot_cross_references(entry_id);
+CREATE INDEX IF NOT EXISTS idx_mv_uniprot_xref_acc 
+    ON mv_uniprot_cross_references(primary_accession);
 CREATE INDEX IF NOT EXISTS idx_mv_uniprot_xref_type 
     ON mv_uniprot_cross_references(database_type);
 CREATE INDEX IF NOT EXISTS idx_mv_uniprot_xref_db_id 
@@ -151,15 +155,19 @@ CREATE INDEX IF NOT EXISTS idx_mv_uniprot_xref_type_id
 CREATE MATERIALIZED VIEW IF NOT EXISTS mv_uniprot_comments AS
 SELECT
     c.uniprot_entry_id AS entry_id,
+    e.primary_accession,
     c.type AS comment_type,
     ct.value AS comment_text,
     c.id AS comment_id
 FROM uniprot_entry_comment c
 LEFT JOIN uniprot_entry_comment_text ct ON ct.uniprot_entry_comment_id = c.id
+LEFT JOIN mv_uniprot_entry_overview e ON e.entry_id = c.uniprot_entry_id
 WITH DATA;
 
 CREATE INDEX IF NOT EXISTS idx_mv_uniprot_comment_entry_id 
     ON mv_uniprot_comments(entry_id);
+CREATE INDEX IF NOT EXISTS idx_mv_uniprot_comment_acc 
+    ON mv_uniprot_comments(primary_accession);
 CREATE INDEX IF NOT EXISTS idx_mv_uniprot_comment_type 
     ON mv_uniprot_comments(comment_type);
 
@@ -172,13 +180,17 @@ CREATE INDEX IF NOT EXISTS idx_mv_uniprot_comment_type
 CREATE MATERIALIZED VIEW IF NOT EXISTS mv_uniprot_keywords AS
 SELECT
     k.uniprot_entry_id AS entry_id,
+    e.primary_accession,
     k.value AS keyword,
     k.id AS keyword_id
 FROM uniprot_entry_keyword k
+LEFT JOIN mv_uniprot_entry_overview e ON e.entry_id = k.uniprot_entry_id
 WITH DATA;
 
 CREATE INDEX IF NOT EXISTS idx_mv_uniprot_kw_entry_id 
     ON mv_uniprot_keywords(entry_id);
+CREATE INDEX IF NOT EXISTS idx_mv_uniprot_kw_acc 
+    ON mv_uniprot_keywords(primary_accession);
 CREATE INDEX IF NOT EXISTS idx_mv_uniprot_kw_keyword 
     ON mv_uniprot_keywords(keyword);
 
@@ -191,15 +203,19 @@ CREATE INDEX IF NOT EXISTS idx_mv_uniprot_kw_keyword
 CREATE MATERIALIZED VIEW IF NOT EXISTS mv_uniprot_features AS
 SELECT
     f.uniprot_entry_id AS entry_id,
+    e.primary_accession,
     f.type AS feature_type,
     f.id_value AS feature_id,
     f.description,
     f.id AS feature_row_id
 FROM uniprot_entry_feature f
+LEFT JOIN mv_uniprot_entry_overview e ON e.entry_id = f.uniprot_entry_id
 WITH DATA;
 
 CREATE INDEX IF NOT EXISTS idx_mv_uniprot_feat_entry_id 
     ON mv_uniprot_features(entry_id);
+CREATE INDEX IF NOT EXISTS idx_mv_uniprot_feat_acc 
+    ON mv_uniprot_features(primary_accession);
 CREATE INDEX IF NOT EXISTS idx_mv_uniprot_feat_type 
     ON mv_uniprot_features(feature_type);
 CREATE INDEX IF NOT EXISTS idx_mv_uniprot_feat_id_value 

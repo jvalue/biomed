@@ -79,3 +79,5 @@ vitest.config.*.timestamp*
 progress.txt
 .github/workflows/biomed.code-workspace
 .github/copilot-instructions.md
+.github/GEMINI.md
+*.code-workspace

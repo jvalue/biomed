@@ -2,8 +2,6 @@
 
 from __future__ import annotations
 
-from typing import Any
-
 from graphql_api.schema.types import (
     BioProjectEntry,
     BioProjectPublication,
@@ -19,8 +17,10 @@ from graphql_api.schema.types import (
     ViewQueryResult,
     ViewRow,
 )
-from postgres_mcp.server import PostgresMcpSettings, PostgresService
-
+from graphql_api.services.postgres import (
+    PostgresService,
+    load_settings,
+)
 
 # ---------------------------------------------------------------------------
 # Service factory (lazy singleton)
@@ -37,8 +37,6 @@ def _get_service() -> PostgresService:
     """
     global _service
     if _service is None:
-        from postgres_mcp.server import load_settings
-
         settings = load_settings()
         _service = PostgresService(settings)
     return _service
@@ -70,9 +68,7 @@ def resolve_tables(schema_name: str = "public") -> list[TableInfo]:
     ]
 
 
-def resolve_table_detail(
-    table_name: str, schema_name: str = "public"
-) -> TableDetail:
+def resolve_table_detail(table_name: str, schema_name: str = "public") -> TableDetail:
     """Describe a single table's schema in detail."""
     result = _get_service().describe_table(table_name, schema_name=schema_name)
     return TableDetail(
@@ -192,7 +188,9 @@ def resolve_uniprot_entries(
                 version=row.get("version"),
                 created=str(row.get("created")) if row.get("created") else None,
                 modified=str(row.get("modified")) if row.get("modified") else None,
-                keywords=row.get("keywords") if isinstance(row.get("keywords"), list) else None,
+                keywords=row.get("keywords")
+                if isinstance(row.get("keywords"), list)
+                else None,
                 extra_fields=extra if extra else None,
             )
         )
@@ -234,12 +232,16 @@ def resolve_bioproject_entries(
             BioProjectEntry(
                 accession=row.get("accession", ""),
                 archive=row.get("archive"),
-                archive_project_id=str(row.get("archive_project_id")) if row.get("archive_project_id") is not None else None,
+                archive_project_id=str(row.get("archive_project_id"))
+                if row.get("archive_project_id") is not None
+                else None,
                 project_name=row.get("project_name"),
                 project_title=row.get("project_title"),
                 project_description=row.get("project_description"),
                 taxid=str(row.get("taxid")) if row.get("taxid") is not None else None,
-                species_taxid=str(row.get("species_taxid")) if row.get("species_taxid") is not None else None,
+                species_taxid=str(row.get("species_taxid"))
+                if row.get("species_taxid") is not None
+                else None,
                 organism_name=row.get("organism_name"),
                 strain=row.get("strain"),
                 isolate_name=row.get("isolate_name"),
@@ -265,12 +267,18 @@ def resolve_bioproject_publications(
     return [
         BioProjectPublication(
             accession=row.get("accession", ""),
-            pubmed_id=str(row.get("pubmed_id")) if row.get("pubmed_id") is not None else None,
-            publication_date=str(row.get("publication_date")) if row.get("publication_date") else None,
+            pubmed_id=str(row.get("pubmed_id"))
+            if row.get("pubmed_id") is not None
+            else None,
+            publication_date=str(row.get("publication_date"))
+            if row.get("publication_date")
+            else None,
             publication_status=row.get("publication_status"),
             article_title=row.get("article_title"),
             journal_title=row.get("journal_title"),
-            publication_year=str(row.get("publication_year")) if row.get("publication_year") is not None else None,
+            publication_year=str(row.get("publication_year"))
+            if row.get("publication_year") is not None
+            else None,
             authors=row.get("authors"),
         )
         for row in result["rows"]
