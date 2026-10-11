@@ -5,7 +5,7 @@ image:
   pullSecret: ghcr-login-secret
 
 env:
-  MANAGEMENT_BACKEND_BASE_URL: "http://10.131.64.56/crawler-management-backend/api/v1"
+  MANAGEMENT_BACKEND_BASE_URL: "http://localhost/crawler-management-backend/api/v1"
 
 service:
   type: ClusterIP
