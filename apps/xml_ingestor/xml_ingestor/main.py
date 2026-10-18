@@ -123,6 +123,12 @@ def build_parser() -> argparse.ArgumentParser:
         default=False,
         help="Enable asynchronous WAL commits on PostgreSQL (SET synchronous_commit = 'off') for faster bulk ingestion at the expense of crash durability (default: False)",
     )
+    parser.add_argument(
+        "--config",
+        "--schema-config",
+        dest="schema_config",
+        help="Optional path to YAML schema customization file or s3:// URI",
+    )
     return parser
 
 
@@ -137,9 +143,13 @@ def run_ingest(
     deduplicate_by_hash: bool = True,
     auto_migrate: bool = True,
     async_commit: bool = False,
+    schema_config: Path | str | None = None,
 ) -> dict[str, int]:
     schema_plan = parse_xsd_schema(
-        xsd_path, table_prefix=table_prefix, db_schema=db_schema
+        xsd_path,
+        table_prefix=table_prefix,
+        db_schema=db_schema,
+        config=schema_config,
     )
     engine = init_database(database_url, echo=echo_sql)
     metadata = create_sqlalchemy_schema(
@@ -253,6 +263,19 @@ def main(argv: list[str] | None = None) -> int:
             else args.async_commit
         )
 
+        schema_config_raw = (
+            args.schema_config
+            or os.getenv("XML_INGESTOR_CONFIG")
+            or os.getenv("XML_INGESTOR_SCHEMA_CONFIG")
+        )
+        schema_config = None
+        if schema_config_raw:
+            schema_config = (
+                schema_config_raw
+                if schema_config_raw.startswith("s3://")
+                else Path(schema_config_raw)
+            )
+
         counts = run_ingest(
             xsd_path,
             xml_path,
@@ -264,6 +287,7 @@ def main(argv: list[str] | None = None) -> int:
             deduplicate_by_hash=deduplicate_by_hash,
             auto_migrate=auto_migrate,
             async_commit=async_commit,
+            schema_config=schema_config,
         )
         logger.info("Ingestion complete: %s", counts)
         return 0

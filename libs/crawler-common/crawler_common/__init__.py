@@ -10,10 +10,13 @@ from crawler_common.runner import CrawlerRunner
 from crawler_common.source_adapter import SourceAdapter
 from crawler_common.xmlschema import (
     ColumnSpec,
+    ElementCustomization,
+    SchemaCustomizationConfig,
     SchemaPlan,
     TableSpec,
     build_sqlalchemy_metadata,
     create_sqlalchemy_schema,
+    load_schema_config,
     parse_xsd_schema,
     stream_xml_to_database,
 )
@@ -23,9 +26,11 @@ __all__ = [
     "CrawlRequest",
     "CrawlResponse",
     "CrawlerRunner",
+    "ElementCustomization",
     "FTPNode",
     "HttpClient",
     "S3Adapter",
+    "SchemaCustomizationConfig",
     "SchemaPlan",
     "SourceAdapter",
     "SourceNode",
@@ -35,6 +40,7 @@ __all__ = [
     "get_ftp_structure",
     "get_root_folders",
     "load_env_vars",
+    "load_schema_config",
     "parse_xsd_schema",
     "stream_xml_to_database",
 ]

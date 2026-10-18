@@ -4,13 +4,17 @@ from __future__ import annotations
 
 import os
 from pathlib import Path
-from typing import TextIO
+from typing import Any, TextIO
 
 try:
     from lxml import etree as ET  # type: ignore
 except ImportError:
     import xml.etree.ElementTree as ET  # type: ignore
 
+from crawler_common.xmlschema.config import (
+    SchemaCustomizationConfig,
+    load_schema_config,
+)
 from crawler_common.xmlschema.models import (
     JSON_TYPE,
     ColumnSpec,
@@ -42,7 +46,10 @@ def _complex_type_children(complex_type: ET.Element) -> list[ET.Element]:
     return children
 
 
-def _complex_type_attributes(complex_type: ET.Element) -> list[ET.Element]:
+def _complex_type_attributes(
+    complex_type: ET.Element,
+    named_complex_types: dict[str, ET.Element] | None = None,
+) -> list[ET.Element]:
     attributes = [
         child for child in complex_type if _local_name(child.tag) == "attribute"
     ]
@@ -56,6 +63,14 @@ def _complex_type_attributes(complex_type: ET.Element) -> list[ET.Element]:
                         for child in ext
                         if _local_name(child.tag) == "attribute"
                     )
+                    base_name = ext.get("base")
+                    if base_name and named_complex_types:
+                        base_key = base_name.rsplit(":", 1)[-1]
+                        base_type = named_complex_types.get(base_key)
+                        if base_type is not None:
+                            attributes.extend(
+                                _complex_type_attributes(base_type, named_complex_types)
+                            )
     return attributes
 
 
@@ -179,6 +194,18 @@ def _read_schema_document(
                 shutil.rmtree(tmp_dir, ignore_errors=True)
                 raise
 
+        if source.startswith(("http://", "https://")):
+            import tempfile
+
+            import httpx
+
+            filename = Path(source).name or "schema.xsd"
+            resp = httpx.get(source, timeout=30.0)
+            resp.raise_for_status()
+            tmp_file = Path(tempfile.gettempdir()) / filename
+            tmp_file.write_bytes(resp.content)
+            return ET.fromstring(resp.content), tmp_file.parent, tmp_file
+
         source_path = Path(source)
         if source_path.exists():
             resolved_path = source_path.resolve()
@@ -198,7 +225,15 @@ def _read_schema_document(
 
 def _resolve_schema_location(
     base_dir: Path | None, schema_location: str
-) -> Path | None:
+) -> Path | str | None:
+    if schema_location.startswith(("http://", "https://")):
+        filename = Path(schema_location).name
+        if base_dir is not None:
+            local_candidate = (base_dir / filename).resolve()
+            if local_candidate.exists():
+                return local_candidate
+        return schema_location
+
     candidate = Path(schema_location)
     if candidate.is_absolute() and candidate.exists():
         return candidate.resolve()
@@ -207,7 +242,14 @@ def _resolve_schema_location(
         return candidate.resolve() if candidate.exists() else None
 
     resolved = (base_dir / candidate).resolve()
-    return resolved if resolved.exists() else None
+    if resolved.exists():
+        return resolved
+
+    local_name_candidate = (base_dir / candidate.name).resolve()
+    if local_name_candidate.exists():
+        return local_name_candidate
+
+    return None
 
 
 def _load_schema_catalog(xsd_source: str | Path | TextIO) -> _SchemaCatalog:
@@ -288,22 +330,40 @@ def _extract_builtin_simple_type(simple_type: ET.Element) -> str | None:
     return None
 
 
-def _extract_simple_content_type(complex_type: ET.Element) -> str | None:
+def _extract_simple_content_type(
+    complex_type: ET.Element,
+    named_complex_types: dict[str, ET.Element] | None = None,
+) -> str | None:
     simple_content = next(
         (child for child in complex_type if _local_name(child.tag) == "simpleContent"),
         None,
     )
-    if simple_content is None:
-        return None
+    if simple_content is not None:
+        extension = next(
+            (child for child in simple_content if _local_name(child.tag) in {"extension", "restriction"}),
+            None,
+        )
+        if extension is not None:
+            return extension.get("base")
 
-    extension = next(
-        (child for child in simple_content if _local_name(child.tag) == "extension"),
+    complex_content = next(
+        (child for child in complex_type if _local_name(child.tag) == "complexContent"),
         None,
     )
-    if extension is None:
-        return None
+    if complex_content is not None and named_complex_types:
+        extension = next(
+            (child for child in complex_content if _local_name(child.tag) in {"extension", "restriction"}),
+            None,
+        )
+        if extension is not None:
+            base_name = extension.get("base")
+            if base_name:
+                base_key = base_name.rsplit(":", 1)[-1]
+                base_type = named_complex_types.get(base_key)
+                if base_type is not None:
+                    return _extract_simple_content_type(base_type, named_complex_types)
 
-    return extension.get("base")
+    return None
 
 
 def _extract_element_details(
@@ -313,16 +373,16 @@ def _extract_element_details(
     inline_complex_type = _collect_inline_complex_type(element)
     if inline_complex_type is not None:
         child_elements = _complex_type_children(inline_complex_type)
-        attributes = _complex_type_attributes(inline_complex_type)
-        simple_value_type = _extract_simple_content_type(inline_complex_type)
+        attributes = _complex_type_attributes(inline_complex_type, named_complex_types)
+        simple_value_type = _extract_simple_content_type(inline_complex_type, named_complex_types)
         return child_elements, attributes, simple_value_type
 
     type_name = element.get("type")
     resolved_complex_type = _resolve_named_complex_type(type_name, named_complex_types)
     if resolved_complex_type is not None:
         child_elements = _complex_type_children(resolved_complex_type)
-        attributes = _complex_type_attributes(resolved_complex_type)
-        simple_value_type = _extract_simple_content_type(resolved_complex_type)
+        attributes = _complex_type_attributes(resolved_complex_type, named_complex_types)
+        simple_value_type = _extract_simple_content_type(resolved_complex_type, named_complex_types)
         return child_elements, attributes, simple_value_type
 
     inline_simple_type = _collect_inline_simple_type(element)
@@ -339,6 +399,9 @@ def _build_table_spec(
     path_parts: list[str],
     parent_spec: TableSpec | None = None,
     table_prefix: str | None = None,
+    xml_path_parts: list[str] | None = None,
+    config: SchemaCustomizationConfig | None = None,
+    ancestor_types: frozenset[str] = frozenset(),
 ) -> TableSpec | None:
     element_name = element.get("name") or element.get("ref")
     if not element_name:
@@ -350,17 +413,34 @@ def _build_table_spec(
             element = referenced
             element_name = element.get("name") or element_name
 
+    current_xml_path = (xml_path_parts or []) + [element_name]
+    customization = config.get_customization(current_xml_path) if config else None
+    if customization and customization.skip:
+        return None
+
+    type_name = element.get("type")
+    type_key = type_name.rsplit(":", 1)[-1] if type_name else None
+    if type_key and type_key in ancestor_types:
+        return None
+
     child_elements, attributes, simple_value_type = _extract_element_details(
         element,
         catalog.named_complex_types,
     )
-    type_name = element.get("type")
     resolved_complex_type = _resolve_named_complex_type(
         type_name, catalog.named_complex_types
     )
     inline_complex_type = _collect_inline_complex_type(element)
-    is_jsonb = _is_jsonb_element(element, resolved_complex_type, inline_complex_type)
-    table_alias = _extract_table_alias(element)
+
+    if customization and customization.jsonb is not None:
+        is_jsonb = customization.is_jsonb
+    else:
+        is_jsonb = _is_jsonb_element(element, resolved_complex_type, inline_complex_type)
+
+    if customization and customization.alias:
+        table_alias = _sanitize_identifier(customization.alias)
+    else:
+        table_alias = _extract_table_alias(element)
 
     if parent_spec is not None and is_jsonb:
         column_name = _column_name_for_child(table_alias or element_name)
@@ -375,14 +455,43 @@ def _build_table_spec(
         parent_spec.columns.append(column_spec)
         return None
 
+    active_attributes: list[ET.Element] = []
+    for attribute in attributes:
+        attr_name = attribute.get("name")
+        if not attr_name:
+            continue
+        attr_customization = (
+            config.get_customization(current_xml_path + [f"@{attr_name}"])
+            or config.get_customization(current_xml_path + [attr_name])
+            if config
+            else None
+        )
+        if attr_customization and attr_customization.skip:
+            continue
+        active_attributes.append(attribute)
+
+    active_children: list[ET.Element] = []
+    for child in child_elements:
+        c_name = child.get("name") or child.get("ref")
+        if not c_name:
+            continue
+        c_custom = (
+            config.get_customization(current_xml_path + [c_name])
+            if config
+            else None
+        )
+        if c_custom and c_custom.skip:
+            continue
+        active_children.append(child)
+
     repeatable = _occurs_is_repeatable(element)
-    has_attributes = bool(attributes)
-    has_child_elements = bool(child_elements)
+    has_attributes = bool(active_attributes)
+    has_child_elements = bool(active_children)
     is_root = parent_spec is None
     should_create_table = is_root or repeatable or has_attributes or has_child_elements
 
     if not should_create_table and parent_spec is not None:
-        column_name = _column_name_for_child(element_name)
+        column_name = _column_name_for_child(table_alias or element_name)
         column_spec = ColumnSpec(
             xml_name=element_name,
             column_name=column_name,
@@ -408,10 +517,8 @@ def _build_table_spec(
     if parent_spec is not None:
         parent_spec.child_tables[element_name] = spec
 
-    for attribute in attributes:
+    for attribute in active_attributes:
         attribute_name = attribute.get("name")
-        if not attribute_name:
-            continue
         column_spec = ColumnSpec(
             xml_name=attribute_name,
             column_name=_column_name_for_attribute(attribute_name),
@@ -420,6 +527,29 @@ def _build_table_spec(
             source="attribute",
         )
         spec.columns.append(column_spec)
+
+    if customization is not None and customization.add_columns:
+        existing_cols = {c.xml_name for c in spec.columns} | {
+            c.column_name for c in spec.columns
+        }
+        for add_col in customization.add_columns:
+            if add_col.name in existing_cols:
+                continue
+            col_name = (
+                _column_name_for_attribute(add_col.name)
+                if add_col.source == "attribute"
+                else _column_name_for_child(add_col.name)
+            )
+            col_spec = ColumnSpec(
+                xml_name=add_col.name,
+                column_name=col_name,
+                sql_type=_column_type_for_xsd(add_col.sql_type),
+                nullable=add_col.nullable,
+                source=add_col.source,
+            )
+            spec.columns.append(col_spec)
+            existing_cols.add(add_col.name)
+            existing_cols.add(col_name)
 
     if simple_value_type is not None and should_create_table:
         text_column = ColumnSpec(
@@ -432,7 +562,8 @@ def _build_table_spec(
         spec.text_column = text_column
         spec.columns.append(text_column)
 
-    for child_element in child_elements:
+    new_ancestors = ancestor_types | {type_key} if type_key else ancestor_types
+    for child_element in active_children:
         _build_table_spec(
             child_element,
             catalog,
@@ -440,6 +571,9 @@ def _build_table_spec(
             current_path,
             spec,
             table_prefix=table_prefix,
+            xml_path_parts=current_xml_path,
+            config=config,
+            ancestor_types=new_ancestors,
         )
 
     return spec
@@ -449,9 +583,13 @@ def parse_xsd_schema(
     xsd_source: str | Path | TextIO,
     table_prefix: str | None = None,
     db_schema: str | None = None,
+    config: SchemaCustomizationConfig | str | Path | dict[str, Any] | TextIO | None = None,
 ) -> SchemaPlan:
-    """Parse an XSD file into a table plan."""
+    """Parse an XSD file into a table plan with optional YAML customization config."""
 
+    schema_config = load_schema_config(config) if config is not None else None
+    if table_prefix is None and schema_config is not None and schema_config.table_prefix is not None:
+        table_prefix = schema_config.table_prefix
     catalog = _load_schema_catalog(xsd_source)
 
     root_tables: dict[str, TableSpec] = {}
@@ -465,6 +603,8 @@ def parse_xsd_schema(
             [],
             None,
             table_prefix=table_prefix,
+            xml_path_parts=[],
+            config=schema_config,
         )
         if table_spec is not None:
             root_tables[table_spec.xml_name] = table_spec
@@ -473,4 +613,5 @@ def parse_xsd_schema(
         root_tables=root_tables,
         tables_by_name=tables_by_name,
         db_schema=db_schema,
+        config=schema_config,
     )

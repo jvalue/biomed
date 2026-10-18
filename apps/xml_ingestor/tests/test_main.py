@@ -202,3 +202,33 @@ def test_run_ingest_rolls_back_when_async_commit_fails(monkeypatch):
     assert counts == {"root": 1}
     assert rolled_back == [True]
 
+
+def test_build_parser_accepts_config_flag():
+    parser = app_main.build_parser()
+    args1 = parser.parse_args(["--config", "config.yaml"])
+    assert args1.schema_config == "config.yaml"
+
+    args2 = parser.parse_args(["--schema-config", "s3://bucket/schema_config.yaml"])
+    assert args2.schema_config == "s3://bucket/schema_config.yaml"
+
+
+def test_main_resolves_schema_config(monkeypatch):
+    monkeypatch.setenv("XML_INGESTOR_XSD", "schema.xsd")
+    monkeypatch.setenv("XML_INGESTOR_XML", "data.xml")
+    monkeypatch.setenv(
+        "XML_INGESTOR_DATABASE_URL", "postgresql://user:pass@localhost/db"
+    )
+    monkeypatch.setenv("XML_INGESTOR_CONFIG", "schema_customization.yaml")
+
+    resolved = {}
+
+    def fake_run_ingest(*args, **kwargs):
+        resolved["schema_config"] = kwargs.get("schema_config")
+        return {"root": 1}
+
+    monkeypatch.setattr(app_main, "run_ingest", fake_run_ingest)
+
+    exit_code = app_main.main([])
+    assert exit_code == 0
+    assert resolved["schema_config"] == Path("schema_customization.yaml")
+

@@ -5,7 +5,21 @@ This app reads an XSD schema file, a large XML file, and a PostgreSQL connection
 The app can read those values from a local env file at `apps/xml_ingestor/.env` or from explicit CLI flags.
 If the entrypoint XSD uses `xs:include` or `xs:import`, place the referenced schema files next to it or update the paths in the XSD so the parser can resolve them.
 If `apps/xml_ingestor/.env` is missing, the app falls back to `apps/xml_ingestor/.env.example`.
-You can also give important XSD elements clean physical table names by adding an appinfo alias:
+You can also customize and simplify the schema without touching the XSD (especially when XSDs are crawled and refreshed from external sources) using a secondary YAML configuration file:
+
+```yaml
+elements:
+  "Study":
+    alias: study
+  "Study/StudyDescription":
+    alias: descr
+  "Summary":
+    store_as: jsonb        # Collapses nested subtree into a single JSONB column
+  "InternalAdminNotes":
+    skip: true             # Omit unwanted elements/subtrees from DB tables
+```
+
+Alternatively, you can embed appinfo annotations directly in the XSD:
 
 ```xml
 <xs:annotation>
@@ -15,18 +29,19 @@ You can also give important XSD elements clean physical table names by adding an
 </xs:annotation>
 ```
 
-If no alias is provided, the generator still falls back to the sanitized XML path.
+If neither is provided, the generator falls back to the sanitized XML path.
 
 ## Inputs
 
 - `XML_INGESTOR_XSD`: path to the XSD file
 - `XML_INGESTOR_XML`: path to the XML file
+- `XML_INGESTOR_CONFIG`: optional path to a YAML schema customization file or `s3://` URI
 - `XML_INGESTOR_DATABASE_URL`: SQLAlchemy PostgreSQL URL, for example `postgresql+psycopg2://user:pass@localhost:5432/biomed`
 - `XML_INGESTOR_ECHO_SQL`: optional boolean flag to print SQL emitted by SQLAlchemy
 - `XML_INGESTOR_COMMIT_EVERY`: optional batch size for transaction commits (default: 1000)
 - `XML_INGESTOR_TABLE_PREFIX`: optional prefix prepended to all generated SQL table names (e.g. `pm` -> `pm_table_name`)
 - `--env-file`: optional path to a `.env` file to load before resolving settings
-- `--xsd`, `--xml`, `--database-url`, `--echo-sql`, `--commit-every`, `--table-prefix`: CLI overrides for the env values
+- `--xsd`, `--xml`, `--config`, `--database-url`, `--echo-sql`, `--commit-every`, `--table-prefix`: CLI overrides for the env values
 
 Example `.env`:
 

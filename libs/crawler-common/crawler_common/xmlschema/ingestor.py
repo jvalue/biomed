@@ -519,6 +519,19 @@ def stream_xml_to_database(
                             element=element,
                         )
                     else:
+                        if parent_frame is not None and not parent_frame.is_inside_jsonb:
+                            root_spec = schema_plan.root_tables.get(local_name)
+                            if root_spec is not None:
+                                root_frame = _Frame(
+                                    definition=root_spec, parent=parent_frame, element=element
+                                )
+                                if deduplicate_by_hash:
+                                    _init_frame_hash(root_frame, element, local_name)
+                                populate_attributes(root_frame, element.attrib)
+                                _ensure_buffered_row(root_frame)
+                                frame_stack.append(root_frame)
+                                continue
+
                         f = _Frame(definition=None, parent=parent_frame, element=element)
                     if deduplicate_by_hash:
                         _init_frame_hash(f, element, local_name)

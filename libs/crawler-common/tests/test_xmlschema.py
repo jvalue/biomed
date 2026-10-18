@@ -2,8 +2,11 @@ from pathlib import Path
 
 from crawler_common.database import get_session, init_database
 from crawler_common.xmlschema import (
+    ElementCustomization,
+    SchemaCustomizationConfig,
     build_sqlalchemy_metadata,
     create_sqlalchemy_schema,
+    load_schema_config,
     parse_xsd_schema,
     process_s3_prefix_ingestion,
     record_ingested_file,
@@ -1289,9 +1292,303 @@ def test_stream_xml_to_database_with_jsonb() -> None:
         attrs2 = rows[1]["attributes"]
         if isinstance(attrs2, str):
             import json
+
             attrs2 = json.loads(attrs2)
         assert attrs2["Attribute"]["attribute_name"] == "organism"
         assert attrs2["Attribute"]["value"] == "Homo sapiens"
     finally:
         session.close()
+
+
+def test_schema_config_path_matching() -> None:
+    yaml_content = """
+elements:
+  "SampleSet/Sample/Attributes":
+    store_as: jsonb
+  "Sample":
+    alias: sample
+  "InternalNotes":
+    skip: true
+  "author":
+    alias: auth
+"""
+    config = load_schema_config(yaml_content)
+    assert isinstance(config, SchemaCustomizationConfig)
+
+    # Exact full match
+    match1 = config.get_customization(["SampleSet", "Sample", "Attributes"])
+    assert match1 is not None
+    assert isinstance(match1, ElementCustomization)
+    assert match1.is_jsonb is True
+
+    # Suffix match on element name
+    match2 = config.get_customization(["SampleSet", "Sample"])
+    assert match2 is not None
+    assert match2.alias == "sample"
+
+    # Case-insensitive match
+    match3 = config.get_customization(["Publication", "Author"])
+    assert match3 is not None
+    assert match3.alias == "auth"
+
+    # Skip rule
+    match4 = config.get_customization(["SampleSet", "Sample", "InternalNotes"])
+    assert match4 is not None
+    assert match4.skip is True
+
+    # No match
+    assert config.get_customization(["SampleSet", "Other"]) is None
+
+
+def test_parse_xsd_with_yaml_config_jsonb_and_aliases() -> None:
+    unannotated_xsd = """<xs:schema xmlns:xs="http://www.w3.org/2001/XMLSchema">
+      <xs:element name="Study">
+        <xs:complexType>
+          <xs:sequence>
+            <xs:element name="StudyDescription">
+              <xs:complexType>
+                <xs:sequence>
+                  <xs:element name="Title" type="xs:string"/>
+                  <xs:element name="Summary">
+                    <xs:complexType>
+                      <xs:sequence>
+                        <xs:element name="Paragraph" type="xs:string" maxOccurs="unbounded"/>
+                      </xs:sequence>
+                    </xs:complexType>
+                  </xs:element>
+                  <xs:element name="InternalAdminNotes">
+                    <xs:complexType>
+                      <xs:sequence>
+                        <xs:element name="Note" type="xs:string"/>
+                      </xs:sequence>
+                    </xs:complexType>
+                  </xs:element>
+                </xs:sequence>
+              </xs:complexType>
+            </xs:element>
+          </xs:sequence>
+        </xs:complexType>
+      </xs:element>
+    </xs:schema>"""
+
+    yaml_config = """
+elements:
+  "Study":
+    alias: study
+  "Study/StudyDescription":
+    alias: descr
+  "Summary":
+    store_as: jsonb
+    alias: summary_data
+  "InternalAdminNotes":
+    skip: true
+"""
+    plan = parse_xsd_schema(unannotated_xsd, config=yaml_config)
+
+    # Only study and study_descr should exist; Summary is collapsed into JSONB, InternalAdminNotes is skipped
+    assert set(plan.tables_by_name) == {"study", "study_descr"}
+
+    descr_table = plan.tables_by_name["study_descr"]
+    col_names = [col.column_name for col in descr_table.columns]
+    assert "title" in col_names
+    assert "summary_data" in col_names
+    assert "summary_data" in [c.column_name for c in descr_table.jsonb_children.values()]
+    assert "internal_admin_notes" not in col_names
+    assert "InternalAdminNotes" not in descr_table.child_tables
+    assert "Summary" not in descr_table.child_tables
+
+
+def test_stream_xml_to_database_with_yaml_config(tmp_path: Path) -> None:
+    unannotated_xsd = """<xs:schema xmlns:xs="http://www.w3.org/2001/XMLSchema">
+      <xs:element name="ExperimentSet">
+        <xs:complexType>
+          <xs:sequence>
+            <xs:element name="Experiment" maxOccurs="unbounded">
+              <xs:complexType>
+                <xs:sequence>
+                  <xs:element name="Name" type="xs:string"/>
+                  <xs:element name="UnwantedMetadata">
+                    <xs:complexType>
+                      <xs:sequence>
+                        <xs:element name="DebugId" type="xs:int"/>
+                      </xs:sequence>
+                    </xs:complexType>
+                  </xs:element>
+                  <xs:element name="Metrics">
+                    <xs:complexType>
+                      <xs:sequence>
+                        <xs:element name="Metric" maxOccurs="unbounded">
+                          <xs:complexType>
+                            <xs:simpleContent>
+                              <xs:extension base="xs:string">
+                                <xs:attribute name="key" type="xs:string"/>
+                              </xs:extension>
+                            </xs:simpleContent>
+                          </xs:complexType>
+                        </xs:element>
+                      </xs:sequence>
+                    </xs:complexType>
+                  </xs:element>
+                </xs:sequence>
+              </xs:complexType>
+            </xs:element>
+          </xs:sequence>
+        </xs:complexType>
+      </xs:element>
+    </xs:schema>"""
+
+    xml = """<ExperimentSet>
+      <Experiment>
+        <Name>RNA-Seq Alpha</Name>
+        <UnwantedMetadata><DebugId>999</DebugId></UnwantedMetadata>
+        <Metrics>
+          <Metric key="reads">1500000</Metric>
+          <Metric key="q30">0.95</Metric>
+        </Metrics>
+      </Experiment>
+    </ExperimentSet>"""
+
+    config_file = tmp_path / "schema_customization.yaml"
+    config_file.write_text(
+        """
+elements:
+  ExperimentSet:
+    alias: exp_set
+  ExperimentSet/Experiment:
+    alias: exp
+  Metrics:
+    store_as: jsonb
+  UnwantedMetadata:
+    skip: true
+"""
+    )
+
+    plan = parse_xsd_schema(unannotated_xsd, config=config_file)
+    assert set(plan.tables_by_name) == {"exp_set", "exp_set_exp"}
+
+    engine = init_database("sqlite+pysqlite:///:memory:")
+    metadata = create_sqlalchemy_schema(engine, plan)
+    session = get_session(engine)
+
+    try:
+        counts = stream_xml_to_database(session, xml, plan, metadata=metadata)
+        assert counts["exp_set_exp"] == 1
+        assert "exp_set_exp_metrics" not in counts
+        assert "exp_set_exp_unwantedmetadata" not in counts
+
+        exp_table = metadata.tables["exp_set_exp"]
+        row = session.execute(select(exp_table)).mappings().one()
+        assert row["name"] == "RNA-Seq Alpha"
+
+        metrics = row["metrics"]
+        if isinstance(metrics, str):
+            import json
+
+            metrics = json.loads(metrics)
+        assert len(metrics["Metric"]) == 2
+        assert metrics["Metric"][0]["key"] == "reads"
+        assert metrics["Metric"][0]["value"] == "1500000"
+        assert metrics["Metric"][1]["key"] == "q30"
+        assert metrics["Metric"][1]["value"] == "0.95"
+    finally:
+        session.close()
+
+
+def test_yaml_config_can_override_existing_xsd_annotations() -> None:
+    # XSD has an annotation specifying table name="old_table"
+    annotated_xsd = """<xs:schema xmlns:xs="http://www.w3.org/2001/XMLSchema">
+      <xs:element name="Record">
+        <xs:annotation>
+          <xs:appinfo><table name="old_table"/></xs:appinfo>
+        </xs:annotation>
+        <xs:complexType>
+          <xs:sequence>
+            <xs:element name="Field" type="xs:string"/>
+          </xs:sequence>
+        </xs:complexType>
+      </xs:element>
+    </xs:schema>"""
+
+    # YAML overrides the table alias
+    override_config = {
+        "elements": {
+            "Record": {
+                "alias": "new_table",
+            }
+        }
+    }
+
+    plan = parse_xsd_schema(annotated_xsd, config=override_config)
+    assert "new_table" in plan.tables_by_name
+    assert "old_table" not in plan.tables_by_name
+
+
+def test_schema_customization_add_columns_and_table_prefix() -> None:
+    xsd = """<xs:schema xmlns:xs="http://www.w3.org/2001/XMLSchema">
+      <xs:element name="Sample">
+        <xs:complexType>
+          <xs:sequence>
+            <xs:element name="Name" type="xs:string"/>
+          </xs:sequence>
+          <xs:attribute name="version" type="xs:string"/>
+        </xs:complexType>
+      </xs:element>
+    </xs:schema>"""
+
+    config = {
+        "table_prefix": "ncbi",
+        "elements": {
+            "Sample": {
+                "alias": "sample",
+                "add_columns": ["accession", "id"],
+            }
+        },
+    }
+
+    plan = parse_xsd_schema(xsd, config=config)
+    assert "ncbi_sample" in plan.tables_by_name
+    col_names = [c.column_name for c in plan.tables_by_name["ncbi_sample"].columns]
+    assert "version" in col_names
+    assert "name" in col_names
+    assert "accession" in col_names
+    assert "id_value" in col_names
+
+
+def test_biosample_mapping_equivalency() -> None:
+    from pathlib import Path
+
+    orig_xsd = Path("tmp/biosample_original.xsd")
+    clean_xsd = Path("tmp/biosample_clean.xsd")
+    mapping_yaml = Path("tmp/biosample_mapping.yaml")
+    sample_xml = Path("tmp/sample_biosample.xml")
+
+    if not (orig_xsd.exists() and clean_xsd.exists() and mapping_yaml.exists() and sample_xml.exists()):
+        return
+
+    plan_orig = parse_xsd_schema(orig_xsd, config=mapping_yaml)
+    plan_clean = parse_xsd_schema(clean_xsd)
+
+    for tname, tbl_orig in plan_orig.tables_by_name.items():
+        assert tname in plan_clean.tables_by_name, f"Missing table {tname} in clean schema"
+        tbl_clean = plan_clean.tables_by_name[tname]
+        orig_cols = {c.column_name for c in tbl_orig.columns}
+        clean_cols = {c.column_name for c in tbl_clean.columns}
+        assert orig_cols == clean_cols, f"Column mismatch in {tname}: {orig_cols} vs {clean_cols}"
+
+    engine = init_database("sqlite+pysqlite:///:memory:")
+    meta = create_sqlalchemy_schema(engine, plan_orig)
+    session = get_session(engine)
+    try:
+        counts = stream_xml_to_database(session, sample_xml.read_text(), plan_orig, metadata=meta)
+        assert counts["set_biosample"] == 2
+        assert counts["set_biosample_attrs_attribute"] == 5
+        assert counts["set_biosample_id_spuid"] == 1
+
+        bio_rows = session.execute(select(meta.tables["set_biosample"])).mappings().all()
+        assert len(bio_rows) == 2
+        assert bio_rows[0]["accession"] == "SAMN00000001"
+        assert bio_rows[0]["id_value"] == "1"
+    finally:
+        session.close()
+
 

@@ -449,6 +449,44 @@ In [`_extract_table_alias`](file:///home/dirk/Sources/biomed/libs/crawler-common
 
 ---
 
+### Secondary YAML Schema Definition (Alternative to XSD Annotations)
+
+When XSD files are crawled and downloaded from external data sources (e.g. NCBI, UniProt, PubMed), editing or embedding annotations directly inside the XSD is brittle because updates to the upstream schema will overwrite manual changes.
+
+The engine supports a **secondary YAML configuration file** passed via `config=` in [`parse_xsd_schema`](file:///home/dirk/Sources/biomed/libs/crawler-common/crawler_common/xmlschema/parser.py) or via `--config` / `XML_INGESTOR_CONFIG` in `xml_ingestor`.
+
+#### Example YAML Configuration (`schema_customization.yaml`)
+
+```yaml
+elements:
+  # Collapse nested subtree into a single JSONB column without child tables
+  "Sample/Attributes":
+    store_as: jsonb
+    alias: attributes_json
+
+  # Override physical table alias (identical to <table name="study"/>)
+  "Study":
+    alias: study
+  "StudyDescription":
+    alias: descr
+
+  # Omit unwanted elements and their subtrees from database tables and ingestion
+  "InternalAdminNotes":
+    skip: true
+  "DebugMetadata":
+    skip: true
+```
+
+#### Selector Matching Rules
+
+1. **Exact Full Path**: `"SampleSet/Sample/Attributes"` matches only that specific element in the hierarchy.
+2. **Path Suffix**: `"Sample/Attributes"` matches any `Attributes` nested under a `Sample` element.
+3. **Element Name**: `"Attributes"` matches any `Attributes` element across the schema.
+4. **Precedence**: Longest (most specific) path matches take precedence over general element rules.
+5. **Case-Insensitive Fallback**: Matches are checked exact first, then case-insensitively.
+
+---
+
 ## 5. PostgreSQL Identifier Length Limits & Truncation
 
 When an XML hierarchy is deeply nested and no alias is specified, path concatenation can exceed PostgreSQL's 63-character limit.
