@@ -408,7 +408,7 @@ CREATE INDEX ix_project_descr_pub_author_project_descr_pub_id
 
 ### Supported Annotation Syntaxes
 
-In [`_extract_table_alias`](./libs/crawler-common/crawler_common/xmlschema/__init__.py#L237-L261), the parser recognizes any of the following syntaxes within `<xs:annotation><xs:appinfo>`:
+In [`_extract_table_alias`](../libs/crawler-common/crawler_common/xmlschema/__init__.py), the parser recognizes any of the following syntaxes within `<xs:annotation><xs:appinfo>`:
 
 1. **Tag `<table name="...">`** *(recommended)*:
    ```xml
@@ -453,7 +453,7 @@ In [`_extract_table_alias`](./libs/crawler-common/crawler_common/xmlschema/__ini
 
 When an XML hierarchy is deeply nested and no alias is specified, path concatenation can exceed PostgreSQL's 63-character limit.
 
-To prevent syntax errors, [`_shorten_identifier()`](./libs/crawler-common/crawler_common/xmlschema/__init__.py#L162-L169) automatically truncates any name exceeding 63 characters to 54 characters and appends an 8-character SHA-1 hash:
+To prevent syntax errors, [`_shorten_identifier()`](../libs/crawler-common/crawler_common/xmlschema/__init__.py) automatically truncates any name exceeding 63 characters to 54 characters and appends an 8-character SHA-1 hash:
 
 ```
 Original path (71 chars):

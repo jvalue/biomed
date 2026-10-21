@@ -29,7 +29,7 @@ export class JwtStrategy extends PassportStrategy(Strategy) {
 					return request?.cookies?.accessToken;
 				},
 			]),
-			secretOrKey: configService.get('JWT_SECRET') || 'your-secret-key',
+			secretOrKey: configService.getOrThrow<string>('JWT_SECRET'),
 			ignoreExpiration: false,
 		});
 	}

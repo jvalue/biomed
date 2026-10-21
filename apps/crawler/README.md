@@ -33,11 +33,11 @@ For details on shared FTP helpers and configuration, see [libs/crawler-common/RE
 
 `crawler_general` is organized into single-responsibility modules under `apps/crawler/crawler_general/src/`:
 
-- **`config.py`**: Typed runtime configuration ([`CrawlerConfig`](./apps/crawler/crawler_general/src/config.py)), environment loading from `.env`, and database prefix derivation ([`derive_crawl_db_name`](./apps/crawler/crawler_general/src/config.py)).
-- **`urls.py`**: Pure URL normalization ([`build_download_url`](./apps/crawler/crawler_general/src/urls.py)) avoiding root path duplication across deep FTP hierarchies.
-- **`diff.py`**: Delta detection ([`entry_has_changed`](./apps/crawler/crawler_general/src/diff.py)) handling file size, node type, and timestamp jitter tolerance, plus historical querying ([`get_latest_entries_by_path`](./apps/crawler/crawler_general/src/diff.py)).
-- **`publisher.py`**: Batch persistence to the database and RabbitMQ message dispatching ([`flush_discovery_batch`](./apps/crawler/crawler_general/src/publisher.py)).
-- **`crawler.py`**: Discovery run lifecycle management and streaming traversal orchestration ([`crawl_ftp`](./apps/crawler/crawler_general/src/crawler.py)).
+- **`config.py`**: Typed runtime configuration ([`CrawlerConfig`](./crawler_general/src/config.py)), environment loading from `.env`, and database prefix derivation ([`derive_crawl_db_name`](./crawler_general/src/config.py)).
+- **`urls.py`**: Pure URL normalization ([`build_download_url`](./crawler_general/src/urls.py)) avoiding root path duplication across deep FTP hierarchies.
+- **`diff.py`**: Delta detection ([`entry_has_changed`](./crawler_general/src/diff.py)) handling file size, node type, and timestamp jitter tolerance, plus historical querying ([`get_latest_entries_by_path`](./crawler_general/src/diff.py)).
+- **`publisher.py`**: Batch persistence to the database and RabbitMQ message dispatching ([`flush_discovery_batch`](./crawler_general/src/publisher.py)).
+- **`crawler.py`**: Discovery run lifecycle management and streaming traversal orchestration ([`crawl_ftp`](./crawler_general/src/crawler.py)).
 - **`main.py`**: CLI entrypoint and backward-compatibility export layer.
 
 ## Run Locally
