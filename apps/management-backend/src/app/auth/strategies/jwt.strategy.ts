@@ -23,13 +23,18 @@ export class JwtStrategy extends PassportStrategy(Strategy) {
 		configService: ConfigService,
 		private readonly usersService: UsersService,
 	) {
+		const jwtSecret = configService.get<string>('JWT_SECRET');
+		if (!jwtSecret) {
+			throw new Error('JWT_SECRET is required');
+		}
+
 		super({
 			jwtFromRequest: ExtractJwt.fromExtractors([
 				(request) => {
 					return request?.cookies?.accessToken;
 				},
 			]),
-			secretOrKey: configService.getOrThrow<string>('JWT_SECRET'),
+			secretOrKey: jwtSecret,
 			ignoreExpiration: false,
 		});
 	}
